@@ -111,7 +111,7 @@ Multi-repo development. Agency client management. Enterprise platform teams.
 brew install tmux
 
 # Clone the repo
-git clone https://github.com/yourusername/flowrider.git
+git clone https://github.com/josephas-llc/flowrider.git
 cd flowrider
 
 # Install dependencies
@@ -127,7 +127,7 @@ npm run start
 
 ### Download Binary
 
-Download the latest `.dmg` from [Releases](https://github.com/yourusername/flowrider/releases).
+Download the latest `.dmg` from [Releases](https://github.com/josephas-llc/flowrider/releases).
 
 ## Quick Start
 
@@ -250,5 +250,5 @@ MIT License. See [LICENSE](LICENSE) for details.
 </p>
 
 <p align="center">
-  <a href="https://github.com/yourusername/flowrider">Star us on GitHub</a>
+  <a href="https://github.com/josephas-llc/flowrider">Star us on GitHub</a>
 </p>
