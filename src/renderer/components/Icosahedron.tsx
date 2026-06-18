@@ -1,0 +1,347 @@
+import React, { useRef, useMemo, useState } from 'react';
+import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+import { Session } from '../store';
+import { Html } from '@react-three/drei';
+
+interface IcosahedronProps {
+  sessions: Session[];
+  selectedFace: number | null;
+  onFaceClick: (faceIndex: number) => void;
+  showPreviews?: boolean;
+}
+
+const STATUS_COLORS = {
+  empty: '#333333',
+  active: '#00ff88',
+  attached: '#00ffff',
+};
+
+const GLOW_COLORS = {
+  empty: new THREE.Color('#222222'),
+  active: new THREE.Color('#00ff88'),
+  attached: new THREE.Color('#00ffff'),
+};
+
+export const Icosahedron: React.FC<IcosahedronProps> = ({
+  sessions,
+  selectedFace,
+  onFaceClick,
+  showPreviews = true,
+}) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const edgesRef = useRef<THREE.LineSegments>(null);
+  const glowRingsRef = useRef<THREE.Group>(null);
+  const [hoveredFace, setHoveredFace] = useState<number | null>(null);
+
+  // Create icosahedron geometry
+  const { geometry, faceData } = useMemo(() => {
+    const geo = new THREE.IcosahedronGeometry(2, 0);
+    const positions = geo.attributes.position;
+    const faceCount = positions.count / 3;
+
+    const faces: Array<{
+      index: number;
+      centroid: THREE.Vector3;
+      normal: THREE.Vector3;
+      color: string;
+    }> = [];
+
+    for (let i = 0; i < faceCount; i++) {
+      const session = sessions[i];
+      const color = STATUS_COLORS[session?.status || 'empty'];
+
+      // Calculate centroid and normal for each face
+      const v1 = new THREE.Vector3().fromBufferAttribute(positions, i * 3);
+      const v2 = new THREE.Vector3().fromBufferAttribute(positions, i * 3 + 1);
+      const v3 = new THREE.Vector3().fromBufferAttribute(positions, i * 3 + 2);
+
+      const centroid = new THREE.Vector3()
+        .add(v1).add(v2).add(v3)
+        .divideScalar(3);
+
+      const normal = centroid.clone().normalize();
+
+      const extendedCentroid = normal.clone().multiplyScalar(2.15);
+
+      faces.push({ index: i, centroid: extendedCentroid, normal, color });
+    }
+
+    return { geometry: geo, faceData: faces };
+  }, [sessions]);
+
+  // Create vertex colors with animation support
+  const colors = useMemo(() => {
+    const colorArray = new Float32Array(geometry.attributes.position.count * 3);
+
+    for (let i = 0; i < faceData.length; i++) {
+      const isSelected = selectedFace === i;
+      const isHovered = hoveredFace === i;
+      const baseColor = new THREE.Color(faceData[i].color);
+
+      if (isSelected) {
+        baseColor.multiplyScalar(1.8);
+      } else if (isHovered) {
+        baseColor.multiplyScalar(1.4);
+      }
+
+      const baseIndex = i * 9;
+      for (let j = 0; j < 3; j++) {
+        const offset = baseIndex + j * 3;
+        colorArray[offset] = baseColor.r;
+        colorArray[offset + 1] = baseColor.g;
+        colorArray[offset + 2] = baseColor.b;
+      }
+    }
+
+    return colorArray;
+  }, [faceData, selectedFace, hoveredFace, geometry]);
+
+  // Update geometry colors
+  React.useEffect(() => {
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.attributes.color.needsUpdate = true;
+  }, [colors, geometry]);
+
+  // Animation frame for pulsing effects
+  useFrame((state) => {
+    const time = state.clock.elapsedTime;
+
+    // Sync edges rotation with mesh
+    if (edgesRef.current && meshRef.current) {
+      edgesRef.current.rotation.copy(meshRef.current.rotation);
+    }
+
+    // Sync glow rings
+    if (glowRingsRef.current && meshRef.current) {
+      glowRingsRef.current.rotation.copy(meshRef.current.rotation);
+    }
+
+    // Animate glow rings
+    if (glowRingsRef.current) {
+      glowRingsRef.current.children.forEach((child, index) => {
+        const session = sessions[index];
+        if (session?.status !== 'empty') {
+          // Pulsing scale effect
+          const pulse = 1 + Math.sin(time * 3 + index * 0.5) * 0.15;
+          child.scale.setScalar(pulse);
+
+          // Pulsing opacity
+          const material = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
+          if (material) {
+            material.opacity = 0.3 + Math.sin(time * 2 + index * 0.3) * 0.2;
+          }
+        }
+      });
+    }
+  });
+
+  // Handle click with raycasting
+  const handleClick = (event: THREE.Event) => {
+    event.stopPropagation();
+    const intersect = (event as any).intersections?.[0];
+    if (!intersect || intersect.faceIndex === undefined) return;
+
+    const faceIndex = Math.floor(intersect.faceIndex);
+    onFaceClick(faceIndex);
+  };
+
+  // Handle hover
+  const handlePointerMove = (event: THREE.Event) => {
+    const intersect = (event as any).intersections?.[0];
+    if (intersect && intersect.faceIndex !== undefined) {
+      setHoveredFace(Math.floor(intersect.faceIndex));
+    }
+  };
+
+  const handlePointerLeave = () => {
+    setHoveredFace(null);
+  };
+
+  return (
+    <group>
+      {/* Main icosahedron */}
+      <mesh
+        ref={meshRef}
+        geometry={geometry}
+        onClick={handleClick}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
+      >
+        <meshStandardMaterial
+          vertexColors
+          transparent
+          opacity={0.85}
+          emissive="#111"
+          emissiveIntensity={0.4}
+          roughness={0.2}
+          metalness={0.8}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Wireframe edges with glow */}
+      <lineSegments ref={edgesRef}>
+        <edgesGeometry args={[geometry]} />
+        <lineBasicMaterial color="#00ffff" linewidth={2} transparent opacity={0.7} />
+      </lineSegments>
+
+      {/* Pulsing glow rings for active sessions */}
+      <group ref={glowRingsRef}>
+        {faceData.map((face, index) => {
+          const session = sessions[index];
+          const isActive = session?.status !== 'empty';
+          const isSelected = selectedFace === index;
+          const isAttached = session?.status === 'attached';
+
+          if (!isActive) return null;
+
+          return (
+            <mesh key={`glow-${index}`} position={face.centroid}>
+              <ringGeometry args={[0.15, 0.25, 32]} />
+              <meshBasicMaterial
+                color={isAttached ? '#00ffff' : '#00ff88'}
+                transparent
+                opacity={0.4}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          );
+        })}
+      </group>
+
+      {/* Glow indicators for active/selected faces */}
+      {faceData.map((face) => {
+        const session = sessions[face.index];
+        const isActive = session?.status !== 'empty';
+        const isSelected = selectedFace === face.index;
+        const isHovered = hoveredFace === face.index;
+
+        if (!isActive && !isSelected && !isHovered) return null;
+
+        return (
+          <group key={face.index}>
+            {/* Core indicator */}
+            <mesh position={face.centroid}>
+              <sphereGeometry args={[isSelected ? 0.15 : 0.1, 16, 16]} />
+              <meshBasicMaterial
+                color={isSelected ? '#ffffff' : face.color}
+                transparent
+                opacity={isSelected ? 0.95 : 0.7}
+              />
+            </mesh>
+
+            {/* Outer glow for selected */}
+            {isSelected && (
+              <mesh position={face.centroid}>
+                <sphereGeometry args={[0.3, 16, 16]} />
+                <meshBasicMaterial
+                  color="#00ffff"
+                  transparent
+                  opacity={0.2}
+                />
+              </mesh>
+            )}
+          </group>
+        );
+      })}
+
+      {/* Session preview tooltips on hover */}
+      {showPreviews && hoveredFace !== null && (
+        <Html
+          position={faceData[hoveredFace]?.centroid.clone().multiplyScalar(1.3)}
+          center
+          style={{
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          <SessionPreview session={sessions[hoveredFace]} faceIndex={hoveredFace} />
+        </Html>
+      )}
+    </group>
+  );
+};
+
+// Session preview tooltip component
+interface SessionPreviewProps {
+  session: Session;
+  faceIndex: number;
+}
+
+const SessionPreview: React.FC<SessionPreviewProps> = ({ session, faceIndex }) => {
+  const isActive = session?.status !== 'empty';
+
+  return (
+    <div
+      style={{
+        background: 'rgba(10, 10, 15, 0.95)',
+        border: `1px solid ${isActive ? '#00ffff' : '#333'}`,
+        borderRadius: 8,
+        padding: '12px 16px',
+        minWidth: 180,
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+      }}
+    >
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+      }}>
+        <span style={{
+          color: '#fff',
+          fontWeight: 600,
+          fontSize: 13,
+        }}>
+          Face #{String(faceIndex + 1).padStart(2, '0')}
+        </span>
+        <span style={{
+          padding: '2px 8px',
+          borderRadius: 4,
+          fontSize: 10,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          background: isActive
+            ? session.status === 'attached' ? 'rgba(0, 255, 255, 0.2)' : 'rgba(0, 255, 136, 0.2)'
+            : 'rgba(100, 100, 100, 0.2)',
+          color: isActive
+            ? session.status === 'attached' ? '#00ffff' : '#00ff88'
+            : '#666',
+        }}>
+          {session?.status || 'empty'}
+        </span>
+      </div>
+
+      {isActive ? (
+        <>
+          <div style={{ color: '#ccc', fontSize: 12, marginBottom: 4 }}>
+            {session.name}
+          </div>
+          <div style={{ color: '#666', fontSize: 11, fontFamily: 'monospace' }}>
+            {session.workingDir}
+          </div>
+          {session.estimatedCost > 0 && (
+            <div style={{
+              marginTop: 8,
+              paddingTop: 8,
+              borderTop: '1px solid #333',
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 11,
+            }}>
+              <span style={{ color: '#888' }}>Cost:</span>
+              <span style={{ color: '#ffcc00', fontFamily: 'monospace' }}>
+                ${session.estimatedCost.toFixed(4)}
+              </span>
+            </div>
+          )}
+        </>
+      ) : (
+        <div style={{ color: '#666', fontSize: 12 }}>
+          Click to create session
+        </div>
+      )}
+    </div>
+  );
+};
