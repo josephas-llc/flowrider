@@ -229,6 +229,9 @@ interface FlowriderState {
   // Dashboard Actions
   setDashboardView: (view: 'overview' | 'projects' | 'costs' | 'leo') => void;
   refreshDashboard: () => void;
+
+  // Session Sync
+  syncWithTmux: () => Promise<void>;
 }
 
 // ============================================
@@ -563,6 +566,59 @@ export const useStore = create<FlowriderState>()(
             },
           };
         }),
+
+      // Sync sessions with actual tmux state on startup
+      syncWithTmux: async () => {
+        if (!window.flowrider) return;
+
+        try {
+          const result = await window.flowrider.tmux.list();
+          if (!(result as any).success) return;
+
+          const tmuxSessions: Array<{ name: string; faceIndex: number; attached: boolean }> =
+            (result as any).data || [];
+
+          // Build a map of faceIndex -> tmux session
+          const tmuxMap = new Map<number, { name: string; attached: boolean }>();
+          for (const ts of tmuxSessions) {
+            tmuxMap.set(ts.faceIndex, { name: ts.name, attached: ts.attached });
+          }
+
+          // Update store sessions based on actual tmux state
+          set((state) => {
+            const newSessions = state.sessions.map((session) => {
+              const tmux = tmuxMap.get(session.faceIndex);
+              if (tmux) {
+                // Tmux session exists - mark as active
+                return {
+                  ...session,
+                  tmuxSession: tmux.name,
+                  status: tmux.attached ? 'attached' as const : 'active' as const,
+                };
+              } else if (session.tmuxSession) {
+                // UI thinks there's a session but tmux doesn't have it - mark as empty
+                return {
+                  ...session,
+                  tmuxSession: undefined,
+                  status: 'empty' as const,
+                };
+              }
+              return session;
+            });
+
+            const activeSessions = newSessions.filter((s) => s.status !== 'empty').length;
+
+            return {
+              sessions: newSessions,
+              dashboard: { ...state.dashboard, activeSessions },
+            };
+          });
+
+          console.log(`[Store] Synced ${tmuxSessions.length} tmux sessions`);
+        } catch (err) {
+          console.error('[Store] Failed to sync with tmux:', err);
+        }
+      },
     }),
     {
       name: 'flowrider2-storage',

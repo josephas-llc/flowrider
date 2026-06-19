@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Icosahedron } from './components/Icosahedron';
@@ -11,7 +11,12 @@ import { useStore } from './store';
 type MainView = 'sessions' | 'dashboard';
 
 const App: React.FC = () => {
-  const { sessions, selectedFace, selectFace, costMetrics, appMode, setAppMode, resetDemoData } = useStore();
+  const { sessions, selectedFace, selectFace, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux } = useStore();
+
+  // Sync with tmux sessions on mount
+  useEffect(() => {
+    syncWithTmux();
+  }, [syncWithTmux]);
   const [mainView, setMainView] = useState<MainView>('sessions');
 
   const handleFaceClick = (faceIndex: number) => {
