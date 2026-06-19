@@ -33,11 +33,23 @@ export const SessionPanel: React.FC = () => {
       const result = await window.flowrider.tmux.create(name, selectedFace, workingDir);
 
       if ((result as any).success) {
+        // Also detect GitHub repo
+        let gitHubRepo = undefined;
+        try {
+          const gitResult = await window.flowrider.git.detectRepo(workingDir);
+          if ((gitResult as any).success && (gitResult as any).data) {
+            gitHubRepo = (gitResult as any).data;
+          }
+        } catch {
+          // Ignore git detection errors
+        }
+
         updateSession(selectedFace, {
           name,
           tmuxSession: (result as any).data.name,
           status: 'active',
           workingDir,
+          gitHubRepo,
         });
         setSessionName('');
       } else {
@@ -240,12 +252,74 @@ export const SessionPanel: React.FC = () => {
           )}
         </div>
 
-        {/* Future: Project assignment */}
-        {hasActiveTmux && (
+        {/* GitHub repo link */}
+        {hasActiveTmux && selectedSession.gitHubRepo && (
           <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border-color)' }}>
-            <label className="info-label">Project (Coming Soon)</label>
+            <label className="info-label">GitHub Repository</label>
+            <div style={{ marginTop: 8 }}>
+              <a
+                href={selectedSession.gitHubRepo.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: '#58a6ff',
+                  textDecoration: 'none',
+                  fontSize: 13,
+                  display: 'block',
+                  marginBottom: 8,
+                }}
+              >
+                {selectedSession.gitHubRepo.owner}/{selectedSession.gitHubRepo.repo}
+              </a>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <a
+                  href={`${selectedSession.gitHubRepo.url}/issues`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-small"
+                  style={{
+                    fontSize: 11,
+                    padding: '4px 8px',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 4,
+                    color: 'var(--text-secondary)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Issues
+                </a>
+                <a
+                  href={`${selectedSession.gitHubRepo.url}/pulls`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-small"
+                  style={{
+                    fontSize: 11,
+                    padding: '4px 8px',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 4,
+                    color: 'var(--text-secondary)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  PRs
+                </a>
+                <span style={{ fontSize: 11, color: '#666', alignSelf: 'center' }}>
+                  branch: {selectedSession.gitHubRepo.branch}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Future: Project assignment */}
+        {hasActiveTmux && !selectedSession.gitHubRepo && (
+          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border-color)' }}>
+            <label className="info-label">GitHub Repository</label>
             <div style={{ marginTop: 8, color: '#666', fontSize: 12 }}>
-              Assign sessions to projects for cost tracking and organization.
+              No GitHub repo detected. Point session to a git directory.
             </div>
           </div>
         )}

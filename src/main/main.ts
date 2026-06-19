@@ -73,6 +73,12 @@ function setupIPC() {
     return tmuxManager.renameSession(oldName, newName);
   });
 
+  // Detect GitHub repo from working directory
+  ipcMain.handle('git:detect', async (_event, workingDir: string) => {
+    console.log(`[IPC] Detecting git repo in: ${workingDir}`);
+    return tmuxManager.detectGitRepo(workingDir);
+  });
+
   console.log('[IPC] Handlers registered');
 }
 

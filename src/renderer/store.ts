@@ -73,6 +73,13 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
   },
 ];
 
+export interface GitHubRepo {
+  owner: string;
+  repo: string;
+  branch: string;
+  url: string;
+}
+
 export interface Session {
   id: string;
   name: string;
@@ -84,6 +91,8 @@ export interface Session {
   createdAt: number;
   lastActivity: number;
   notes?: string;
+  // GitHub repo info
+  gitHubRepo?: GitHubRepo;
   // AI Provider
   aiProvider: AIProvider;
   aiModel?: string;

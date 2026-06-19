@@ -16,6 +16,11 @@ contextBridge.exposeInMainWorld('flowrider', {
       ipcRenderer.invoke('tmux:rename', oldName, newName),
   },
 
+  // Git/GitHub integration
+  git: {
+    detectRepo: (workingDir: string) => ipcRenderer.invoke('git:detect', workingDir),
+  },
+
   // Project management (for future)
   project: {
     getProjects: () => ipcRenderer.invoke('project:list'),
@@ -47,6 +52,9 @@ declare global {
         sendInput: (sessionName: string, data: string) => Promise<unknown>;
         getOutput: (sessionName: string, lines?: number) => Promise<unknown>;
         rename: (oldName: string, newName: string) => Promise<unknown>;
+      };
+      git: {
+        detectRepo: (workingDir: string) => Promise<unknown>;
       };
       project: {
         getProjects: () => Promise<unknown>;

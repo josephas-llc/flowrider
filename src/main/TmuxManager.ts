@@ -13,6 +13,13 @@ export interface TmuxResult<T = unknown> {
   error?: string;
 }
 
+export interface GitHubRepo {
+  owner: string;
+  repo: string;
+  branch: string;
+  url: string;
+}
+
 const SESSION_PREFIX = 'fr2';
 
 export class TmuxManager {
@@ -166,6 +173,67 @@ export class TmuxManager {
       return { success: true };
     } catch (error: unknown) {
       const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  }
+
+  // Detect GitHub repository from working directory
+  async detectGitRepo(workingDir: string): Promise<TmuxResult<GitHubRepo | null>> {
+    try {
+      // Expand ~ to home directory
+      const resolvedDir = workingDir.startsWith('~')
+        ? workingDir.replace('~', process.env.HOME || '')
+        : workingDir;
+
+      // Get remote URL
+      let remoteUrl: string;
+      try {
+        remoteUrl = execSync('git config --get remote.origin.url', {
+          cwd: resolvedDir,
+          encoding: 'utf-8',
+          timeout: 5000,
+        }).trim();
+      } catch {
+        // Not a git repo or no remote
+        return { success: true, data: null };
+      }
+
+      // Parse GitHub URL (supports both SSH and HTTPS formats)
+      // SSH: git@github.com:owner/repo.git
+      // HTTPS: https://github.com/owner/repo.git
+      const sshMatch = remoteUrl.match(/git@github\.com:(.+?)\/(.+?)(?:\.git)?$/);
+      const httpsMatch = remoteUrl.match(/https:\/\/github\.com\/(.+?)\/(.+?)(?:\.git)?$/);
+
+      const match = sshMatch || httpsMatch;
+      if (!match) {
+        return { success: true, data: null };
+      }
+
+      const owner = match[1];
+      const repo = match[2].replace(/\.git$/, '');
+
+      // Get current branch
+      let branch = 'main';
+      try {
+        branch = execSync('git branch --show-current', {
+          cwd: resolvedDir,
+          encoding: 'utf-8',
+          timeout: 5000,
+        }).trim() || 'main';
+      } catch {
+        // Default to main
+      }
+
+      const url = `https://github.com/${owner}/${repo}`;
+      console.log(`[TmuxManager] Detected GitHub repo: ${url} (branch: ${branch})`);
+
+      return {
+        success: true,
+        data: { owner, repo, branch, url },
+      };
+    } catch (error: unknown) {
+      const err = error as Error;
+      console.error(`[TmuxManager] Failed to detect git repo:`, err);
       return { success: false, error: err.message };
     }
   }
