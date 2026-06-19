@@ -1,5 +1,5 @@
-import React, { useRef, useMemo, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo, useState, useCallback } from 'react';
+import { useFrame, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Session } from '../store';
 import { Html } from '@react-three/drei';
@@ -33,6 +33,9 @@ export const Icosahedron: React.FC<IcosahedronProps> = ({
   const edgesRef = useRef<THREE.LineSegments>(null);
   const glowRingsRef = useRef<THREE.Group>(null);
   const [hoveredFace, setHoveredFace] = useState<number | null>(null);
+
+  // Track mouse down position to distinguish click from drag
+  const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
 
   // Create icosahedron geometry
   const { geometry, faceData } = useMemo(() => {
@@ -136,27 +139,44 @@ export const Icosahedron: React.FC<IcosahedronProps> = ({
     }
   });
 
-  // Handle click with raycasting
-  const handleClick = (event: THREE.Event) => {
-    event.stopPropagation();
-    const intersect = (event as any).intersections?.[0];
+  // Track pointer down for click vs drag detection
+  const handlePointerDown = useCallback((event: ThreeEvent<PointerEvent>) => {
+    mouseDownPos.current = { x: event.clientX, y: event.clientY };
+  }, []);
+
+  // Handle click with raycasting - only if it wasn't a drag
+  const handlePointerUp = useCallback((event: ThreeEvent<PointerEvent>) => {
+    if (!mouseDownPos.current) return;
+
+    // Check if this was a drag (moved more than 5 pixels)
+    const dx = Math.abs(event.clientX - mouseDownPos.current.x);
+    const dy = Math.abs(event.clientY - mouseDownPos.current.y);
+    const wasDrag = dx > 5 || dy > 5;
+
+    mouseDownPos.current = null;
+
+    if (wasDrag) return; // Don't fire click on drag
+
+    // Get the face that was clicked
+    const intersect = event.intersections?.[0];
     if (!intersect || intersect.faceIndex === undefined) return;
 
     const faceIndex = Math.floor(intersect.faceIndex);
+    console.log('[Icosahedron] Face clicked:', faceIndex);
     onFaceClick(faceIndex);
-  };
+  }, [onFaceClick]);
 
   // Handle hover
-  const handlePointerMove = (event: THREE.Event) => {
-    const intersect = (event as any).intersections?.[0];
+  const handlePointerMove = useCallback((event: ThreeEvent<PointerEvent>) => {
+    const intersect = event.intersections?.[0];
     if (intersect && intersect.faceIndex !== undefined) {
       setHoveredFace(Math.floor(intersect.faceIndex));
     }
-  };
+  }, []);
 
-  const handlePointerLeave = () => {
+  const handlePointerLeave = useCallback(() => {
     setHoveredFace(null);
-  };
+  }, []);
 
   return (
     <group>
@@ -164,7 +184,8 @@ export const Icosahedron: React.FC<IcosahedronProps> = ({
       <mesh
         ref={meshRef}
         geometry={geometry}
-        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
       >

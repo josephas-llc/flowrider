@@ -174,14 +174,15 @@
 
 .icosahedron-panel {
   background: var(--bg-primary);
-  grid-row: 1;
+  grid-row: 2;
   grid-column: 1;
   position: relative;
+  min-height: 0;
 }
 
 .session-panel {
   background: var(--bg-secondary);
-  grid-row: 1;
+  grid-row: 2;
   grid-column: 2;
   border-left: 1px solid var(--border-color);
   display: flex;
@@ -191,7 +192,7 @@
 
 .terminal-panel {
   background: var(--bg-primary);
-  grid-row: 2;
+  grid-row: 3;
   grid-column: 1 / -1;
   border-top: 1px solid var(--border-color);
   display: flex;
