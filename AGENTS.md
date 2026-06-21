@@ -46,6 +46,8 @@ Flowrider is a multi-agent orchestration platform that manages concurrent AI cod
 | LeoAnalyzer | `src/main/leo-ai/LeoAnalyzer.ts` | Pattern detection |
 | LeoDistiller | `src/main/leo-ai/LeoDistiller.ts` | Knowledge → context |
 | LeoAI | `src/main/leo-ai/LeoAI.ts` | Main coordinator |
+| SessionMonitor | `src/main/SessionMonitor.ts` | Auto-captures tmux interactions |
+| ContextInjector | `src/main/ContextInjector.ts` | Prepends learned context to prompts |
 
 #### Data Model:
 ```typescript
@@ -148,6 +150,46 @@ This creates a **personalized AI assistant** unique to each user.
 | `~/.flowrider/flowrider.db` | Session/project data |
 | `~/.flowrider/config.json` | User configuration |
 
+## UI Components
+
+### Feedback System
+The SessionPanel includes thumbs up/down buttons for rating AI responses:
+- **Location**: `src/renderer/components/SessionPanel.tsx`
+- **Signal**: Sends positive (1) or negative (-1) feedback to LEO AI
+- **Purpose**: Helps LEO AI learn what works for you
+
+### LEO AI Dashboard
+View learning stats, patterns, and insights:
+- **Location**: `src/renderer/components/LeoAIView.tsx`
+- **Features**: Stats overview, pattern browser, interaction history
+
+## Maintenance Commands
+
+### Debloating the LEO AI Database
+If the database grows too large or contains stale data:
+
+```bash
+# View database size
+ls -lh ~/.flowrider/leo-ai.db
+
+# Backup before debloating
+cp ~/.flowrider/leo-ai.db ~/.flowrider/leo-ai.db.backup
+
+# Reset database (WARNING: loses all learning)
+rm ~/.flowrider/leo-ai.db
+
+# Vacuum existing database (reclaim space, keeps data)
+sqlite3 ~/.flowrider/leo-ai.db "VACUUM;"
+
+# Remove old interactions (keep last 30 days)
+sqlite3 ~/.flowrider/leo-ai.db "DELETE FROM interactions WHERE timestamp < strftime('%s', 'now', '-30 days') * 1000;"
+sqlite3 ~/.flowrider/leo-ai.db "VACUUM;"
+
+# Remove low-confidence patterns
+sqlite3 ~/.flowrider/leo-ai.db "DELETE FROM patterns WHERE confidence < 0.3;"
+sqlite3 ~/.flowrider/leo-ai.db "VACUUM;"
+```
+
 ## Future Enhancements
 
 - [ ] Cloud sync for LEO AI database
@@ -155,3 +197,4 @@ This creates a **personalized AI assistant** unique to each user.
 - [ ] Real-time session collaboration
 - [ ] Voice command integration
 - [ ] Autonomous task execution (with approval gates)
+- [ ] In-app debloating UI with preview

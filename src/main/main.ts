@@ -2,11 +2,14 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import { TmuxManager } from './TmuxManager';
 import { LeoManager } from './LeoManager';
+import { SessionMonitor } from './SessionMonitor';
 import { getLeoAI, shutdownLeoAI } from './leo-ai';
+import { getContextInjector } from './ContextInjector';
 
 let mainWindow: BrowserWindow | null = null;
 let tmuxManager: TmuxManager;
 let leoManager: LeoManager;
+let sessionMonitor: SessionMonitor;
 
 const isDev = !app.isPackaged;
 
@@ -44,10 +47,24 @@ function setupIPC() {
   tmuxManager = new TmuxManager();
   leoManager = new LeoManager();
 
+  // Create SessionMonitor with access to tmuxManager.getOutput
+  sessionMonitor = new SessionMonitor(
+    (sessionName: string, lines: number) => tmuxManager.getOutput(sessionName, lines)
+  );
+
   // Create a new tmux session
   ipcMain.handle('tmux:create', async (_event, name: string, faceIndex: number, workingDir: string) => {
     console.log(`[IPC] Creating session: ${name} for face ${faceIndex}`);
-    return tmuxManager.createSession(name, faceIndex, workingDir);
+    const result = await tmuxManager.createSession(name, faceIndex, workingDir);
+
+    // Auto-start monitoring the session for LEO AI
+    if ((result as any).success) {
+      const sessionId = `face-${faceIndex}`;
+      const tmuxSessionName = (result as any).data?.name || name;
+      sessionMonitor.startMonitoring(tmuxSessionName, sessionId, workingDir);
+    }
+
+    return result;
   });
 
   // List all flowrider tmux sessions
@@ -58,6 +75,8 @@ function setupIPC() {
   // Kill a tmux session
   ipcMain.handle('tmux:kill', async (_event, sessionName: string) => {
     console.log(`[IPC] Killing session: ${sessionName}`);
+    // Stop monitoring before killing
+    sessionMonitor.stopMonitoring(sessionName);
     return tmuxManager.killSession(sessionName);
   });
 
@@ -261,7 +280,102 @@ function setupIPC() {
     return { success: true };
   });
 
-  console.log('[IPC] Handlers registered (including LEO + LEO AI)');
+  // ========================================
+  // Session Monitor IPC
+  // ========================================
+
+  // Start monitoring a session
+  ipcMain.handle('monitor:start', async (
+    _event,
+    sessionName: string,
+    sessionId: string,
+    workingDir: string,
+    projectId?: string,
+    language?: string
+  ) => {
+    sessionMonitor.startMonitoring(sessionName, sessionId, workingDir, projectId, language);
+    return { success: true };
+  });
+
+  // Stop monitoring a session
+  ipcMain.handle('monitor:stop', async (_event, sessionName: string) => {
+    sessionMonitor.stopMonitoring(sessionName);
+    return { success: true };
+  });
+
+  // Get monitored sessions
+  ipcMain.handle('monitor:list', async () => {
+    return { success: true, data: sessionMonitor.getMonitoredSessions() };
+  });
+
+  // Check if session is being monitored
+  ipcMain.handle('monitor:isMonitoring', async (_event, sessionName: string) => {
+    return { success: true, data: sessionMonitor.isMonitoring(sessionName) };
+  });
+
+  // Record manual interaction (from UI)
+  ipcMain.handle('monitor:recordInteraction', async (
+    _event,
+    sessionId: string,
+    prompt: string,
+    response: string,
+    feedback?: number
+  ) => {
+    sessionMonitor.recordManualInteraction(sessionId, prompt, response, feedback);
+    return { success: true };
+  });
+
+  // ========================================
+  // Context Injection IPC
+  // ========================================
+
+  const contextInjector = getContextInjector();
+
+  // Get context for a prompt
+  ipcMain.handle('context:getForPrompt', async (
+    _event,
+    options: { prompt: string; projectId?: string; language?: string; sessionId?: string }
+  ) => {
+    const context = contextInjector.getContextForPrompt(options);
+    return { success: true, data: context };
+  });
+
+  // Get error-specific context
+  ipcMain.handle('context:getForErrors', async (
+    _event,
+    errors: string[],
+    language?: string
+  ) => {
+    const context = contextInjector.getErrorContext(errors, language);
+    return { success: true, data: context };
+  });
+
+  // Enable/disable context injection
+  ipcMain.handle('context:enable', async () => {
+    contextInjector.enable();
+    return { success: true };
+  });
+
+  ipcMain.handle('context:disable', async () => {
+    contextInjector.disable();
+    return { success: true };
+  });
+
+  // Get context injection config
+  ipcMain.handle('context:getConfig', async () => {
+    return { success: true, data: contextInjector.getConfig() };
+  });
+
+  // Update context injection config
+  ipcMain.handle('context:setConfig', async (
+    _event,
+    config: { enabled?: boolean; maxTokens?: number; includePatterns?: boolean; includeSnippets?: boolean; includeWarnings?: boolean }
+  ) => {
+    contextInjector.setConfig(config);
+    return { success: true };
+  });
+
+  console.log('[IPC] Handlers registered (including LEO + LEO AI + SessionMonitor + ContextInjector)');
 }
 
 app.whenReady().then(() => {
@@ -287,4 +401,6 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   console.log('[Main] App quitting, cleaning up...');
+  sessionMonitor.shutdown();
+  shutdownLeoAI();
 });

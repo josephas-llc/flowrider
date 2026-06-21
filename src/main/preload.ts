@@ -53,6 +53,17 @@ contextBridge.exposeInMainWorld('flowrider', {
     getSelfInfo: () => ipcRenderer.invoke('leo:selfInfo'),
   },
 
+  // Session Monitor (auto-captures interactions for LEO AI)
+  monitor: {
+    start: (sessionName: string, sessionId: string, workingDir: string, projectId?: string, language?: string) =>
+      ipcRenderer.invoke('monitor:start', sessionName, sessionId, workingDir, projectId, language),
+    stop: (sessionName: string) => ipcRenderer.invoke('monitor:stop', sessionName),
+    list: () => ipcRenderer.invoke('monitor:list'),
+    isMonitoring: (sessionName: string) => ipcRenderer.invoke('monitor:isMonitoring', sessionName),
+    recordInteraction: (sessionId: string, prompt: string, response: string, feedback?: number) =>
+      ipcRenderer.invoke('monitor:recordInteraction', sessionId, prompt, response, feedback),
+  },
+
   // LEO AI (Self-Improving Learning System)
   leoai: {
     // Lifecycle
@@ -108,6 +119,19 @@ contextBridge.exposeInMainWorld('flowrider', {
     getInsights: (limit?: number) => ipcRenderer.invoke('leoai:getInsights', limit),
     searchSnippets: (query: string) => ipcRenderer.invoke('leoai:searchSnippets', query),
     getLearningEvents: (since: number) => ipcRenderer.invoke('leoai:getLearningEvents', since),
+  },
+
+  // Context Injection (applies LEO AI learned knowledge to prompts)
+  context: {
+    getForPrompt: (options: { prompt: string; projectId?: string; language?: string; sessionId?: string }) =>
+      ipcRenderer.invoke('context:getForPrompt', options),
+    getForErrors: (errors: string[], language?: string) =>
+      ipcRenderer.invoke('context:getForErrors', errors, language),
+    enable: () => ipcRenderer.invoke('context:enable'),
+    disable: () => ipcRenderer.invoke('context:disable'),
+    getConfig: () => ipcRenderer.invoke('context:getConfig'),
+    setConfig: (config: { enabled?: boolean; maxTokens?: number; includePatterns?: boolean; includeSnippets?: boolean; includeWarnings?: boolean }) =>
+      ipcRenderer.invoke('context:setConfig', config),
   },
 
   // App info
@@ -205,9 +229,27 @@ declare global {
         searchSnippets: (query: string) => Promise<{ success: boolean; data: CodeSnippet[] }>;
         getLearningEvents: (since: number) => Promise<{ success: boolean; data: LearningEvent[] }>;
       };
+      context: {
+        getForPrompt: (options: { prompt: string; projectId?: string; language?: string; sessionId?: string }) =>
+          Promise<{ success: boolean; data: string | null }>;
+        getForErrors: (errors: string[], language?: string) =>
+          Promise<{ success: boolean; data: string | null }>;
+        enable: () => Promise<{ success: boolean }>;
+        disable: () => Promise<{ success: boolean }>;
+        getConfig: () => Promise<{ success: boolean; data: ContextInjectionConfig }>;
+        setConfig: (config: Partial<ContextInjectionConfig>) => Promise<{ success: boolean }>;
+      };
       platform: string;
       version: string;
     };
+  }
+
+  interface ContextInjectionConfig {
+    enabled: boolean;
+    maxTokens: number;
+    includePatterns: boolean;
+    includeSnippets: boolean;
+    includeWarnings: boolean;
   }
 
   // LEO AI Types (for type-safety in renderer)

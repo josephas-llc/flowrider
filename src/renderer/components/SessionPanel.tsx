@@ -1,6 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useStore } from '../store';
 import { ArborPanel } from './ArborPanel';
+
+// Feedback button component
+const FeedbackButton: React.FC<{
+  type: 'positive' | 'negative';
+  onClick: () => void;
+  disabled?: boolean;
+  active?: boolean;
+}> = ({ type, onClick, disabled, active }) => {
+  const isPositive = type === 'positive';
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 36,
+        height: 36,
+        background: active
+          ? isPositive ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)'
+          : 'var(--bg-tertiary)',
+        border: `1px solid ${active
+          ? isPositive ? '#4caf50' : '#f44336'
+          : 'var(--border-color)'}`,
+        borderRadius: 6,
+        color: active
+          ? isPositive ? '#4caf50' : '#f44336'
+          : 'var(--text-secondary)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        transition: 'all 0.2s ease',
+        fontSize: 16,
+      }}
+      title={isPositive ? 'This response was helpful' : 'This response was not helpful'}
+    >
+      {isPositive ? '👍' : '👎'}
+    </button>
+  );
+};
 
 export const SessionPanel: React.FC = () => {
   const {
@@ -17,6 +57,30 @@ export const SessionPanel: React.FC = () => {
 
   const [sessionName, setSessionName] = useState('');
   const [workingDir, setWorkingDir] = useState('~');
+  const [lastFeedback, setLastFeedback] = useState<'positive' | 'negative' | null>(null);
+  const [feedbackSent, setFeedbackSent] = useState(false);
+
+  // Send feedback to LEO AI
+  const handleFeedback = useCallback(async (type: 'positive' | 'negative') => {
+    if (!selectedSession || !window.flowrider) return;
+
+    const sessionId = selectedSession.id;
+    const value = type === 'positive' ? 1 : -1;
+
+    try {
+      await window.flowrider.leoai.recordFeedback(sessionId, {
+        type: 'manual',
+        value,
+        context: selectedSession.notes || undefined,
+      });
+      setLastFeedback(type);
+      setFeedbackSent(true);
+      // Reset feedback sent indicator after 2s
+      setTimeout(() => setFeedbackSent(false), 2000);
+    } catch (err) {
+      console.error('[SessionPanel] Failed to record feedback:', err);
+    }
+  }, [selectedSession]);
 
   const selectedSession = selectedFace !== null ? sessions[selectedFace] : null;
   const hasActiveTmux = selectedSession?.tmuxSession !== undefined;
@@ -380,6 +444,65 @@ export const SessionPanel: React.FC = () => {
             </>
           )}
         </div>
+
+        {/* LEO AI Feedback Section */}
+        {hasActiveTmux && (
+          <div style={{
+            marginTop: 16,
+            padding: 12,
+            background: 'rgba(0, 255, 255, 0.03)',
+            border: '1px solid rgba(0, 255, 255, 0.1)',
+            borderRadius: 6,
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 8,
+            }}>
+              <span style={{
+                fontSize: 11,
+                color: '#00ffff',
+                fontWeight: 500,
+                letterSpacing: '0.5px',
+              }}>
+                LEO AI FEEDBACK
+              </span>
+              {feedbackSent && (
+                <span style={{
+                  fontSize: 10,
+                  color: '#4caf50',
+                  animation: 'fadeIn 0.3s ease',
+                }}>
+                  Feedback recorded
+                </span>
+              )}
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}>
+              <FeedbackButton
+                type="positive"
+                onClick={() => handleFeedback('positive')}
+                active={lastFeedback === 'positive'}
+              />
+              <FeedbackButton
+                type="negative"
+                onClick={() => handleFeedback('negative')}
+                active={lastFeedback === 'negative'}
+              />
+              <span style={{
+                fontSize: 11,
+                color: '#666',
+                marginLeft: 4,
+              }}>
+                Rate last AI response
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* GitHub repo link */}
         {hasActiveTmux && selectedSession.gitHubRepo && (
