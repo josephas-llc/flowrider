@@ -21,6 +21,11 @@ contextBridge.exposeInMainWorld('flowrider', {
     detectRepo: (workingDir: string) => ipcRenderer.invoke('git:detect', workingDir),
   },
 
+  // Dialog functions
+  dialog: {
+    openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
+  },
+
   // Project management (for future)
   project: {
     getProjects: () => ipcRenderer.invoke('project:list'),
@@ -34,6 +39,75 @@ contextBridge.exposeInMainWorld('flowrider', {
     getSessionCost: (sessionId: string) => ipcRenderer.invoke('costs:session', sessionId),
     getProjectCost: (projectId: string) => ipcRenderer.invoke('costs:project', projectId),
     getTotalCost: () => ipcRenderer.invoke('costs:total'),
+  },
+
+  // LEO (Local Execution Orchestrator)
+  leo: {
+    enable: () => ipcRenderer.invoke('leo:enable'),
+    disable: () => ipcRenderer.invoke('leo:disable'),
+    getStatus: () => ipcRenderer.invoke('leo:status'),
+    getFlowriders: () => ipcRenderer.invoke('leo:flowriders'),
+    discover: () => ipcRenderer.invoke('leo:discover'),
+    ping: (flowriderId: string) => ipcRenderer.invoke('leo:ping', flowriderId),
+    getRemoteSessions: (flowriderId: string) => ipcRenderer.invoke('leo:remoteSessions', flowriderId),
+    getSelfInfo: () => ipcRenderer.invoke('leo:selfInfo'),
+  },
+
+  // LEO AI (Self-Improving Learning System)
+  leoai: {
+    // Lifecycle
+    enable: () => ipcRenderer.invoke('leoai:enable'),
+    disable: () => ipcRenderer.invoke('leoai:disable'),
+    getStatus: () => ipcRenderer.invoke('leoai:status'),
+
+    // Session registration
+    registerSession: (context: {
+      sessionId: string;
+      sessionName: string;
+      projectId?: string;
+      workingDir: string;
+      repoUrl?: string;
+      language?: string;
+    }) => ipcRenderer.invoke('leoai:registerSession', context),
+
+    // Interaction recording
+    recordInteraction: (
+      sessionId: string,
+      prompt: string,
+      response: string,
+      metadata?: { filesModified?: string[]; outcome?: string; feedback?: number }
+    ) => ipcRenderer.invoke('leoai:recordInteraction', sessionId, prompt, response, metadata),
+
+    recordFeedback: (
+      sessionId: string,
+      signal: { type: string; value: number; context?: string }
+    ) => ipcRenderer.invoke('leoai:recordFeedback', sessionId, signal),
+
+    // Context retrieval
+    getContext: (request?: {
+      prompt?: string;
+      projectId?: string;
+      language?: string;
+      tags?: string[];
+      errors?: string[];
+    }) => ipcRenderer.invoke('leoai:getContext', request),
+
+    getQuickContext: (projectId?: string, language?: string) =>
+      ipcRenderer.invoke('leoai:getQuickContext', projectId, language),
+
+    getErrorContext: (errors: string[], language?: string) =>
+      ipcRenderer.invoke('leoai:getErrorContext', errors, language),
+
+    // Analysis
+    analyze: () => ipcRenderer.invoke('leoai:analyze'),
+
+    // Stats & data
+    getStats: () => ipcRenderer.invoke('leoai:stats'),
+    getInteractions: (limit?: number) => ipcRenderer.invoke('leoai:getInteractions', limit),
+    getPatterns: (minConfidence?: number) => ipcRenderer.invoke('leoai:getPatterns', minConfidence),
+    getInsights: (limit?: number) => ipcRenderer.invoke('leoai:getInsights', limit),
+    searchSnippets: (query: string) => ipcRenderer.invoke('leoai:searchSnippets', query),
+    getLearningEvents: (since: number) => ipcRenderer.invoke('leoai:getLearningEvents', since),
   },
 
   // App info
@@ -56,6 +130,9 @@ declare global {
       git: {
         detectRepo: (workingDir: string) => Promise<unknown>;
       };
+      dialog: {
+        openDirectory: () => Promise<{ success: boolean; path?: string; canceled?: boolean; error?: string }>;
+      };
       project: {
         getProjects: () => Promise<unknown>;
         createProject: (data: unknown) => Promise<unknown>;
@@ -66,8 +143,175 @@ declare global {
         getProjectCost: (projectId: string) => Promise<unknown>;
         getTotalCost: () => Promise<unknown>;
       };
+      leo: {
+        enable: () => Promise<{ success: boolean; error?: string }>;
+        disable: () => Promise<{ success: boolean }>;
+        getStatus: () => Promise<unknown>;
+        getFlowriders: () => Promise<{ success: boolean; data: unknown[] }>;
+        discover: () => Promise<{ success: boolean; count: number }>;
+        ping: (flowriderId: string) => Promise<{ success: boolean; latency?: number }>;
+        getRemoteSessions: (flowriderId: string) => Promise<unknown>;
+        getSelfInfo: () => Promise<{ success: boolean; data: unknown }>;
+      };
+      leoai: {
+        // Lifecycle
+        enable: () => Promise<{ success: boolean }>;
+        disable: () => Promise<{ success: boolean }>;
+        getStatus: () => Promise<{ success: boolean; data: LeoAIStatus }>;
+
+        // Session registration
+        registerSession: (context: {
+          sessionId: string;
+          sessionName: string;
+          projectId?: string;
+          workingDir: string;
+          repoUrl?: string;
+          language?: string;
+        }) => Promise<{ success: boolean }>;
+
+        // Interaction recording
+        recordInteraction: (
+          sessionId: string,
+          prompt: string,
+          response: string,
+          metadata?: { filesModified?: string[]; outcome?: string; feedback?: number }
+        ) => Promise<{ success: boolean; id: string }>;
+
+        recordFeedback: (
+          sessionId: string,
+          signal: { type: string; value: number; context?: string }
+        ) => Promise<{ success: boolean }>;
+
+        // Context retrieval
+        getContext: (request?: {
+          prompt?: string;
+          projectId?: string;
+          language?: string;
+          tags?: string[];
+          errors?: string[];
+        }) => Promise<{ success: boolean; data: DistilledContext }>;
+
+        getQuickContext: (projectId?: string, language?: string) => Promise<{ success: boolean; data: string }>;
+        getErrorContext: (errors: string[], language?: string) => Promise<{ success: boolean; data: string }>;
+
+        // Analysis
+        analyze: () => Promise<{ success: boolean; data: AnalysisResult }>;
+
+        // Stats & data
+        getStats: () => Promise<{ success: boolean; data: LeoStats }>;
+        getInteractions: (limit?: number) => Promise<{ success: boolean; data: Interaction[] }>;
+        getPatterns: (minConfidence?: number) => Promise<{ success: boolean; data: Pattern[] }>;
+        getInsights: (limit?: number) => Promise<{ success: boolean; data: Insight[] }>;
+        searchSnippets: (query: string) => Promise<{ success: boolean; data: CodeSnippet[] }>;
+        getLearningEvents: (since: number) => Promise<{ success: boolean; data: LearningEvent[] }>;
+      };
       platform: string;
       version: string;
     };
+  }
+
+  // LEO AI Types (for type-safety in renderer)
+  interface LeoAIStatus {
+    enabled: boolean;
+    learning: boolean;
+    stats: LeoStats;
+    lastAnalysis: number | null;
+    config: {
+      analysisInterval: number;
+      minInteractionsForAnalysis: number;
+      autoLearn: boolean;
+      defaultVerbosity: 'minimal' | 'normal' | 'detailed';
+    };
+  }
+
+  interface LeoStats {
+    totalInteractions: number;
+    totalPatterns: number;
+    totalInsights: number;
+    totalSnippets: number;
+    avgConfidence: number;
+    topLanguages: string[];
+    topProjects: string[];
+  }
+
+  interface Interaction {
+    id: string;
+    sessionId: string;
+    timestamp: number;
+    prompt: string;
+    promptHash: string;
+    response: string;
+    tags: string[];
+    outcome: 'success' | 'failure' | 'partial' | 'unknown';
+    feedback: number;
+    projectId?: string;
+    language?: string;
+    filesModified: string[];
+    errorsSeen: string[];
+    codeBlocks: string[];
+  }
+
+  interface Pattern {
+    id: string;
+    type: 'error' | 'code' | 'workflow' | 'prompt';
+    pattern: string;
+    frequency: number;
+    confidence: number;
+    examples: string[];
+    resolution?: string;
+    tags: string[];
+    language?: string;
+    createdAt: number;
+    lastSeen: number;
+  }
+
+  interface Insight {
+    id: string;
+    category: string;
+    content: string;
+    confidence: number;
+    sourcePatterns: string[];
+    applicableTags: string[];
+    applicableLanguages: string[];
+    effectiveness: number;
+    usageCount: number;
+    createdAt: number;
+    lastUsed: number;
+  }
+
+  interface CodeSnippet {
+    id: string;
+    language: string;
+    code: string;
+    description: string;
+    tags: string[];
+    sourceInteraction: string;
+    quality: number;
+    usageCount: number;
+    createdAt: number;
+  }
+
+  interface LearningEvent {
+    id: string;
+    type: string;
+    data: unknown;
+    timestamp: number;
+  }
+
+  interface DistilledContext {
+    systemPrompt: string;
+    relevantPatterns: Pattern[];
+    suggestedSnippets: CodeSnippet[];
+    warnings: string[];
+    successPatterns: string[];
+    tokenEstimate: number;
+  }
+
+  interface AnalysisResult {
+    patternsFound: number;
+    insightsGenerated: number;
+    snippetsExtracted: number;
+    duration: number;
+    errors: string[];
   }
 }

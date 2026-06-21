@@ -15,6 +15,7 @@ export const TerminalView: React.FC = () => {
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastOutputRef = useRef<string>('');
   const tokenAccumulatorRef = useRef<TokenAccumulator>(new TokenAccumulator());
+  const connectedSessionRef = useRef<string | null>(null);
 
   const [connectedSession, setConnectedSession] = useState<string | null>(null);
   const [liveTokens, setLiveTokens] = useState<{ input: number; output: number; cost: number }>({
@@ -71,10 +72,10 @@ export const TerminalView: React.FC = () => {
     terminal.open(terminalRef.current);
     fitAddon.fit();
 
-    // Handle input - send to tmux
+    // Handle input - send to tmux (use ref to avoid stale closure)
     terminal.onData((data) => {
-      if (connectedSession && window.flowrider) {
-        window.flowrider.tmux.sendInput(connectedSession, data).catch(console.error);
+      if (connectedSessionRef.current && window.flowrider) {
+        window.flowrider.tmux.sendInput(connectedSessionRef.current, data).catch(console.error);
       }
     });
 
@@ -92,12 +93,15 @@ export const TerminalView: React.FC = () => {
   // Update connectedSession when store changes
   useEffect(() => {
     if (attachedSession && selectedSession?.tmuxSession) {
-      setConnectedSession(selectedSession.tmuxSession);
+      const sessionName = selectedSession.tmuxSession;
+      setConnectedSession(sessionName);
+      connectedSessionRef.current = sessionName; // Keep ref in sync for onData callback
       // Reset token accumulator for new connection
       tokenAccumulatorRef.current.clear();
       setLiveTokens({ input: 0, output: 0, cost: 0 });
     } else {
       setConnectedSession(null);
+      connectedSessionRef.current = null;
     }
   }, [attachedSession, selectedSession?.tmuxSession]);
 

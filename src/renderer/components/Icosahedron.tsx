@@ -23,6 +23,21 @@ const GLOW_COLORS = {
   attached: new THREE.Color('#00ffff'),
 };
 
+// Activity level affects pulse speed and intensity
+const ACTIVITY_PULSE_SPEED = {
+  idle: 1,
+  low: 2,
+  medium: 4,
+  high: 8,
+};
+
+const ACTIVITY_GLOW_INTENSITY = {
+  idle: 0.3,
+  low: 0.5,
+  medium: 0.7,
+  high: 1.0,
+};
+
 export const Icosahedron: React.FC<IcosahedronProps> = ({
   sessions,
   selectedFace,
@@ -120,19 +135,25 @@ export const Icosahedron: React.FC<IcosahedronProps> = ({
       glowRingsRef.current.rotation.copy(meshRef.current.rotation);
     }
 
-    // Animate glow rings
+    // Animate glow rings with activity-based speed
     if (glowRingsRef.current) {
       glowRingsRef.current.children.forEach((child, index) => {
         const session = sessions[index];
         if (session?.status !== 'empty') {
-          // Pulsing scale effect
-          const pulse = 1 + Math.sin(time * 3 + index * 0.5) * 0.15;
+          // Get activity level for pulse speed
+          const activityLevel = session.activityLevel || 'idle';
+          const pulseSpeed = ACTIVITY_PULSE_SPEED[activityLevel];
+          const glowIntensity = ACTIVITY_GLOW_INTENSITY[activityLevel];
+
+          // Pulsing scale effect - faster for higher activity
+          const pulse = 1 + Math.sin(time * pulseSpeed + index * 0.5) * 0.15 * glowIntensity;
           child.scale.setScalar(pulse);
 
-          // Pulsing opacity
+          // Pulsing opacity - brighter for higher activity
           const material = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
           if (material) {
-            material.opacity = 0.3 + Math.sin(time * 2 + index * 0.3) * 0.2;
+            const baseOpacity = 0.2 + glowIntensity * 0.3;
+            material.opacity = baseOpacity + Math.sin(time * pulseSpeed * 0.7 + index * 0.3) * 0.2;
           }
         }
       });
@@ -214,19 +235,46 @@ export const Icosahedron: React.FC<IcosahedronProps> = ({
           const isActive = session?.status !== 'empty';
           const isSelected = selectedFace === index;
           const isAttached = session?.status === 'attached';
+          const hasRecentActivity = session?.hasRecentActivity;
+          const activityLevel = session?.activityLevel || 'idle';
 
           if (!isActive) return null;
 
+          // Color based on activity level
+          const ringColor = isAttached ? '#00ffff' :
+                           hasRecentActivity ? '#ffcc00' :
+                           '#00ff88';
+
+          // Ring size based on activity level
+          const outerRadius = activityLevel === 'high' ? 0.3 :
+                             activityLevel === 'medium' ? 0.27 :
+                             activityLevel === 'low' ? 0.25 : 0.22;
+
           return (
-            <mesh key={`glow-${index}`} position={face.centroid}>
-              <ringGeometry args={[0.15, 0.25, 32]} />
-              <meshBasicMaterial
-                color={isAttached ? '#00ffff' : '#00ff88'}
-                transparent
-                opacity={0.4}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
+            <group key={`glow-${index}`} position={face.centroid}>
+              {/* Main ring */}
+              <mesh>
+                <ringGeometry args={[0.15, outerRadius, 32]} />
+                <meshBasicMaterial
+                  color={ringColor}
+                  transparent
+                  opacity={0.4}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+
+              {/* Inner activity spark for high activity */}
+              {(activityLevel === 'high' || activityLevel === 'medium') && (
+                <mesh>
+                  <circleGeometry args={[0.08, 16]} />
+                  <meshBasicMaterial
+                    color={hasRecentActivity ? '#ffcc00' : '#00ff88'}
+                    transparent
+                    opacity={0.6}
+                  />
+                </mesh>
+              )}
+            </group>
           );
         })}
       </group>
@@ -342,6 +390,34 @@ const SessionPreview: React.FC<SessionPreviewProps> = ({ session, faceIndex }) =
           <div style={{ color: '#666', fontSize: 11, fontFamily: 'monospace' }}>
             {session.workingDir}
           </div>
+
+          {/* Activity indicator */}
+          {session.activityLevel && session.activityLevel !== 'idle' && (
+            <div style={{
+              marginTop: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+              <span style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: session.activityLevel === 'high' ? '#ff4444' :
+                           session.activityLevel === 'medium' ? '#ffcc00' : '#00ff88',
+                animation: session.activityLevel === 'high' ? 'pulse 0.5s infinite' : 'none',
+              }} />
+              <span style={{
+                fontSize: 10,
+                color: session.activityLevel === 'high' ? '#ff4444' :
+                       session.activityLevel === 'medium' ? '#ffcc00' : '#888',
+                textTransform: 'uppercase',
+              }}>
+                {session.activityLevel} activity
+              </span>
+            </div>
+          )}
+
           {session.estimatedCost > 0 && (
             <div style={{
               marginTop: 8,

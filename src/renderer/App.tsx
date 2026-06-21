@@ -3,10 +3,12 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Icosahedron } from './components/Icosahedron';
 import { SessionPanel } from './components/SessionPanel';
+import { SessionSearch } from './components/SessionSearch';
 import { TerminalView } from './components/TerminalView';
 import { Dashboard } from './components/Dashboard';
 import { DemoMode } from './components/DemoMode';
 import { useStore } from './store';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 type MainView = 'sessions' | 'dashboard';
 
@@ -17,6 +19,10 @@ const App: React.FC = () => {
   useEffect(() => {
     syncWithTmux();
   }, [syncWithTmux]);
+
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
+
   const [mainView, setMainView] = useState<MainView>('sessions');
 
   const handleFaceClick = (faceIndex: number) => {
@@ -117,6 +123,9 @@ const App: React.FC = () => {
               <span>Click a face to select • Drag to rotate</span>
             </div>
           </div>
+
+          {/* Session Search/Filter */}
+          <SessionSearch />
 
           {/* Session Control Panel */}
           <SessionPanel />

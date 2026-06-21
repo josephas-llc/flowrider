@@ -104,6 +104,17 @@ export interface Session {
   // Session metrics
   messageCount: number;
   toolCallCount: number;
+  // Tier 2: Activity tracking
+  hasRecentActivity?: boolean;
+  activityLevel?: 'idle' | 'low' | 'medium' | 'high';
+  // Tier 3: Arbor pattern - hypothesis branches & linking
+  linkedSessions?: string[]; // IDs of related sessions
+  hypothesisBranch?: {
+    parentSessionId?: string; // Original session this branched from
+    branchName: string; // e.g., "approach-a", "approach-b"
+    hypothesis: string; // What we're testing
+    status: 'exploring' | 'promising' | 'abandoned' | 'merged';
+  };
 }
 
 export interface Project {
@@ -198,6 +209,12 @@ interface FlowriderState {
   showLeoPanel: boolean;
   error: string | null;
 
+  // Search/Filter
+  searchQuery: string;
+  searchFilter: 'all' | 'active' | 'empty' | 'hypothesis';
+  setSearchQuery: (query: string) => void;
+  setSearchFilter: (filter: 'all' | 'active' | 'empty' | 'hypothesis') => void;
+
   // App Mode
   appMode: 'work' | 'demo';
   setAppMode: (mode: 'work' | 'demo') => void;
@@ -210,6 +227,12 @@ interface FlowriderState {
   setCreating: (creating: boolean) => void;
   setError: (error: string | null) => void;
   addTokenUsage: (faceIndex: number, inputTokens: number, outputTokens: number) => void;
+  // Tier 3: Session linking & hypothesis branches
+  linkSessions: (faceIndex1: number, faceIndex2: number) => void;
+  unlinkSessions: (faceIndex1: number, faceIndex2: number) => void;
+  createHypothesisBranch: (sourceFaceIndex: number, targetFaceIndex: number, branchName: string, hypothesis: string) => void;
+  updateHypothesisStatus: (faceIndex: number, status: 'exploring' | 'promising' | 'abandoned' | 'merged') => void;
+  markSessionActivity: (faceIndex: number) => void;
 
   // Project Actions
   createProject: (name: string, description: string, color: string, icon: string) => void;
@@ -336,7 +359,15 @@ export const useStore = create<FlowriderState>()(
       showProjectModal: false,
       showLeoPanel: false,
       error: null,
+      searchQuery: '',
+      searchFilter: 'all',
       appMode: 'work',
+
+      // ========== SEARCH/FILTER ACTIONS ==========
+
+      setSearchQuery: (query) => set({ searchQuery: query }),
+
+      setSearchFilter: (filter) => set({ searchFilter: filter }),
 
       // ========== APP MODE ACTIONS ==========
 
@@ -438,6 +469,90 @@ export const useStore = create<FlowriderState>()(
             dashboard: newDashboard,
           };
         }),
+
+      // ========== TIER 3: SESSION LINKING & HYPOTHESIS BRANCHES ==========
+
+      linkSessions: (faceIndex1, faceIndex2) =>
+        set((state) => ({
+          sessions: state.sessions.map((s) => {
+            if (s.faceIndex === faceIndex1) {
+              const linked = s.linkedSessions || [];
+              if (!linked.includes(`face-${faceIndex2}`)) {
+                return { ...s, linkedSessions: [...linked, `face-${faceIndex2}`] };
+              }
+            }
+            if (s.faceIndex === faceIndex2) {
+              const linked = s.linkedSessions || [];
+              if (!linked.includes(`face-${faceIndex1}`)) {
+                return { ...s, linkedSessions: [...linked, `face-${faceIndex1}`] };
+              }
+            }
+            return s;
+          }),
+        })),
+
+      unlinkSessions: (faceIndex1, faceIndex2) =>
+        set((state) => ({
+          sessions: state.sessions.map((s) => {
+            if (s.faceIndex === faceIndex1 && s.linkedSessions) {
+              return { ...s, linkedSessions: s.linkedSessions.filter((id) => id !== `face-${faceIndex2}`) };
+            }
+            if (s.faceIndex === faceIndex2 && s.linkedSessions) {
+              return { ...s, linkedSessions: s.linkedSessions.filter((id) => id !== `face-${faceIndex1}`) };
+            }
+            return s;
+          }),
+        })),
+
+      createHypothesisBranch: (sourceFaceIndex, targetFaceIndex, branchName, hypothesis) =>
+        set((state) => {
+          const sourceSession = state.sessions[sourceFaceIndex];
+          return {
+            sessions: state.sessions.map((s) => {
+              if (s.faceIndex === targetFaceIndex) {
+                return {
+                  ...s,
+                  hypothesisBranch: {
+                    parentSessionId: `face-${sourceFaceIndex}`,
+                    branchName,
+                    hypothesis,
+                    status: 'exploring' as const,
+                  },
+                  // Copy working dir and project from source
+                  workingDir: sourceSession?.workingDir || s.workingDir,
+                  projectId: sourceSession?.projectId,
+                  linkedSessions: [...(s.linkedSessions || []), `face-${sourceFaceIndex}`],
+                };
+              }
+              // Link source back to the branch
+              if (s.faceIndex === sourceFaceIndex) {
+                return {
+                  ...s,
+                  linkedSessions: [...(s.linkedSessions || []), `face-${targetFaceIndex}`],
+                };
+              }
+              return s;
+            }),
+          };
+        }),
+
+      updateHypothesisStatus: (faceIndex, status) =>
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.faceIndex === faceIndex && s.hypothesisBranch
+              ? { ...s, hypothesisBranch: { ...s.hypothesisBranch, status } }
+              : s
+          ),
+        })),
+
+      markSessionActivity: (faceIndex) =>
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.faceIndex === faceIndex
+              ? { ...s, lastActivity: Date.now(), hasRecentActivity: true, activityLevel: 'high' as const }
+              : s
+          ),
+        })),
 
       // ========== PROJECT ACTIONS ==========
 
@@ -647,3 +762,34 @@ export const useTotalCost = () =>
 
 export const useProjectCost = (projectId: string) =>
   useStore((state) => state.costMetrics.costByProject[projectId] || 0);
+
+export const useFilteredSessions = () =>
+  useStore((state) => {
+    const { sessions, searchQuery, searchFilter } = state;
+    const query = searchQuery.toLowerCase().trim();
+
+    return sessions.filter((session) => {
+      // Apply text search
+      if (query) {
+        const matchesName = session.name.toLowerCase().includes(query);
+        const matchesDir = session.workingDir.toLowerCase().includes(query);
+        const matchesNotes = session.notes?.toLowerCase().includes(query);
+        const matchesRepo = session.gitHubRepo?.repo.toLowerCase().includes(query);
+        if (!matchesName && !matchesDir && !matchesNotes && !matchesRepo) {
+          return false;
+        }
+      }
+
+      // Apply filter
+      switch (searchFilter) {
+        case 'active':
+          return session.status !== 'empty';
+        case 'empty':
+          return session.status === 'empty';
+        case 'hypothesis':
+          return session.hypothesisBranch !== undefined;
+        default:
+          return true;
+      }
+    });
+  });

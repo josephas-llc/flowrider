@@ -1,10 +1,14 @@
-import React from 'react';
-import { useStore } from '../store';
+import React, { useState, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import { useStore, LeoFlowrider } from '../store';
 import { ROICalculator } from './ROICalculator';
 import { ActivityLog } from './ActivityLog';
 import { MCPStatus } from './MCPStatus';
 import { SessionMessaging } from './SessionMessaging';
 import { AIProviders } from './AIProviders';
+import { LeoDodecahedron } from './LeoDodecahedron';
+import { LeoAIView } from './LeoAIView';
 
 const formatCost = (cost: number): string => {
   return cost < 0.01 ? '<$0.01' : `$${cost.toFixed(2)}`;
@@ -35,13 +39,13 @@ export const Dashboard: React.FC = () => {
       <div className="dashboard-header">
         <h2>Dashboard</h2>
         <div className="dashboard-tabs">
-          {(['overview', 'providers', 'roi', 'mcp', 'messaging', 'activity', 'leo'] as const).map((tab) => (
+          {(['overview', 'providers', 'roi', 'mcp', 'messaging', 'activity', 'leo', 'leoai'] as const).map((tab) => (
             <button
               key={tab}
               className={`tab ${dashboardView === tab ? 'active' : ''}`}
               onClick={() => setDashboardView(tab as any)}
             >
-              {tab === 'roi' ? 'ROI' : tab === 'mcp' ? 'MCP' : tab === 'providers' ? 'AI Models' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'roi' ? 'ROI' : tab === 'mcp' ? 'MCP' : tab === 'providers' ? 'AI Models' : tab === 'leoai' ? 'LEO AI' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -87,6 +91,10 @@ export const Dashboard: React.FC = () => {
 
         {dashboardView === 'leo' && (
           <LeoView leo={leo} />
+        )}
+
+        {dashboardView === 'leoai' && (
+          <LeoAIView />
         )}
       </div>
     </div>
@@ -311,7 +319,83 @@ interface LeoViewProps {
 }
 
 const LeoView: React.FC<LeoViewProps> = ({ leo }) => {
-  const { toggleLeoMode, addFlowrider, removeFlowrider, updateFlowrider } = useStore();
+  const { toggleLeoMode, addFlowrider, removeFlowrider } = useStore();
+  const [selectedFlowrider, setSelectedFlowrider] = useState<string | null>(null);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [leoStatus, setLeoStatus] = useState<{
+    enabled: boolean;
+    instanceId: string;
+    instanceName: string;
+    apiPort: number;
+  } | null>(null);
+
+  // Fetch real LEO status when enabled
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (!window.flowrider?.leo) return;
+      try {
+        const status = await window.flowrider.leo.getStatus();
+        setLeoStatus(status as any);
+      } catch (err) {
+        console.error('[LEO] Failed to get status:', err);
+      }
+    };
+
+    if (leo.enabled) {
+      fetchStatus();
+      const interval = setInterval(fetchStatus, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [leo.enabled]);
+
+  // Handle LEO toggle with real IPC
+  const handleToggleLeo = async () => {
+    if (!window.flowrider?.leo) {
+      toggleLeoMode(); // Fallback to store-only
+      return;
+    }
+
+    try {
+      if (leo.enabled) {
+        await window.flowrider.leo.disable();
+      } else {
+        const result = await window.flowrider.leo.enable();
+        if (!result.success) {
+          console.error('[LEO] Failed to enable:', result.error);
+        }
+      }
+      toggleLeoMode();
+    } catch (err) {
+      console.error('[LEO] Toggle error:', err);
+      toggleLeoMode();
+    }
+  };
+
+  // Discover flowriders on network
+  const handleDiscover = async () => {
+    if (!window.flowrider?.leo) return;
+
+    setIsDiscovering(true);
+    try {
+      const result = await window.flowrider.leo.discover();
+      console.log(`[LEO] Discovered ${result.count} flowriders`);
+
+      // Fetch the updated list
+      const flowriders = await window.flowrider.leo.getFlowriders();
+      if (flowriders.success && flowriders.data) {
+        // Update store with discovered flowriders
+        (flowriders.data as LeoFlowrider[]).forEach((fr) => {
+          if (!leo.flowriders.find((existing) => existing.id === fr.id)) {
+            addFlowrider(fr);
+          }
+        });
+      }
+    } catch (err) {
+      console.error('[LEO] Discover error:', err);
+    } finally {
+      setIsDiscovering(false);
+    }
+  };
 
   const addDemoFlowrider = () => {
     const id = `fr-${Date.now()}`;
@@ -347,24 +431,20 @@ const LeoView: React.FC<LeoViewProps> = ({ leo }) => {
     ? leo.flowriders.reduce((sum, fr) => sum + fr.metrics.memoryUsage, 0) / leo.flowriders.length
     : 0;
 
-  // Calculate positions for network visualization
-  const getFlowriderPosition = (index: number, total: number) => {
-    const angle = (index / total) * Math.PI * 2 - Math.PI / 2;
-    const radius = 120;
-    return {
-      x: 150 + Math.cos(angle) * radius,
-      y: 150 + Math.sin(angle) * radius,
-    };
-  };
-
   return (
     <div className="leo-view">
-      {/* Hero Section */}
+      {/* Hero Section with 3D Visualization */}
       <div className="leo-hero">
         <div className="leo-hero-left">
           <div className="leo-title-section">
             <h2>LEO Orchestration</h2>
             <p>Local Execution Orchestrator - Scale to 400 concurrent AI sessions</p>
+            {leoStatus && (
+              <div className="leo-instance-info">
+                <span className="instance-name">{leoStatus.instanceName}</span>
+                <span className="instance-port">Port: {leoStatus.apiPort}</span>
+              </div>
+            )}
           </div>
           <div className="leo-toggle">
             <span className={`status-indicator large ${leo.enabled ? 'enabled' : 'disabled'}`}>
@@ -372,85 +452,48 @@ const LeoView: React.FC<LeoViewProps> = ({ leo }) => {
             </span>
             <button
               className={`btn ${leo.enabled ? 'btn-danger' : 'btn-primary'}`}
-              onClick={toggleLeoMode}
+              onClick={handleToggleLeo}
             >
               {leo.enabled ? 'Disable LEO' : 'Activate LEO'}
             </button>
+            {leo.enabled && (
+              <button
+                className="btn btn-secondary"
+                onClick={handleDiscover}
+                disabled={isDiscovering}
+                style={{ marginLeft: 8 }}
+              >
+                {isDiscovering ? 'Scanning...' : 'Discover'}
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Network Visualization */}
-        <div className="leo-network-viz">
-          <svg width="300" height="300" viewBox="0 0 300 300">
-            {/* Connection lines */}
-            {leo.flowriders.map((fr, i) => {
-              const pos = getFlowriderPosition(i, leo.flowriders.length);
-              return (
-                <line
-                  key={`line-${fr.id}`}
-                  x1="150"
-                  y1="150"
-                  x2={pos.x}
-                  y2={pos.y}
-                  stroke={fr.status === 'active' ? '#00ffff' : '#333'}
-                  strokeWidth="2"
-                  strokeDasharray={fr.status === 'active' ? '0' : '4'}
-                  opacity={fr.status === 'active' ? 0.6 : 0.3}
-                />
-              );
-            })}
+        {/* 3D Network Visualization */}
+        <div className="leo-3d-viz">
+          <Canvas
+            camera={{ position: [0, 0, 6], fov: 50 }}
+            style={{ background: 'transparent' }}
+          >
+            <ambientLight intensity={0.3} />
+            <pointLight position={[10, 10, 10]} intensity={0.8} />
+            <pointLight position={[-10, -10, -10]} intensity={0.4} color="#ff00ff" />
 
-            {/* Center hub */}
-            <circle cx="150" cy="150" r="30" fill="#1a1a24" stroke="#ff00ff" strokeWidth="2" />
-            <text x="150" y="145" textAnchor="middle" fill="#ff00ff" fontSize="10" fontWeight="600">LEO</text>
-            <text x="150" y="160" textAnchor="middle" fill="#888" fontSize="8">CORE</text>
+            <LeoDodecahedron
+              flowriders={leo.flowriders}
+              selectedFlowrider={selectedFlowrider}
+              onFlowriderClick={setSelectedFlowrider}
+            />
 
-            {/* Flowrider nodes */}
-            {leo.flowriders.map((fr, i) => {
-              const pos = getFlowriderPosition(i, leo.flowriders.length);
-              const statusColor = fr.status === 'active' ? '#00ff88'
-                : fr.status === 'busy' ? '#ffcc00'
-                : fr.status === 'error' ? '#ff4444' : '#666';
-              return (
-                <g key={`node-${fr.id}`}>
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r="20"
-                    fill="#12121a"
-                    stroke={statusColor}
-                    strokeWidth="2"
-                  />
-                  <text
-                    x={pos.x}
-                    y={pos.y + 4}
-                    textAnchor="middle"
-                    fill={statusColor}
-                    fontSize="10"
-                    fontWeight="600"
-                  >
-                    {i + 1}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* Pulsing animation ring */}
-            {leo.enabled && (
-              <circle
-                cx="150"
-                cy="150"
-                r="140"
-                fill="none"
-                stroke="#00ffff"
-                strokeWidth="1"
-                opacity="0.3"
-                style={{
-                  animation: 'pulse-ring 2s ease-out infinite',
-                }}
-              />
-            )}
-          </svg>
+            <OrbitControls
+              enablePan={false}
+              enableZoom={true}
+              minDistance={4}
+              maxDistance={10}
+              autoRotate
+              autoRotateSpeed={0.3}
+            />
+          </Canvas>
         </div>
       </div>
 
@@ -499,10 +542,10 @@ const LeoView: React.FC<LeoViewProps> = ({ leo }) => {
         <div className="leo-metric-card action">
           <div className="metric-header">Quick Actions</div>
           <button className="btn btn-secondary" onClick={() => addMultipleFlowriders(5)}>
-            + Add 5 Flowriders
+            + Add 5 Demo
           </button>
           <button className="btn btn-secondary" onClick={addDemoFlowrider}>
-            + Add 1 Flowrider
+            + Add 1 Demo
           </button>
         </div>
       </div>
@@ -517,13 +560,24 @@ const LeoView: React.FC<LeoViewProps> = ({ leo }) => {
               <h4>No Flowriders Connected</h4>
               <p>Each flowrider can manage 20 concurrent AI sessions.</p>
               <p>Scale to 400 sessions with 20 flowriders.</p>
-              <button className="btn btn-primary" onClick={() => addMultipleFlowriders(5)}>
-                Launch 5 Demo Flowriders
-              </button>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
+                {leo.enabled && (
+                  <button className="btn btn-primary" onClick={handleDiscover} disabled={isDiscovering}>
+                    {isDiscovering ? 'Scanning Network...' : 'Discover on Network'}
+                  </button>
+                )}
+                <button className="btn btn-secondary" onClick={() => addMultipleFlowriders(5)}>
+                  Launch 5 Demo Flowriders
+                </button>
+              </div>
             </div>
           ) : (
             leo.flowriders.map((fr) => (
-              <div key={fr.id} className={`flowrider-card ${fr.status}`}>
+              <div
+                key={fr.id}
+                className={`flowrider-card ${fr.status} ${selectedFlowrider === fr.id ? 'selected' : ''}`}
+                onClick={() => setSelectedFlowrider(fr.id)}
+              >
                 <div className="fr-header">
                   <span className="fr-name">{fr.name}</span>
                   <span className={`fr-status ${fr.status}`}>{fr.status.toUpperCase()}</span>
@@ -553,7 +607,10 @@ const LeoView: React.FC<LeoViewProps> = ({ leo }) => {
                 </div>
                 <button
                   className="fr-remove"
-                  onClick={() => removeFlowrider(fr.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeFlowrider(fr.id);
+                  }}
                   title="Remove flowrider"
                 >
                   ×
@@ -561,6 +618,71 @@ const LeoView: React.FC<LeoViewProps> = ({ leo }) => {
               </div>
             ))
           )}
+        </div>
+      </div>
+
+      {/* Selected Flowrider Details */}
+      {selectedFlowrider && (
+        <SelectedFlowriderPanel
+          flowrider={leo.flowriders.find((fr) => fr.id === selectedFlowrider)}
+          onClose={() => setSelectedFlowrider(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+// Selected Flowrider Details Panel
+interface SelectedFlowriderPanelProps {
+  flowrider?: LeoFlowrider;
+  onClose: () => void;
+}
+
+const SelectedFlowriderPanel: React.FC<SelectedFlowriderPanelProps> = ({ flowrider, onClose }) => {
+  if (!flowrider) return null;
+
+  const uptime = Date.now() - flowrider.metrics.uptime;
+  const uptimeHours = Math.floor(uptime / (1000 * 60 * 60));
+  const uptimeMinutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+
+  return (
+    <div className="selected-flowrider-panel">
+      <div className="panel-header">
+        <h3>{flowrider.name}</h3>
+        <button className="close-btn" onClick={onClose}>×</button>
+      </div>
+      <div className="panel-content">
+        <div className="detail-row">
+          <span className="label">ID</span>
+          <span className="value mono">{flowrider.id}</span>
+        </div>
+        <div className="detail-row">
+          <span className="label">Endpoint</span>
+          <span className="value mono">{flowrider.host}:{flowrider.port}</span>
+        </div>
+        <div className="detail-row">
+          <span className="label">Status</span>
+          <span className={`value status-${flowrider.status}`}>{flowrider.status.toUpperCase()}</span>
+        </div>
+        <div className="detail-row">
+          <span className="label">Sessions</span>
+          <span className="value">{flowrider.activeSessions} / {flowrider.totalSessions}</span>
+        </div>
+        <div className="detail-row">
+          <span className="label">CPU Usage</span>
+          <span className="value">{flowrider.metrics.cpuUsage.toFixed(1)}%</span>
+        </div>
+        <div className="detail-row">
+          <span className="label">Memory</span>
+          <span className="value">{flowrider.metrics.memoryUsage.toFixed(1)}%</span>
+        </div>
+        <div className="detail-row">
+          <span className="label">Uptime</span>
+          <span className="value">{uptimeHours}h {uptimeMinutes}m</span>
+        </div>
+        <div className="detail-row">
+          <span className="label">Last Ping</span>
+          <span className="value">{new Date(flowrider.lastPing).toLocaleTimeString()}</span>
         </div>
       </div>
     </div>
