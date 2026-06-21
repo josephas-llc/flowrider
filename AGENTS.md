@@ -166,28 +166,100 @@ View learning stats, patterns, and insights:
 ## Maintenance Commands
 
 ### Debloating the LEO AI Database
-If the database grows too large or contains stale data:
+
+**Philosophy**: Optimize and deduplicate without losing valuable knowledge. Never delete unique insights.
 
 ```bash
-# View database size
-ls -lh ~/.flowrider/leo-ai.db
-
-# Backup before debloating
+# ==========================================
+# ALWAYS BACKUP FIRST
+# ==========================================
 cp ~/.flowrider/leo-ai.db ~/.flowrider/leo-ai.db.backup
 
-# Reset database (WARNING: loses all learning)
+# View database size and stats
+ls -lh ~/.flowrider/leo-ai.db
+sqlite3 ~/.flowrider/leo-ai.db "SELECT 'interactions:', COUNT(*) FROM interactions UNION ALL SELECT 'patterns:', COUNT(*) FROM patterns UNION ALL SELECT 'insights:', COUNT(*) FROM insights UNION ALL SELECT 'snippets:', COUNT(*) FROM snippets;"
+
+# ==========================================
+# SAFE: Remove duplicates (keeps newest)
+# ==========================================
+# Remove duplicate interactions (same prompt_hash, keep the one with best feedback)
+sqlite3 ~/.flowrider/leo-ai.db "
+DELETE FROM interactions WHERE id NOT IN (
+  SELECT id FROM (
+    SELECT id, ROW_NUMBER() OVER (
+      PARTITION BY prompt_hash
+      ORDER BY COALESCE(user_feedback, 0) DESC, timestamp DESC
+    ) as rn
+    FROM interactions
+  ) WHERE rn = 1
+);"
+
+# ==========================================
+# SAFE: Clean junk data (preserves learnings)
+# ==========================================
+# Remove interactions with empty prompts or responses
+sqlite3 ~/.flowrider/leo-ai.db "DELETE FROM interactions WHERE prompt = '' OR response = '' OR prompt IS NULL OR response IS NULL;"
+
+# Remove interactions that are just whitespace
+sqlite3 ~/.flowrider/leo-ai.db "DELETE FROM interactions WHERE TRIM(prompt) = '' OR TRIM(response) = '';"
+
+# Remove patterns with no occurrences or zero confidence
+sqlite3 ~/.flowrider/leo-ai.db "DELETE FROM patterns WHERE occurrences = 0 OR confidence = 0;"
+
+# ==========================================
+# SAFE: Consolidate patterns (merges similar)
+# ==========================================
+# Merge duplicate patterns (same name and type, keep highest confidence)
+sqlite3 ~/.flowrider/leo-ai.db "
+DELETE FROM patterns WHERE id NOT IN (
+  SELECT id FROM (
+    SELECT id, ROW_NUMBER() OVER (
+      PARTITION BY type, name
+      ORDER BY confidence DESC, occurrences DESC
+    ) as rn
+    FROM patterns
+  ) WHERE rn = 1
+);"
+
+# ==========================================
+# SAFE: Compress old interactions (keeps insights)
+# ==========================================
+# For interactions older than 90 days: truncate response to first 500 chars
+# This keeps the prompt and outcome but reduces storage
+sqlite3 ~/.flowrider/leo-ai.db "
+UPDATE interactions
+SET response = SUBSTR(response, 1, 500) || '... [truncated]'
+WHERE timestamp < (strftime('%s', 'now') - 90*24*60*60) * 1000
+AND LENGTH(response) > 500;"
+
+# ==========================================
+# FINALIZE: Reclaim disk space
+# ==========================================
+sqlite3 ~/.flowrider/leo-ai.db "VACUUM;"
+
+# ==========================================
+# VERIFY: Check what was preserved
+# ==========================================
+sqlite3 ~/.flowrider/leo-ai.db "SELECT 'interactions:', COUNT(*) FROM interactions UNION ALL SELECT 'patterns:', COUNT(*) FROM patterns UNION ALL SELECT 'insights:', COUNT(*) FROM insights UNION ALL SELECT 'snippets:', COUNT(*) FROM snippets;"
+```
+
+### What Each Command Does
+
+| Command | Deletes | Preserves |
+|---------|---------|-----------|
+| Remove duplicates | Repeat recordings of same prompt | Best-rated version |
+| Clean junk | Empty/whitespace entries | All real interactions |
+| Consolidate patterns | Duplicate patterns | Highest-confidence version |
+| Compress old | Long response text (>500 chars) | Prompt, outcome, metadata |
+
+### Nuclear Options (USE WITH CAUTION)
+
+```bash
+# Reset ONLY interactions (keeps patterns + insights)
+sqlite3 ~/.flowrider/leo-ai.db "DELETE FROM interactions; VACUUM;"
+
+# Full reset (loses everything)
 rm ~/.flowrider/leo-ai.db
-
-# Vacuum existing database (reclaim space, keeps data)
-sqlite3 ~/.flowrider/leo-ai.db "VACUUM;"
-
-# Remove old interactions (keep last 30 days)
-sqlite3 ~/.flowrider/leo-ai.db "DELETE FROM interactions WHERE timestamp < strftime('%s', 'now', '-30 days') * 1000;"
-sqlite3 ~/.flowrider/leo-ai.db "VACUUM;"
-
-# Remove low-confidence patterns
-sqlite3 ~/.flowrider/leo-ai.db "DELETE FROM patterns WHERE confidence < 0.3;"
-sqlite3 ~/.flowrider/leo-ai.db "VACUUM;"
 ```
 
 ## Future Enhancements
