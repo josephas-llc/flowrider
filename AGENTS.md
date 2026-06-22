@@ -222,17 +222,6 @@ DELETE FROM patterns WHERE id NOT IN (
 );"
 
 # ==========================================
-# SAFE: Compress old interactions (keeps insights)
-# ==========================================
-# For interactions older than 90 days: truncate response to first 500 chars
-# This keeps the prompt and outcome but reduces storage
-sqlite3 ~/.flowrider/leo-ai.db "
-UPDATE interactions
-SET response = SUBSTR(response, 1, 500) || '... [truncated]'
-WHERE timestamp < (strftime('%s', 'now') - 90*24*60*60) * 1000
-AND LENGTH(response) > 500;"
-
-# ==========================================
 # FINALIZE: Reclaim disk space
 # ==========================================
 sqlite3 ~/.flowrider/leo-ai.db "VACUUM;"
@@ -250,7 +239,22 @@ sqlite3 ~/.flowrider/leo-ai.db "SELECT 'interactions:', COUNT(*) FROM interactio
 | Remove duplicates | Repeat recordings of same prompt | Best-rated version |
 | Clean junk | Empty/whitespace entries | All real interactions |
 | Consolidate patterns | Duplicate patterns | Highest-confidence version |
-| Compress old | Long response text (>500 chars) | Prompt, outcome, metadata |
+
+**Tables NEVER touched by debloat:** `insights`, `snippets` (100% preserved)
+
+### Optional: Compress Old Responses (USE ONLY IF NEEDED)
+
+This command truncates old responses to save space. **This DOES lose data** - use only if database size is a problem.
+
+```bash
+# ⚠️ WARNING: This truncates response text older than 90 days
+# Only use if you need to reduce database size significantly
+sqlite3 ~/.flowrider/leo-ai.db "
+UPDATE interactions
+SET response = SUBSTR(response, 1, 500) || '... [truncated]'
+WHERE timestamp < (strftime('%s', 'now') - 90*24*60*60) * 1000
+AND LENGTH(response) > 500;"
+```
 
 ### Nuclear Options (USE WITH CAUTION)
 
@@ -262,9 +266,28 @@ sqlite3 ~/.flowrider/leo-ai.db "DELETE FROM interactions; VACUUM;"
 rm ~/.flowrider/leo-ai.db
 ```
 
-## Future Enhancements
+## Scheduled Tasks
 
-- [ ] Cloud sync for LEO AI database
+| Schedule | Task | Status |
+|----------|------|--------|
+| Daily 2am | iCloud backup (`scripts/backup-to-icloud.sh`) | Active |
+
+## Current TODOs
+
+### High Priority
+- [ ] Fix Flowrider app build/launch issues
+- [ ] Test LEO AI learning loop end-to-end
+- [ ] Verify SessionMonitor captures interactions correctly
+- [ ] Test thumbs up/down feedback in UI
+
+### Medium Priority
+- [ ] Add LEO AI dashboard view to UI
+- [ ] Implement context injection into prompts
+- [ ] Add session rename functionality
+- [ ] Create first-run experience/onboarding
+
+### Low Priority / Future
+- [ ] Cloud sync for LEO AI database (beyond iCloud)
 - [ ] Cross-user pattern sharing (opt-in)
 - [ ] Real-time session collaboration
 - [ ] Voice command integration
