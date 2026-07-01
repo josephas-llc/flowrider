@@ -69,6 +69,16 @@ export const SessionPanel: React.FC = () => {
   const selectedSession = selectedFace !== null ? sessions[selectedFace] : null;
   const hasActiveTmux = selectedSession?.tmuxSession !== undefined;
 
+  // Reset local state when selectedFace changes to prevent name bleeding between sessions
+  useEffect(() => {
+    setSessionName('');
+    setWorkingDir('~');
+    setIsEditingName(false);
+    setEditedName('');
+    setLastFeedback(null);
+    setFeedbackSent(false);
+  }, [selectedFace]);
+
   // Focus input when editing starts
   useEffect(() => {
     if (isEditingName && nameInputRef.current) {

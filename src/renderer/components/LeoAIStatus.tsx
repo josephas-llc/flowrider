@@ -1,7 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { useLeoAI } from '../hooks/useLeoAI';
 
-export const LeoAIStatus: React.FC = () => {
+// Error boundary to prevent crashes
+class LeoAIErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('[LeoAIStatus] Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="leo-status-mini" style={{ background: 'rgba(255,100,100,0.2)', border: '1px solid rgba(255,100,100,0.4)' }}>
+          <span className="leo-indicator" style={{ background: '#ff6464' }} />
+          <span style={{ color: '#ff6464' }}>LEO AI Error</span>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{ marginLeft: 8, padding: '2px 6px', fontSize: 10, cursor: 'pointer' }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+const LeoAIStatusContent: React.FC = () => {
   const {
     status,
     patterns,
@@ -123,7 +161,7 @@ export const LeoAIStatus: React.FC = () => {
 
           {/* Top languages & projects */}
           <div className="leo-lists">
-            {status.stats.topLanguages.length > 0 && (
+            {(status.stats.topLanguages?.length ?? 0) > 0 && (
               <div className="leo-list">
                 <h4>Top Languages</h4>
                 <div className="leo-tags">
@@ -133,7 +171,7 @@ export const LeoAIStatus: React.FC = () => {
                 </div>
               </div>
             )}
-            {status.stats.topProjects.length > 0 && (
+            {(status.stats.topProjects?.length ?? 0) > 0 && (
               <div className="leo-list">
                 <h4>Active Projects</h4>
                 <div className="leo-tags">
@@ -146,7 +184,7 @@ export const LeoAIStatus: React.FC = () => {
           </div>
 
           {/* Recent insights */}
-          {insights.length > 0 && (
+          {(insights?.length ?? 0) > 0 && (
             <div className="leo-insights">
               <h4>Recent Insights</h4>
               <div className="leo-insight-list">
@@ -169,7 +207,7 @@ export const LeoAIStatus: React.FC = () => {
           )}
 
           {/* Recent patterns */}
-          {patterns.length > 0 && (
+          {(patterns?.length ?? 0) > 0 && (
             <div className="leo-patterns">
               <h4>Detected Patterns</h4>
               <div className="leo-pattern-list">
@@ -199,7 +237,7 @@ export const LeoAIStatus: React.FC = () => {
           )}
 
           {/* Learning activity */}
-          {learningEvents.length > 0 && (
+          {(learningEvents?.length ?? 0) > 0 && (
             <div className="leo-activity">
               <h4>Recent Learning Activity</h4>
               <div className="leo-activity-list">
@@ -550,3 +588,10 @@ export const LeoAIStatus: React.FC = () => {
     </div>
   );
 };
+
+// Export with error boundary wrapper
+export const LeoAIStatus: React.FC = () => (
+  <LeoAIErrorBoundary>
+    <LeoAIStatusContent />
+  </LeoAIErrorBoundary>
+);

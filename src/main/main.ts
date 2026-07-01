@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
 import { TmuxManager } from './TmuxManager';
 import { LeoManager } from './LeoManager';
@@ -66,6 +66,28 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  // Handle external links - open them in the system browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    // Only open http/https URLs externally
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+
+  // Also handle navigation attempts to external URLs
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    // Allow navigation to localhost (dev server) or file:// URLs
+    if (url.startsWith('http://localhost') || url.startsWith('file://')) {
+      return;
+    }
+    // Prevent navigation and open externally instead
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
   });
 
   console.log('[Main] Window created');

@@ -21,6 +21,38 @@ export interface LeoAIStatus {
   };
 }
 
+// Normalize stats from backend to frontend format
+function normalizeStats(backendStats: any): LeoAIStatus['stats'] {
+  return {
+    totalInteractions: backendStats?.totalInteractions ?? 0,
+    totalPatterns: backendStats?.totalPatterns ?? 0,
+    totalInsights: backendStats?.totalInsights ?? 0,
+    totalSnippets: backendStats?.totalSnippets ?? 0,
+    // Backend uses averageConfidence, frontend expects avgConfidence
+    avgConfidence: backendStats?.avgConfidence ?? backendStats?.averageConfidence ?? 0,
+    // These may not be returned by backend
+    topLanguages: backendStats?.topLanguages ?? [],
+    topProjects: backendStats?.topProjects ?? [],
+  };
+}
+
+// Normalize full status from backend
+function normalizeStatus(backendStatus: any): LeoAIStatus | null {
+  if (!backendStatus) return null;
+  return {
+    enabled: backendStatus.enabled ?? false,
+    learning: backendStatus.learning ?? false,
+    stats: normalizeStats(backendStatus.stats),
+    lastAnalysis: backendStatus.lastAnalysis ?? null,
+    config: backendStatus.config ?? {
+      analysisInterval: 300000,
+      minInteractionsForAnalysis: 10,
+      autoLearn: true,
+      defaultVerbosity: 'normal',
+    },
+  };
+}
+
 export interface Pattern {
   id: string;
   type: 'error' | 'code' | 'workflow' | 'prompt';
@@ -75,7 +107,7 @@ export function useLeoAI() {
     try {
       const result = await window.flowrider.leoai.getStatus();
       if (result.success && result.data) {
-        setStatus(result.data);
+        setStatus(normalizeStatus(result.data));
       }
     } catch (err) {
       console.error('[useLeoAI] Failed to fetch status:', err);
