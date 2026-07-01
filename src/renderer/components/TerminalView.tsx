@@ -16,6 +16,7 @@ export const TerminalView: React.FC = () => {
   const lastOutputRef = useRef<string>('');
   const tokenAccumulatorRef = useRef<TokenAccumulator>(new TokenAccumulator());
   const connectedSessionRef = useRef<string | null>(null);
+  const lastTokensRef = useRef<{ input: number; output: number }>({ input: 0, output: 0 });
 
   const [connectedSession, setConnectedSession] = useState<string | null>(null);
   const [liveTokens, setLiveTokens] = useState<{ input: number; output: number; cost: number }>({
@@ -96,9 +97,10 @@ export const TerminalView: React.FC = () => {
       const sessionName = selectedSession.tmuxSession;
       setConnectedSession(sessionName);
       connectedSessionRef.current = sessionName; // Keep ref in sync for onData callback
-      // Reset token accumulator for new connection
+      // Reset token tracking for new connection
       tokenAccumulatorRef.current.clear();
       setLiveTokens({ input: 0, output: 0, cost: 0 });
+      lastTokensRef.current = { input: 0, output: 0 };
     } else {
       setConnectedSession(null);
       connectedSessionRef.current = null;
@@ -120,14 +122,31 @@ export const TerminalView: React.FC = () => {
           const output = (result as any).data as string;
 
           if (output !== lastOutputRef.current) {
-            // Clear and write full output (simple approach)
-            xtermRef.current.clear();
-            xtermRef.current.write(output);
+            // Use incremental updates to preserve scroll history
+            if (lastOutputRef.current === '') {
+              // First load - write full output
+              xtermRef.current.write(output);
+            } else if (output.startsWith(lastOutputRef.current)) {
+              // Output grew - append only new content
+              const newContent = output.slice(lastOutputRef.current.length);
+              if (newContent) {
+                xtermRef.current.write(newContent);
+              }
+            } else {
+              // Output changed significantly (scrollback shifted or new context)
+              // Clear and rewrite, but this should be rare
+              xtermRef.current.clear();
+              xtermRef.current.write(output);
+            }
             lastOutputRef.current = output;
 
             // Parse tokens from output
             const tokenUsage = parseTokensFromOutput(output) || parseClaudeCodeStatus(output);
             if (tokenUsage && selectedFace !== null) {
+              // Calculate delta from previous values using ref (avoids stale closure)
+              const deltaInput = Math.max(0, tokenUsage.inputTokens - lastTokensRef.current.input);
+              const deltaOutput = Math.max(0, tokenUsage.outputTokens - lastTokensRef.current.output);
+
               // Update live display
               setLiveTokens({
                 input: tokenUsage.inputTokens,
@@ -135,13 +154,22 @@ export const TerminalView: React.FC = () => {
                 cost: tokenUsage.estimatedCost,
               });
 
-              // Update store with delta (for now just set the values)
-              // In a real implementation, we'd track deltas
+              // Update ref for next delta calculation
+              lastTokensRef.current = { input: tokenUsage.inputTokens, output: tokenUsage.outputTokens };
+
+              // Only add to store if there's a positive delta (new tokens used)
+              if (deltaInput > 0 || deltaOutput > 0) {
+                addTokenUsage(selectedFace, deltaInput, deltaOutput);
+              }
             }
           }
         }
       } catch (err) {
         console.error('[Terminal] Poll error:', err);
+        // Show error to user if terminal is available
+        if (xtermRef.current) {
+          xtermRef.current.writeln(`\x1b[31mError: Session may have disconnected\x1b[0m`);
+        }
       }
     };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Icosahedron } from './components/Icosahedron';
@@ -7,13 +7,46 @@ import { SessionSearch } from './components/SessionSearch';
 import { TerminalView } from './components/TerminalView';
 import { Dashboard } from './components/Dashboard';
 import { DemoMode } from './components/DemoMode';
+import { LeoAIStatus } from './components/LeoAIStatus';
+import { CrossSessionPanel } from './components/CrossSessionPanel';
 import { useStore } from './store';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 type MainView = 'sessions' | 'dashboard';
 
+// Loading fallback for 3D canvas
+const CanvasLoading: React.FC = () => (
+  <div style={{
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#0a0a0f',
+    color: '#00ffff',
+    fontSize: '14px',
+    fontFamily: 'monospace',
+  }}>
+    Loading 3D...
+  </div>
+);
+
 const App: React.FC = () => {
-  const { sessions, selectedFace, selectFace, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux } = useStore();
+  console.log('[App] Rendering...');
+
+  // State to track if store is ready
+  const [storeReady, setStoreReady] = useState(false);
+
+  const store = useStore();
+  const { sessions, selectedFace, selectFace, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux } = store;
+
+  console.log('[App] Store loaded, sessions:', sessions?.length);
+
+  // Mark store as ready after first render
+  useEffect(() => {
+    console.log('[App] Store mounted, marking ready');
+    setStoreReady(true);
+  }, []);
 
   // Sync with tmux sessions on mount
   useEffect(() => {
@@ -141,6 +174,12 @@ const App: React.FC = () => {
           <Dashboard />
         </div>
       )}
+
+      {/* LEO AI Status Widget */}
+      <LeoAIStatus />
+
+      {/* Cross-Session Awareness Panel */}
+      <CrossSessionPanel />
     </div>
   );
 };

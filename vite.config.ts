@@ -9,6 +9,17 @@ export default defineConfig({
   build: {
     outDir: '../../dist/renderer',
     emptyOutDir: true,
+    minify: false, // Disable minification to avoid circular dependency issues
+    rollupOptions: {
+      output: {
+        // Prevent mangling of variable names to help debug circular deps
+        manualChunks: {
+          'three': ['three', '@react-three/fiber', '@react-three/drei'],
+          'react-vendor': ['react', 'react-dom'],
+          'zustand': ['zustand'],
+        },
+      },
+    },
   },
   resolve: {
     alias: {

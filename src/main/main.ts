@@ -5,13 +5,18 @@ import { LeoManager } from './LeoManager';
 import { SessionMonitor } from './SessionMonitor';
 import { getLeoAI, shutdownLeoAI } from './leo-ai';
 import { getContextInjector } from './ContextInjector';
+import { getAIService, AIProviderType, AIMessage } from './AIService';
+import { getCrossSessionAwareness, shutdownCrossSessionAwareness } from './CrossSessionAwareness';
 
 let mainWindow: BrowserWindow | null = null;
 let tmuxManager: TmuxManager;
 let leoManager: LeoManager;
 let sessionMonitor: SessionMonitor;
 
-const isDev = !app.isPackaged;
+// Check if we should run in dev mode:
+// 1. If NODE_ENV=production, always use production mode
+// 2. Otherwise, check if app is packaged
+const isDev = process.env.NODE_ENV !== 'production' && !app.isPackaged;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -29,12 +34,35 @@ function createWindow() {
     trafficLightPosition: { x: 15, y: 15 },
   });
 
+  const rendererPath = path.join(__dirname, '../renderer/index.html');
+  console.log('[Main] isDev:', isDev);
+  console.log('[Main] NODE_ENV:', process.env.NODE_ENV);
+  console.log('[Main] app.isPackaged:', app.isPackaged);
+  console.log('[Main] Renderer path:', rendererPath);
+
   if (isDev) {
+    console.log('[Main] Loading from dev server: http://localhost:5174');
     mainWindow.loadURL('http://localhost:5174');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+    console.log('[Main] Loading from file:', rendererPath);
+    mainWindow.loadFile(rendererPath);
+    // Open DevTools in production to see errors
+    mainWindow.webContents.openDevTools();
   }
+
+  // Log any errors during page load
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('[Main] Page failed to load:', errorCode, errorDescription);
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[Main] Page finished loading');
+  });
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log('[Renderer Console]', message);
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -171,6 +199,10 @@ function setupIPC() {
   // ========================================
 
   const leoAI = getLeoAI();
+
+  // Auto-enable LEO AI learning on startup
+  leoAI.enable();
+  console.log('[IPC] LEO AI auto-enabled on startup');
 
   // Enable LEO AI learning
   ipcMain.handle('leoai:enable', async () => {
@@ -375,7 +407,190 @@ function setupIPC() {
     return { success: true };
   });
 
-  console.log('[IPC] Handlers registered (including LEO + LEO AI + SessionMonitor + ContextInjector)');
+  // ========================================
+  // AI Service IPC
+  // ========================================
+
+  const aiService = getAIService();
+
+  // Check health of all providers
+  ipcMain.handle('ai:checkProviders', async () => {
+    console.log('[IPC] Checking AI providers');
+    const health = await aiService.checkAllProviders();
+    return { success: true, data: health };
+  });
+
+  // Check Ollama health specifically
+  ipcMain.handle('ai:checkOllama', async () => {
+    const health = await aiService.checkOllamaHealth();
+    return { success: true, data: health };
+  });
+
+  // Check Claude health specifically
+  ipcMain.handle('ai:checkClaude', async () => {
+    const health = await aiService.checkClaudeHealth();
+    return { success: true, data: health };
+  });
+
+  // List Ollama models
+  ipcMain.handle('ai:listOllamaModels', async () => {
+    try {
+      const models = await aiService.listOllamaModels();
+      return { success: true, data: models };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
+  });
+
+  // Make an AI call
+  ipcMain.handle('ai:call', async (
+    _event,
+    options: {
+      provider: AIProviderType;
+      model?: string;
+      messages: AIMessage[];
+      maxTokens?: number;
+      temperature?: number;
+      systemPrompt?: string;
+    }
+  ) => {
+    console.log(`[IPC] AI call to ${options.provider}${options.model ? ` (${options.model})` : ''}`);
+    const result = await aiService.call(options);
+    return result;
+  });
+
+  // Quick prompt (convenience)
+  ipcMain.handle('ai:quickPrompt', async (
+    _event,
+    provider: AIProviderType,
+    prompt: string,
+    model?: string
+  ) => {
+    console.log(`[IPC] Quick prompt to ${provider}`);
+    const result = await aiService.quickPrompt(provider, prompt, model);
+    return result;
+  });
+
+  // Calculate cost
+  ipcMain.handle('ai:calculateCost', async (
+    _event,
+    provider: AIProviderType,
+    model: string,
+    inputTokens: number,
+    outputTokens: number
+  ) => {
+    const cost = aiService.calculateCost(provider, model, inputTokens, outputTokens);
+    return { success: true, data: cost };
+  });
+
+  // Set Ollama URL
+  ipcMain.handle('ai:setOllamaUrl', async (_event, url: string) => {
+    aiService.setOllamaUrl(url);
+    return { success: true };
+  });
+
+  // ========================================
+  // Cross-Session Awareness IPC
+  // ========================================
+
+  const crossSessionAwareness = getCrossSessionAwareness();
+
+  // Register a session
+  ipcMain.handle('crosssession:register', async (
+    _event,
+    sessionId: string,
+    sessionName: string,
+    workingDir: string,
+    projectId?: string
+  ) => {
+    crossSessionAwareness.registerSession(sessionId, sessionName, workingDir, projectId);
+    return { success: true };
+  });
+
+  // Unregister a session
+  ipcMain.handle('crosssession:unregister', async (_event, sessionId: string) => {
+    crossSessionAwareness.unregisterSession(sessionId);
+    return { success: true };
+  });
+
+  // Update session activity
+  ipcMain.handle('crosssession:updateActivity', async (
+    _event,
+    sessionId: string,
+    updates: { currentTask?: string; status?: string; tags?: string[] }
+  ) => {
+    crossSessionAwareness.updateActivity(sessionId, updates as any);
+    return { success: true };
+  });
+
+  // Record file modification
+  ipcMain.handle('crosssession:recordFile', async (
+    _event,
+    sessionId: string,
+    filePath: string
+  ) => {
+    crossSessionAwareness.recordFileModification(sessionId, filePath);
+    return { success: true };
+  });
+
+  // Record error
+  ipcMain.handle('crosssession:recordError', async (
+    _event,
+    sessionId: string,
+    error: string
+  ) => {
+    crossSessionAwareness.recordError(sessionId, error);
+    return { success: true };
+  });
+
+  // Record error resolved
+  ipcMain.handle('crosssession:recordErrorResolved', async (
+    _event,
+    sessionId: string,
+    error: string,
+    solution: string
+  ) => {
+    crossSessionAwareness.recordErrorResolved(sessionId, error, solution);
+    return { success: true };
+  });
+
+  // Get cross-session context
+  ipcMain.handle('crosssession:getContext', async (_event, sessionId: string) => {
+    const context = crossSessionAwareness.getCrossSessionContext(sessionId);
+    return { success: true, data: context };
+  });
+
+  // Get suggestions
+  ipcMain.handle('crosssession:getSuggestions', async (_event, sessionId: string) => {
+    const suggestions = crossSessionAwareness.getSuggestions(sessionId);
+    return { success: true, data: suggestions };
+  });
+
+  // Dismiss suggestion
+  ipcMain.handle('crosssession:dismissSuggestion', async (_event, suggestionId: string) => {
+    crossSessionAwareness.dismissSuggestion(suggestionId);
+    return { success: true };
+  });
+
+  // Get activity feed
+  ipcMain.handle('crosssession:getActivityFeed', async () => {
+    const feed = crossSessionAwareness.getActivityFeed();
+    return { success: true, data: feed };
+  });
+
+  // Get active sessions
+  ipcMain.handle('crosssession:getActiveSessions', async () => {
+    const sessions = crossSessionAwareness.getActiveSessions();
+    return { success: true, data: sessions };
+  });
+
+  // Get session by ID
+  ipcMain.handle('crosssession:getSession', async (_event, sessionId: string) => {
+    const session = crossSessionAwareness.getSession(sessionId);
+    return { success: true, data: session };
+  });
+
+  console.log('[IPC] Handlers registered (including LEO + LEO AI + SessionMonitor + ContextInjector + AIService + CrossSessionAwareness)');
 }
 
 app.whenReady().then(() => {
@@ -403,4 +618,5 @@ app.on('before-quit', () => {
   console.log('[Main] App quitting, cleaning up...');
   sessionMonitor.shutdown();
   shutdownLeoAI();
+  shutdownCrossSessionAwareness();
 });

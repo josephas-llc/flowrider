@@ -1,0 +1,515 @@
+import { execSync, spawn, ChildProcess } from 'child_process';
+import * as http from 'http';
+import * as https from 'https';
+
+// ============================================
+// TYPES
+// ============================================
+
+export type AIProviderType = 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local';
+
+export interface AIMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface AICallOptions {
+  provider: AIProviderType;
+  model?: string;
+  messages: AIMessage[];
+  maxTokens?: number;
+  temperature?: number;
+  systemPrompt?: string;
+  stream?: boolean;
+}
+
+export interface AICallResult {
+  success: boolean;
+  content?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  cost?: number;
+  model?: string;
+  provider: AIProviderType;
+  error?: string;
+  duration?: number;
+}
+
+export interface OllamaModel {
+  name: string;
+  modified_at: string;
+  size: number;
+  digest: string;
+}
+
+export interface ProviderHealth {
+  provider: AIProviderType;
+  available: boolean;
+  version?: string;
+  models?: string[];
+  error?: string;
+}
+
+// ============================================
+// PRICING DATA
+// ============================================
+
+const CLAUDE_PRICING: Record<string, { input: number; output: number }> = {
+  'claude-opus-4': { input: 15, output: 75 },
+  'claude-sonnet-4': { input: 3, output: 15 },
+  'claude-3-opus-20240229': { input: 15, output: 75 },
+  'claude-3-5-sonnet-20241022': { input: 3, output: 15 },
+  'claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
+  'claude-haiku': { input: 0.25, output: 1.25 },
+};
+
+// ============================================
+// AI SERVICE CLASS
+// ============================================
+
+export class AIService {
+  private ollamaUrl: string = 'http://localhost:11434';
+  private claudePath: string = '';
+  private apiKeys: Map<AIProviderType, string> = new Map();
+
+  constructor() {
+    this.detectClaudeCLI();
+  }
+
+  private detectClaudeCLI(): void {
+    try {
+      this.claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
+      console.log(`[AIService] Found Claude CLI at: ${this.claudePath}`);
+    } catch {
+      // Try common paths
+      const commonPaths = [
+        '/Users/zacharykramer/.local/bin/claude',
+        '/usr/local/bin/claude',
+        '/opt/homebrew/bin/claude',
+      ];
+      for (const p of commonPaths) {
+        try {
+          execSync(`test -x "${p}"`, { encoding: 'utf-8' });
+          this.claudePath = p;
+          console.log(`[AIService] Found Claude CLI at: ${this.claudePath}`);
+          return;
+        } catch {
+          // Continue
+        }
+      }
+      console.log('[AIService] Claude CLI not found');
+    }
+  }
+
+  // ========================================
+  // Provider Health Checks
+  // ========================================
+
+  async checkOllamaHealth(): Promise<ProviderHealth> {
+    return new Promise((resolve) => {
+      const req = http.get(`${this.ollamaUrl}/api/tags`, { timeout: 5000 }, (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            const models = (parsed.models || []).map((m: OllamaModel) => m.name);
+            resolve({
+              provider: 'ollama',
+              available: true,
+              models,
+            });
+          } catch (e) {
+            resolve({
+              provider: 'ollama',
+              available: false,
+              error: 'Invalid response from Ollama',
+            });
+          }
+        });
+      });
+
+      req.on('error', (err) => {
+        resolve({
+          provider: 'ollama',
+          available: false,
+          error: err.message,
+        });
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        resolve({
+          provider: 'ollama',
+          available: false,
+          error: 'Connection timeout',
+        });
+      });
+    });
+  }
+
+  async checkClaudeHealth(): Promise<ProviderHealth> {
+    if (!this.claudePath) {
+      return {
+        provider: 'claude',
+        available: false,
+        error: 'Claude CLI not found',
+      };
+    }
+
+    try {
+      const version = execSync(`${this.claudePath} --version 2>/dev/null || echo "unknown"`, {
+        encoding: 'utf-8',
+        timeout: 5000,
+      }).trim();
+
+      return {
+        provider: 'claude',
+        available: true,
+        version,
+        models: ['claude-opus-4', 'claude-sonnet-4', 'claude-haiku'],
+      };
+    } catch (err) {
+      return {
+        provider: 'claude',
+        available: false,
+        error: (err as Error).message,
+      };
+    }
+  }
+
+  async checkAllProviders(): Promise<ProviderHealth[]> {
+    const results = await Promise.all([
+      this.checkClaudeHealth(),
+      this.checkOllamaHealth(),
+    ]);
+    return results;
+  }
+
+  // ========================================
+  // Ollama Integration
+  // ========================================
+
+  async listOllamaModels(): Promise<OllamaModel[]> {
+    return new Promise((resolve, reject) => {
+      const req = http.get(`${this.ollamaUrl}/api/tags`, { timeout: 10000 }, (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            resolve(parsed.models || []);
+          } catch (e) {
+            reject(new Error('Failed to parse Ollama response'));
+          }
+        });
+      });
+
+      req.on('error', reject);
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Ollama connection timeout'));
+      });
+    });
+  }
+
+  async callOllama(options: AICallOptions): Promise<AICallResult> {
+    const startTime = Date.now();
+    const model = options.model || 'llama3';
+
+    return new Promise((resolve) => {
+      const requestBody = JSON.stringify({
+        model,
+        messages: options.messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        stream: false,
+        options: {
+          temperature: options.temperature ?? 0.7,
+          num_predict: options.maxTokens ?? 4096,
+        },
+      });
+
+      const req = http.request(
+        `${this.ollamaUrl}/api/chat`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(requestBody),
+          },
+          timeout: 120000, // 2 minutes for response
+        },
+        (res) => {
+          let data = '';
+          res.on('data', (chunk) => (data += chunk));
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(data);
+              const duration = Date.now() - startTime;
+
+              if (parsed.error) {
+                resolve({
+                  success: false,
+                  provider: 'ollama',
+                  error: parsed.error,
+                  duration,
+                });
+                return;
+              }
+
+              // Extract token counts from Ollama response
+              const inputTokens = parsed.prompt_eval_count || 0;
+              const outputTokens = parsed.eval_count || 0;
+
+              resolve({
+                success: true,
+                content: parsed.message?.content || '',
+                inputTokens,
+                outputTokens,
+                totalTokens: inputTokens + outputTokens,
+                cost: 0, // Local models are free
+                model: parsed.model || model,
+                provider: 'ollama',
+                duration,
+              });
+            } catch (e) {
+              resolve({
+                success: false,
+                provider: 'ollama',
+                error: 'Failed to parse Ollama response',
+                duration: Date.now() - startTime,
+              });
+            }
+          });
+        }
+      );
+
+      req.on('error', (err) => {
+        resolve({
+          success: false,
+          provider: 'ollama',
+          error: err.message,
+          duration: Date.now() - startTime,
+        });
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        resolve({
+          success: false,
+          provider: 'ollama',
+          error: 'Request timeout',
+          duration: Date.now() - startTime,
+        });
+      });
+
+      req.write(requestBody);
+      req.end();
+    });
+  }
+
+  // ========================================
+  // Claude Code CLI Integration
+  // ========================================
+
+  async callClaudeCLI(options: AICallOptions): Promise<AICallResult> {
+    const startTime = Date.now();
+
+    if (!this.claudePath) {
+      return {
+        success: false,
+        provider: 'claude',
+        error: 'Claude CLI not found',
+        duration: Date.now() - startTime,
+      };
+    }
+
+    return new Promise((resolve) => {
+      // Build the prompt from messages
+      const prompt = options.messages
+        .filter((m) => m.role !== 'system')
+        .map((m) => m.content)
+        .join('\n\n');
+
+      // Build command arguments
+      const args = ['--print', '--output-format', 'json'];
+
+      if (options.model) {
+        args.push('--model', options.model);
+      }
+
+      if (options.systemPrompt || options.messages.find((m) => m.role === 'system')) {
+        const systemMsg = options.systemPrompt || options.messages.find((m) => m.role === 'system')?.content || '';
+        args.push('--system-prompt', systemMsg);
+      }
+
+      if (options.maxTokens) {
+        args.push('--max-turns', '1');
+      }
+
+      args.push(prompt);
+
+      console.log(`[AIService] Calling Claude CLI with args:`, args.slice(0, -1));
+
+      const child = spawn(this.claudePath, args, {
+        timeout: 300000, // 5 minutes
+        env: { ...process.env },
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      child.on('close', (code) => {
+        const duration = Date.now() - startTime;
+
+        if (code !== 0) {
+          resolve({
+            success: false,
+            provider: 'claude',
+            error: stderr || `Process exited with code ${code}`,
+            duration,
+          });
+          return;
+        }
+
+        try {
+          // Try to parse JSON output
+          const parsed = JSON.parse(stdout);
+          const model = options.model || 'claude-sonnet-4';
+          const pricing = CLAUDE_PRICING[model] || { input: 3, output: 15 };
+
+          // Extract token counts if available
+          const inputTokens = parsed.usage?.input_tokens || 0;
+          const outputTokens = parsed.usage?.output_tokens || 0;
+          const cost =
+            (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+
+          resolve({
+            success: true,
+            content: parsed.result || parsed.content || stdout,
+            inputTokens,
+            outputTokens,
+            totalTokens: inputTokens + outputTokens,
+            cost,
+            model,
+            provider: 'claude',
+            duration,
+          });
+        } catch {
+          // Return raw output if not JSON
+          resolve({
+            success: true,
+            content: stdout,
+            provider: 'claude',
+            model: options.model || 'claude-sonnet-4',
+            duration,
+          });
+        }
+      });
+
+      child.on('error', (err) => {
+        resolve({
+          success: false,
+          provider: 'claude',
+          error: err.message,
+          duration: Date.now() - startTime,
+        });
+      });
+    });
+  }
+
+  // ========================================
+  // Unified Call Interface
+  // ========================================
+
+  async call(options: AICallOptions): Promise<AICallResult> {
+    switch (options.provider) {
+      case 'ollama':
+        return this.callOllama(options);
+      case 'claude':
+        return this.callClaudeCLI(options);
+      default:
+        return {
+          success: false,
+          provider: options.provider,
+          error: `Provider ${options.provider} not yet implemented`,
+        };
+    }
+  }
+
+  // ========================================
+  // Quick Prompt (convenience method)
+  // ========================================
+
+  async quickPrompt(
+    provider: AIProviderType,
+    prompt: string,
+    model?: string
+  ): Promise<AICallResult> {
+    return this.call({
+      provider,
+      model,
+      messages: [{ role: 'user', content: prompt }],
+    });
+  }
+
+  // ========================================
+  // Cost Calculation
+  // ========================================
+
+  calculateCost(
+    provider: AIProviderType,
+    model: string,
+    inputTokens: number,
+    outputTokens: number
+  ): number {
+    if (provider === 'ollama' || provider === 'local') {
+      return 0;
+    }
+
+    if (provider === 'claude') {
+      const pricing = CLAUDE_PRICING[model] || { input: 3, output: 15 };
+      return (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+    }
+
+    // Default pricing for other providers
+    return ((inputTokens + outputTokens) * 5) / 1_000_000;
+  }
+
+  // ========================================
+  // Configuration
+  // ========================================
+
+  setOllamaUrl(url: string): void {
+    this.ollamaUrl = url;
+  }
+
+  setApiKey(provider: AIProviderType, key: string): void {
+    this.apiKeys.set(provider, key);
+  }
+
+  getApiKey(provider: AIProviderType): string | undefined {
+    return this.apiKeys.get(provider);
+  }
+}
+
+// Singleton instance
+let aiServiceInstance: AIService | null = null;
+
+export function getAIService(): AIService {
+  if (!aiServiceInstance) {
+    aiServiceInstance = new AIService();
+  }
+  return aiServiceInstance;
+}

@@ -134,6 +134,77 @@ contextBridge.exposeInMainWorld('flowrider', {
       ipcRenderer.invoke('context:setConfig', config),
   },
 
+  // AI Service (Claude Code CLI + Ollama + other providers)
+  ai: {
+    // Health checks
+    checkProviders: () => ipcRenderer.invoke('ai:checkProviders'),
+    checkOllama: () => ipcRenderer.invoke('ai:checkOllama'),
+    checkClaude: () => ipcRenderer.invoke('ai:checkClaude'),
+
+    // Ollama specific
+    listOllamaModels: () => ipcRenderer.invoke('ai:listOllamaModels'),
+    setOllamaUrl: (url: string) => ipcRenderer.invoke('ai:setOllamaUrl', url),
+
+    // AI calls
+    call: (options: {
+      provider: 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local';
+      model?: string;
+      messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+      maxTokens?: number;
+      temperature?: number;
+      systemPrompt?: string;
+    }) => ipcRenderer.invoke('ai:call', options),
+
+    quickPrompt: (
+      provider: 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local',
+      prompt: string,
+      model?: string
+    ) => ipcRenderer.invoke('ai:quickPrompt', provider, prompt, model),
+
+    // Cost calculation
+    calculateCost: (
+      provider: 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local',
+      model: string,
+      inputTokens: number,
+      outputTokens: number
+    ) => ipcRenderer.invoke('ai:calculateCost', provider, model, inputTokens, outputTokens),
+  },
+
+  // Cross-Session Awareness
+  crossSession: {
+    // Session registration
+    register: (sessionId: string, sessionName: string, workingDir: string, projectId?: string) =>
+      ipcRenderer.invoke('crosssession:register', sessionId, sessionName, workingDir, projectId),
+    unregister: (sessionId: string) =>
+      ipcRenderer.invoke('crosssession:unregister', sessionId),
+
+    // Activity tracking
+    updateActivity: (sessionId: string, updates: { currentTask?: string; status?: string; tags?: string[] }) =>
+      ipcRenderer.invoke('crosssession:updateActivity', sessionId, updates),
+    recordFile: (sessionId: string, filePath: string) =>
+      ipcRenderer.invoke('crosssession:recordFile', sessionId, filePath),
+    recordError: (sessionId: string, error: string) =>
+      ipcRenderer.invoke('crosssession:recordError', sessionId, error),
+    recordErrorResolved: (sessionId: string, error: string, solution: string) =>
+      ipcRenderer.invoke('crosssession:recordErrorResolved', sessionId, error, solution),
+
+    // Context and suggestions
+    getContext: (sessionId: string) =>
+      ipcRenderer.invoke('crosssession:getContext', sessionId),
+    getSuggestions: (sessionId: string) =>
+      ipcRenderer.invoke('crosssession:getSuggestions', sessionId),
+    dismissSuggestion: (suggestionId: string) =>
+      ipcRenderer.invoke('crosssession:dismissSuggestion', suggestionId),
+
+    // Activity feed
+    getActivityFeed: () =>
+      ipcRenderer.invoke('crosssession:getActivityFeed'),
+    getActiveSessions: () =>
+      ipcRenderer.invoke('crosssession:getActiveSessions'),
+    getSession: (sessionId: string) =>
+      ipcRenderer.invoke('crosssession:getSession', sessionId),
+  },
+
   // App info
   platform: process.platform,
   version: '0.1.0',
@@ -238,6 +309,25 @@ declare global {
         disable: () => Promise<{ success: boolean }>;
         getConfig: () => Promise<{ success: boolean; data: ContextInjectionConfig }>;
         setConfig: (config: Partial<ContextInjectionConfig>) => Promise<{ success: boolean }>;
+      };
+      ai: {
+        checkProviders: () => Promise<{ success: boolean; data: ProviderHealth[] }>;
+        checkOllama: () => Promise<{ success: boolean; data: ProviderHealth }>;
+        checkClaude: () => Promise<{ success: boolean; data: ProviderHealth }>;
+        listOllamaModels: () => Promise<{ success: boolean; data?: OllamaModel[]; error?: string }>;
+        setOllamaUrl: (url: string) => Promise<{ success: boolean }>;
+        call: (options: AICallOptions) => Promise<AICallResult>;
+        quickPrompt: (
+          provider: AIProviderType,
+          prompt: string,
+          model?: string
+        ) => Promise<AICallResult>;
+        calculateCost: (
+          provider: AIProviderType,
+          model: string,
+          inputTokens: number,
+          outputTokens: number
+        ) => Promise<{ success: boolean; data: number }>;
       };
       platform: string;
       version: string;
@@ -355,5 +445,50 @@ declare global {
     snippetsExtracted: number;
     duration: number;
     errors: string[];
+  }
+
+  // AI Service Types
+  type AIProviderType = 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local';
+
+  interface AIMessage {
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+  }
+
+  interface AICallOptions {
+    provider: AIProviderType;
+    model?: string;
+    messages: AIMessage[];
+    maxTokens?: number;
+    temperature?: number;
+    systemPrompt?: string;
+  }
+
+  interface AICallResult {
+    success: boolean;
+    content?: string;
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+    cost?: number;
+    model?: string;
+    provider: AIProviderType;
+    error?: string;
+    duration?: number;
+  }
+
+  interface ProviderHealth {
+    provider: AIProviderType;
+    available: boolean;
+    version?: string;
+    models?: string[];
+    error?: string;
+  }
+
+  interface OllamaModel {
+    name: string;
+    modified_at: string;
+    size: number;
+    digest: string;
   }
 }

@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useStore } from '../store';
 import { ArborPanel } from './ArborPanel';
+import { SessionTemplates } from './SessionTemplates';
 
 // Feedback button component
 const FeedbackButton: React.FC<{
@@ -59,6 +60,55 @@ export const SessionPanel: React.FC = () => {
   const [workingDir, setWorkingDir] = useState('~');
   const [lastFeedback, setLastFeedback] = useState<'positive' | 'negative' | null>(null);
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // IMPORTANT: Define selectedSession BEFORE any callbacks that use it
+  // to avoid TDZ (temporal dead zone) errors in bundled code
+  const selectedSession = selectedFace !== null ? sessions[selectedFace] : null;
+  const hasActiveTmux = selectedSession?.tmuxSession !== undefined;
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditingName && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
+    }
+  }, [isEditingName]);
+
+  // Handle rename session
+  const handleRename = async () => {
+    if (!selectedSession || !editedName.trim() || !window.flowrider || selectedFace === null) return;
+
+    const newName = editedName.trim();
+    if (newName === selectedSession.name) {
+      setIsEditingName(false);
+      return;
+    }
+
+    try {
+      // Rename tmux session if exists
+      if (selectedSession.tmuxSession) {
+        const result = await window.flowrider.tmux.rename(selectedSession.tmuxSession, newName);
+        if ((result as any).success) {
+          updateSession(selectedFace, {
+            name: newName,
+            tmuxSession: newName,
+          });
+        } else {
+          setError((result as any).error || 'Failed to rename session');
+        }
+      } else {
+        // Just update local state if no tmux session
+        updateSession(selectedFace, { name: newName });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to rename');
+    } finally {
+      setIsEditingName(false);
+    }
+  };
 
   // Send feedback to LEO AI
   const handleFeedback = useCallback(async (type: 'positive' | 'negative') => {
@@ -82,8 +132,6 @@ export const SessionPanel: React.FC = () => {
     }
   }, [selectedSession]);
 
-  const selectedSession = selectedFace !== null ? sessions[selectedFace] : null;
-  const hasActiveTmux = selectedSession?.tmuxSession !== undefined;
   const isAttached = attachedSession === selectedSession?.id;
 
   // Create a new tmux session
@@ -230,7 +278,49 @@ export const SessionPanel: React.FC = () => {
             <>
               <div className="info-row">
                 <span className="info-label">Name</span>
-                <span className="info-value">{selectedSession.name}</span>
+                {isEditingName ? (
+                  <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                    <input
+                      ref={nameInputRef}
+                      type="text"
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleRename();
+                        if (e.key === 'Escape') setIsEditingName(false);
+                      }}
+                      onBlur={handleRename}
+                      style={{
+                        flex: 1,
+                        padding: '4px 8px',
+                        background: 'var(--bg-tertiary)',
+                        border: '1px solid #00ffff',
+                        borderRadius: 4,
+                        color: 'var(--text-primary)',
+                        fontSize: 13,
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <span
+                    className="info-value"
+                    onClick={() => {
+                      setEditedName(selectedSession.name);
+                      setIsEditingName(true);
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      transition: 'background 0.2s',
+                    }}
+                    title="Click to rename"
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 255, 255, 0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    {selectedSession.name} <span style={{ fontSize: 10, color: '#666' }}>✏️</span>
+                  </span>
+                )}
               </div>
               <div className="info-row">
                 <span className="info-label">Tmux</span>
@@ -413,6 +503,9 @@ export const SessionPanel: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Session Templates */}
+              <SessionTemplates faceIndex={selectedFace} />
             </>
           )}
         </div>
