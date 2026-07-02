@@ -30,8 +30,16 @@ npm run dist:mac     # Build macOS DMG
 Tests run automatically on GitHub via `.github/workflows/test.yml`:
 - **On every push** to main/master
 - **On every pull request** to main/master
-- Unit tests run first, then E2E tests
+- TypeScript check runs first (catches type errors)
+- Unit tests with coverage run second
+- E2E tests run last
 - Playwright reports are saved as artifacts for 30 days
+
+### Automated Tools
+- **Dependabot** (`.github/dependabot.yml`): Auto-creates PRs for security updates weekly
+- **Auto-release** (`.github/workflows/release.yml`): When you create a GitHub release, it automatically builds and uploads the macOS DMG
+- **CodeQL**: Security scanning (already enabled by GitHub)
+- **Test Coverage**: Uploaded to Codecov (add CODECOV_TOKEN secret for badge)
 
 ### Test Coverage Areas:
 - **Store tests** (`src/renderer/store.test.ts`): Session management, projects, LEO mode
