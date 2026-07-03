@@ -5,10 +5,12 @@
 <h1 align="center">Flowrider</h1>
 
 <p align="center">
-  <strong>20 AI Agents. One Control Tower.</strong>
+  <strong>Run 20 AI Coding Sessions Simultaneously.</strong><br/>
+  <em>The meta-layer for AI-assisted software development.</em>
 </p>
 
 <p align="center">
+  <a href="#the-problem">Problem</a> •
   <a href="#features">Features</a> •
   <a href="#installation">Installation</a> •
   <a href="#quick-start">Quick Start</a> •
@@ -17,10 +19,13 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
-  <img src="https://img.shields.io/badge/status-alpha-orange" alt="Status" />
+  <a href="https://github.com/josephas-llc/flowrider/releases"><img src="https://img.shields.io/badge/download-DMG-purple" alt="Download" /></a>
 </p>
+
+> **Cursor helps one developer write code faster. Flowrider lets one developer run 20 Cursors.**
 
 ---
 
@@ -159,6 +164,19 @@ Same power, but multiplied by 20 and visualized. Plus model choice - run Claude 
 ### vs Building It Yourself
 You could tmux + Claude Code + custom scripts. We did that for you, added a 3D interface, cost tracking, and the roadmap to LEO.
 
+## The Market
+
+The AI coding tools market is exploding:
+
+| Metric | Value |
+|--------|-------|
+| Market Size (2026) | $12.8B |
+| Projected (2032) | $30.1B |
+| CAGR | 27% |
+| AI-generated code on GitHub | >50% |
+
+**But every tool today is single-threaded.** Flowrider is the first multi-session orchestrator.
+
 ## Architecture
 
 ```
@@ -246,9 +264,14 @@ MIT License. See [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>Flowrider: The command center for AI engineering teams.</strong>
+  <strong>Flowrider: Run 20 AI agents while your competitors run 1.</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/josephas-llc/flowrider">Star us on GitHub</a>
+  <a href="https://github.com/josephas-llc/flowrider/releases">Download v0.1.0</a> •
+  <a href="https://github.com/josephas-llc/flowrider">Star on GitHub</a>
+</p>
+
+<p align="center">
+  <em>Built by <a href="https://github.com/josephas-llc">Grey Sky Labs</a></em>
 </p>
