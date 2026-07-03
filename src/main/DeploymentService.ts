@@ -10,6 +10,7 @@
 
 import { spawn, execSync } from 'child_process';
 import { EventEmitter } from 'events';
+import { existsSync } from 'fs';
 
 // Types
 export interface Repository {
@@ -91,33 +92,46 @@ export class DeploymentService extends EventEmitter {
 
   private findGhCli(): void {
     try {
-      // Check common locations
+      // Check common locations - use existsSync first for reliability in Electron
+      const home = process.env.HOME || '/Users/' + process.env.USER;
       const locations = [
         '/opt/homebrew/bin/gh',
         '/usr/local/bin/gh',
         '/usr/bin/gh',
-        `${process.env.HOME}/.local/bin/gh`,
+        `${home}/.local/bin/gh`,
+        `${home}/bin/gh`,
       ];
 
+      console.log(`[DeploymentService] Searching for gh CLI, HOME=${home}`);
+
       for (const loc of locations) {
-        try {
-          execSync(`${loc} --version`, { stdio: 'pipe' });
-          this.ghPath = loc;
-          console.log(`[DeploymentService] Found gh CLI at: ${loc}`);
-          return;
-        } catch {
-          continue;
+        console.log(`[DeploymentService] Checking: ${loc}`);
+        if (existsSync(loc)) {
+          // Verify it's executable by running --version
+          try {
+            execSync(`"${loc}" --version`, { stdio: 'pipe', shell: '/bin/bash' });
+            this.ghPath = loc;
+            console.log(`[DeploymentService] Found gh CLI at: ${loc}`);
+            return;
+          } catch (execErr) {
+            console.log(`[DeploymentService] File exists but not executable: ${loc}`, execErr);
+            continue;
+          }
         }
       }
 
-      // Try PATH
-      const result = execSync('which gh', { encoding: 'utf-8' }).trim();
-      if (result) {
-        this.ghPath = result;
-        console.log(`[DeploymentService] Found gh CLI at: ${result}`);
+      // Try PATH with shell: true
+      try {
+        const result = execSync('which gh', { encoding: 'utf-8', shell: '/bin/bash' }).trim();
+        if (result && existsSync(result)) {
+          this.ghPath = result;
+          console.log(`[DeploymentService] Found gh CLI via PATH at: ${result}`);
+        }
+      } catch {
+        // which gh failed
       }
     } catch (err) {
-      console.warn('[DeploymentService] gh CLI not found - deployment features disabled');
+      console.warn('[DeploymentService] gh CLI not found - deployment features disabled', err);
     }
   }
 

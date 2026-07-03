@@ -77,8 +77,8 @@ export const DeployPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
 
       try {
         const result = await window.flowrider.deploy.isAvailable();
-        setIsAvailable(result.available ?? false);
-        if (result.available) {
+        setIsAvailable(result.data ?? false);
+        if (result.data) {
           loadRepos();
           loadStats();
         }
