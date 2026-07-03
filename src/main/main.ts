@@ -7,6 +7,7 @@ import { getLeoAI, shutdownLeoAI } from './leo-ai';
 import { getContextInjector } from './ContextInjector';
 import { getAIService, AIProviderType, AIMessage } from './AIService';
 import { getCrossSessionAwareness, shutdownCrossSessionAwareness } from './CrossSessionAwareness';
+import { deploymentService } from './DeploymentService';
 
 let mainWindow: BrowserWindow | null = null;
 let tmuxManager: TmuxManager;
@@ -167,6 +168,38 @@ function setupIPC() {
     }
 
     return { success: true, path: result.filePaths[0] };
+  });
+
+  // Find local path for a repo
+  ipcMain.handle('fs:findLocalRepo', async (_event, repoName: string) => {
+    const os = require('os');
+    const fs = require('fs');
+    const path = require('path');
+
+    const homeDir = os.homedir();
+    const searchPaths = [
+      homeDir,
+      path.join(homeDir, 'Developer'),
+      path.join(homeDir, 'Projects'),
+      path.join(homeDir, 'Code'),
+    ];
+
+    for (const basePath of searchPaths) {
+      const fullPath = path.join(basePath, repoName);
+      try {
+        const stats = fs.statSync(fullPath);
+        if (stats.isDirectory()) {
+          // Check if it's a git repo
+          const gitPath = path.join(fullPath, '.git');
+          if (fs.existsSync(gitPath)) {
+            return { found: true, path: fullPath };
+          }
+        }
+      } catch {
+        // Directory doesn't exist, continue
+      }
+    }
+    return { found: false };
   });
 
   // ========================================
@@ -612,7 +645,155 @@ function setupIPC() {
     return { success: true, data: session };
   });
 
-  console.log('[IPC] Handlers registered (including LEO + LEO AI + SessionMonitor + ContextInjector + AIService + CrossSessionAwareness)');
+  // ═══════════════════════════════════════════════════════════════
+  // DEPLOYMENT SERVICE (GitHub + CI/CD Integration)
+  // ═══════════════════════════════════════════════════════════════
+
+  // Check if deployment service is available
+  ipcMain.handle('deploy:isAvailable', async () => {
+    return { success: true, data: deploymentService.isAvailable() };
+  });
+
+  // List all repos in org
+  ipcMain.handle('deploy:listRepos', async () => {
+    try {
+      const repos = await deploymentService.listRepos();
+      return { success: true, data: repos };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // Get workflow runs for a repo
+  ipcMain.handle('deploy:listWorkflowRuns', async (_event, repo: string, limit?: number) => {
+    try {
+      const runs = await deploymentService.listWorkflowRuns(repo, limit);
+      return { success: true, data: runs };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // Get workflow logs
+  ipcMain.handle('deploy:getWorkflowLogs', async (_event, repo: string, runId: number) => {
+    try {
+      const logs = await deploymentService.getWorkflowRunLogs(repo, runId);
+      return { success: true, data: logs };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // Rerun a workflow
+  ipcMain.handle('deploy:rerunWorkflow', async (_event, repo: string, runId: number) => {
+    try {
+      const success = await deploymentService.rerunWorkflow(repo, runId);
+      return { success, data: success };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // List releases
+  ipcMain.handle('deploy:listReleases', async (_event, repo: string, limit?: number) => {
+    try {
+      const releases = await deploymentService.listReleases(repo, limit);
+      return { success: true, data: releases };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // Create a release
+  ipcMain.handle('deploy:createRelease', async (_event, repo: string, tagName: string, title: string, notes: string, draft?: boolean, prerelease?: boolean) => {
+    try {
+      const release = await deploymentService.createRelease(repo, tagName, title, notes, draft, prerelease);
+      return { success: !!release, data: release };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // List pull requests
+  ipcMain.handle('deploy:listPRs', async (_event, repo: string, state?: 'open' | 'closed' | 'all') => {
+    try {
+      const prs = await deploymentService.listPullRequests(repo, state);
+      return { success: true, data: prs };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // Merge a pull request
+  ipcMain.handle('deploy:mergePR', async (_event, repo: string, prNumber: number, method?: 'merge' | 'squash' | 'rebase') => {
+    try {
+      const success = await deploymentService.mergePullRequest(repo, prNumber, method);
+      return { success, data: success };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // Trigger a workflow
+  ipcMain.handle('deploy:triggerWorkflow', async (_event, repo: string, workflow: string, branch?: string) => {
+    try {
+      const success = await deploymentService.triggerWorkflow(repo, workflow, branch);
+      return { success, data: success };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // Get org status (quick overview)
+  ipcMain.handle('deploy:getOrgStatus', async () => {
+    try {
+      const status = await deploymentService.getOrgStatus();
+      return { success: true, data: status };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // Get deployment history (for LEO learning)
+  ipcMain.handle('deploy:getHistory', async () => {
+    return { success: true, data: deploymentService.getDeploymentHistory() };
+  });
+
+  // Get deployment stats (for LEO learning)
+  ipcMain.handle('deploy:getStats', async () => {
+    return { success: true, data: deploymentService.getDeploymentStats() };
+  });
+
+  // Get deployment patterns (for LEO learning)
+  ipcMain.handle('deploy:getPatterns', async () => {
+    return { success: true, data: deploymentService.getDeploymentPatterns() };
+  });
+
+  // Forward deployment events to LEO
+  deploymentService.on('deployment-event', (event) => {
+    // Record deployment outcomes for LEO learning
+    const leoAI = getLeoAI();
+    if (leoAI.getStatus().enabled) {
+      // Record as an interaction for LEO AI learning
+      leoAI.recordInteraction(
+        'deployment-system',
+        `Deployment event: ${event.type} for ${event.repo}`,
+        JSON.stringify({
+          success: event.success,
+          duration: event.duration,
+          details: event.details,
+        }),
+        { outcome: event.success ? 'success' : 'failure' }
+      );
+    }
+
+    // Notify renderer of deployment event
+    if (mainWindow) {
+      mainWindow.webContents.send('deployment-event', event);
+    }
+  });
+
+  console.log('[IPC] Handlers registered (including LEO + LEO AI + SessionMonitor + ContextInjector + AIService + CrossSessionAwareness + Deployment)');
 }
 
 app.whenReady().then(() => {

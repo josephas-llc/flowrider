@@ -26,6 +26,11 @@ contextBridge.exposeInMainWorld('flowrider', {
     openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
   },
 
+  // Filesystem utilities
+  fs: {
+    findLocalRepo: (repoName: string) => ipcRenderer.invoke('fs:findLocalRepo', repoName),
+  },
+
   // Project management (for future)
   project: {
     getProjects: () => ipcRenderer.invoke('project:list'),
@@ -168,6 +173,45 @@ contextBridge.exposeInMainWorld('flowrider', {
       inputTokens: number,
       outputTokens: number
     ) => ipcRenderer.invoke('ai:calculateCost', provider, model, inputTokens, outputTokens),
+  },
+
+  // Deployment (GitHub/Vercel CI/CD integration)
+  deploy: {
+    // Health & availability
+    isAvailable: () => ipcRenderer.invoke('deploy:isAvailable'),
+
+    // Repositories
+    listRepos: () => ipcRenderer.invoke('deploy:listRepos'),
+
+    // Workflow runs
+    listWorkflowRuns: (repo: string, limit?: number) =>
+      ipcRenderer.invoke('deploy:listWorkflowRuns', repo, limit),
+    getWorkflowLogs: (repo: string, runId: number) =>
+      ipcRenderer.invoke('deploy:getWorkflowLogs', repo, runId),
+    rerunWorkflow: (repo: string, runId: number) =>
+      ipcRenderer.invoke('deploy:rerunWorkflow', repo, runId),
+    triggerWorkflow: (repo: string, workflow: string, ref?: string) =>
+      ipcRenderer.invoke('deploy:triggerWorkflow', repo, workflow, ref),
+
+    // Releases
+    listReleases: (repo: string, limit?: number) =>
+      ipcRenderer.invoke('deploy:listReleases', repo, limit),
+    createRelease: (repo: string, tagName: string, title: string, notes?: string, draft?: boolean, prerelease?: boolean) =>
+      ipcRenderer.invoke('deploy:createRelease', repo, tagName, title, notes, draft, prerelease),
+
+    // Pull requests
+    listPRs: (repo: string, state?: 'open' | 'closed' | 'all') =>
+      ipcRenderer.invoke('deploy:listPRs', repo, state),
+    mergePR: (repo: string, prNumber: number, method?: 'merge' | 'squash' | 'rebase') =>
+      ipcRenderer.invoke('deploy:mergePR', repo, prNumber, method),
+
+    // Org overview
+    getOrgStatus: () => ipcRenderer.invoke('deploy:getOrgStatus'),
+
+    // LEO learning data
+    getHistory: (limit?: number) => ipcRenderer.invoke('deploy:getHistory', limit),
+    getStats: () => ipcRenderer.invoke('deploy:getStats'),
+    getPatterns: () => ipcRenderer.invoke('deploy:getPatterns'),
   },
 
   // Cross-Session Awareness
@@ -328,6 +372,36 @@ declare global {
           inputTokens: number,
           outputTokens: number
         ) => Promise<{ success: boolean; data: number }>;
+      };
+      deploy: {
+        isAvailable: () => Promise<{ success: boolean; available: boolean; error?: string }>;
+        listRepos: () => Promise<{ success: boolean; data?: DeployRepository[]; error?: string }>;
+        listWorkflowRuns: (repo: string, limit?: number) => Promise<{ success: boolean; data?: DeployWorkflowRun[]; error?: string }>;
+        getWorkflowLogs: (repo: string, runId: number) => Promise<{ success: boolean; data?: string; error?: string }>;
+        rerunWorkflow: (repo: string, runId: number) => Promise<{ success: boolean; error?: string }>;
+        triggerWorkflow: (repo: string, workflow: string, ref?: string) => Promise<{ success: boolean; error?: string }>;
+        listReleases: (repo: string, limit?: number) => Promise<{ success: boolean; data?: DeployRelease[]; error?: string }>;
+        createRelease: (repo: string, tagName: string, title: string, notes?: string, draft?: boolean, prerelease?: boolean) => Promise<{ success: boolean; data?: DeployRelease; error?: string }>;
+        listPRs: (repo: string, state?: 'open' | 'closed' | 'all') => Promise<{ success: boolean; data?: DeployPullRequest[]; error?: string }>;
+        mergePR: (repo: string, prNumber: number, method?: 'merge' | 'squash' | 'rebase') => Promise<{ success: boolean; error?: string }>;
+        getOrgStatus: () => Promise<{ success: boolean; data?: DeployOrgStatus; error?: string }>;
+        getHistory: (limit?: number) => Promise<{ success: boolean; data?: DeployEvent[]; error?: string }>;
+        getStats: () => Promise<{ success: boolean; data?: DeployStats; error?: string }>;
+        getPatterns: () => Promise<{ success: boolean; data?: DeployPatterns; error?: string }>;
+      };
+      crossSession?: {
+        register: (sessionId: string, sessionName: string, workingDir: string, projectId?: string) => Promise<{ success: boolean }>;
+        unregister: (sessionId: string) => Promise<{ success: boolean }>;
+        updateActivity: (sessionId: string, updates: { currentTask?: string; status?: string; tags?: string[] }) => Promise<{ success: boolean }>;
+        recordFile: (sessionId: string, filePath: string) => Promise<{ success: boolean }>;
+        recordError: (sessionId: string, error: string) => Promise<{ success: boolean }>;
+        recordErrorResolved: (sessionId: string, error: string, solution: string) => Promise<{ success: boolean }>;
+        getContext: (sessionId: string) => Promise<{ success: boolean; data?: unknown }>;
+        getSuggestions: (sessionId: string) => Promise<{ success: boolean; data?: unknown[] }>;
+        dismissSuggestion: (suggestionId: string) => Promise<{ success: boolean }>;
+        getActivityFeed: () => Promise<{ success: boolean; data?: unknown[] }>;
+        getActiveSessions: () => Promise<{ success: boolean; data?: unknown[] }>;
+        getSession: (sessionId: string) => Promise<{ success: boolean; data?: unknown }>;
       };
       platform: string;
       version: string;
@@ -490,5 +564,106 @@ declare global {
     modified_at: string;
     size: number;
     digest: string;
+  }
+
+  // Deployment Types
+  interface DeployRepository {
+    name: string;
+    fullName: string;
+    description: string;
+    isPrivate: boolean;
+    defaultBranch: string;
+    url: string;
+    pushedAt: string;
+    language: string;
+  }
+
+  interface DeployWorkflowRun {
+    id: number;
+    name: string;
+    status: 'queued' | 'in_progress' | 'completed';
+    conclusion: 'success' | 'failure' | 'cancelled' | 'skipped' | 'timed_out' | null;
+    branch: string;
+    event: string;
+    createdAt: string;
+    updatedAt: string;
+    url: string;
+    actor: string;
+  }
+
+  interface DeployRelease {
+    id: number;
+    tagName: string;
+    name: string;
+    body: string;
+    draft: boolean;
+    prerelease: boolean;
+    createdAt: string;
+    publishedAt: string;
+    url: string;
+    author: string;
+    assets: Array<{
+      name: string;
+      size: number;
+      downloadCount: number;
+      downloadUrl: string;
+    }>;
+  }
+
+  interface DeployPullRequest {
+    number: number;
+    title: string;
+    state: 'open' | 'closed' | 'merged';
+    author: string;
+    createdAt: string;
+    updatedAt: string;
+    url: string;
+    baseBranch: string;
+    headBranch: string;
+    mergeable: boolean;
+    labels: string[];
+  }
+
+  interface DeployOrgStatus {
+    org: string;
+    repos: Array<{
+      name: string;
+      lastPush: string;
+      openPRs: number;
+      activeWorkflows: number;
+    }>;
+    totalRepos: number;
+    totalOpenPRs: number;
+    activeWorkflows: number;
+  }
+
+  interface DeployEvent {
+    id: string;
+    type: 'workflow' | 'release' | 'pr' | 'deploy';
+    repo: string;
+    action: string;
+    success: boolean;
+    timestamp: number;
+    duration?: number;
+    details?: string;
+    actor?: string;
+  }
+
+  interface DeployStats {
+    totalDeployments: number;
+    successfulDeployments: number;
+    failedDeployments: number;
+    averageDuration: number;
+    deploymentsByRepo: Record<string, number>;
+    deploymentsByDay: Record<string, number>;
+    mostActiveRepo: string;
+    lastDeployment: number | null;
+  }
+
+  interface DeployPatterns {
+    commonFailures: Array<{ pattern: string; count: number; repos: string[] }>;
+    deploymentFrequency: { daily: number; weekly: number; monthly: number };
+    successfulWorkflows: Array<{ name: string; successRate: number; avgDuration: number }>;
+    peakDeploymentTimes: Array<{ hour: number; count: number }>;
   }
 }

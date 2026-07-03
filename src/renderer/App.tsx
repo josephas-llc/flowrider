@@ -9,10 +9,12 @@ import { Dashboard } from './components/Dashboard';
 import { DemoMode } from './components/DemoMode';
 import { LeoAIStatus } from './components/LeoAIStatus';
 import { CrossSessionPanel } from './components/CrossSessionPanel';
+import { DeployPanel } from './components/DeployPanel';
+import { ProjectsPanel } from './components/ProjectsPanel';
 import { useStore } from './store';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
-type MainView = 'sessions' | 'dashboard';
+type MainView = 'sessions' | 'projects' | 'dashboard' | 'deploy';
 
 // Loading fallback for 3D canvas
 const CanvasLoading: React.FC = () => (
@@ -83,11 +85,25 @@ const App: React.FC = () => {
             Sessions
           </button>
           <button
+            className={`nav-tab ${mainView === 'projects' ? 'active' : ''}`}
+            onClick={() => setMainView('projects')}
+          >
+            <span className="tab-icon">◉</span>
+            Projects
+          </button>
+          <button
             className={`nav-tab ${mainView === 'dashboard' ? 'active' : ''}`}
             onClick={() => setMainView('dashboard')}
           >
             <span className="tab-icon">◈</span>
             Dashboard
+          </button>
+          <button
+            className={`nav-tab ${mainView === 'deploy' ? 'active' : ''}`}
+            onClick={() => setMainView('deploy')}
+          >
+            <span className="tab-icon">▲</span>
+            Deploy
           </button>
         </div>
 
@@ -123,7 +139,11 @@ const App: React.FC = () => {
       </nav>
 
       {/* Main Content Area */}
-      {mainView === 'sessions' ? (
+      {mainView === 'projects' ? (
+        <div className="projects-container" style={{ padding: '0', overflow: 'auto', height: 'calc(100vh - 60px)' }}>
+          <ProjectsPanel />
+        </div>
+      ) : mainView === 'sessions' ? (
         <>
           {/* 3D Icosahedron View */}
           <div className="icosahedron-panel">
@@ -169,9 +189,13 @@ const App: React.FC = () => {
           {/* Demo Mode Controls */}
           <DemoMode />
         </>
-      ) : (
+      ) : mainView === 'dashboard' ? (
         <div className="dashboard-container">
           <Dashboard />
+        </div>
+      ) : (
+        <div className="deploy-container" style={{ padding: '20px', overflow: 'auto', height: 'calc(100vh - 60px)' }}>
+          <DeployPanel />
         </div>
       )}
 

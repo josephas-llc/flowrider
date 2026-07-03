@@ -81,19 +81,28 @@ export function useCrossSession(): UseCrossSessionReturn {
 
   // Refresh data from the main process
   const refresh = useCallback(async () => {
+    if (!window.flowrider?.crossSession) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const [sessions, feed] = await Promise.all([
-        window.electron.crossSession.getActiveSessions(),
-        window.electron.crossSession.getActivityFeed(),
+      const [sessionsResult, feedResult] = await Promise.all([
+        window.flowrider.crossSession.getActiveSessions(),
+        window.flowrider.crossSession.getActivityFeed(),
       ]);
 
-      setActiveSessions(sessions || []);
-      setActivityFeed(feed || []);
+      const sessions = (sessionsResult as any)?.data || [];
+      const feed = (feedResult as any)?.data || [];
+
+      setActiveSessions(sessions);
+      setActivityFeed(feed);
 
       // Aggregate suggestions from all sessions
       const allSuggestions: CrossSessionSuggestion[] = [];
-      for (const session of sessions || []) {
-        const sessionSuggestions = await window.electron.crossSession.getSuggestions(session.sessionId);
+      for (const session of sessions) {
+        const suggestionsResult = await window.flowrider.crossSession.getSuggestions(session.sessionId);
+        const sessionSuggestions = (suggestionsResult as any)?.data || [];
         if (sessionSuggestions) {
           allSuggestions.push(...sessionSuggestions);
         }
@@ -124,8 +133,9 @@ export function useCrossSession(): UseCrossSessionReturn {
     workingDir: string,
     projectId?: string
   ) => {
+    if (!window.flowrider?.crossSession) return;
     try {
-      await window.electron.crossSession.register(sessionId, sessionName, workingDir, projectId);
+      await window.flowrider.crossSession.register(sessionId, sessionName, workingDir, projectId);
       await refresh();
     } catch (err) {
       console.error('[useCrossSession] Error registering session:', err);
@@ -133,8 +143,9 @@ export function useCrossSession(): UseCrossSessionReturn {
   }, [refresh]);
 
   const unregisterSession = useCallback(async (sessionId: string) => {
+    if (!window.flowrider?.crossSession) return;
     try {
-      await window.electron.crossSession.unregister(sessionId);
+      await window.flowrider.crossSession.unregister(sessionId);
       await refresh();
     } catch (err) {
       console.error('[useCrossSession] Error unregistering session:', err);
@@ -146,24 +157,27 @@ export function useCrossSession(): UseCrossSessionReturn {
     sessionId: string,
     updates: Partial<Pick<SessionActivity, 'currentTask' | 'status' | 'tags'>>
   ) => {
+    if (!window.flowrider?.crossSession) return;
     try {
-      await window.electron.crossSession.updateActivity(sessionId, updates);
+      await window.flowrider.crossSession.updateActivity(sessionId, updates);
     } catch (err) {
       console.error('[useCrossSession] Error updating activity:', err);
     }
   }, []);
 
   const recordFile = useCallback(async (sessionId: string, filePath: string) => {
+    if (!window.flowrider?.crossSession) return;
     try {
-      await window.electron.crossSession.recordFile(sessionId, filePath);
+      await window.flowrider.crossSession.recordFile(sessionId, filePath);
     } catch (err) {
       console.error('[useCrossSession] Error recording file:', err);
     }
   }, []);
 
   const recordError = useCallback(async (sessionId: string, error: string) => {
+    if (!window.flowrider?.crossSession) return;
     try {
-      await window.electron.crossSession.recordError(sessionId, error);
+      await window.flowrider.crossSession.recordError(sessionId, error);
       await refresh(); // Refresh to get new suggestions
     } catch (err) {
       console.error('[useCrossSession] Error recording error:', err);
@@ -171,8 +185,9 @@ export function useCrossSession(): UseCrossSessionReturn {
   }, [refresh]);
 
   const recordErrorResolved = useCallback(async (sessionId: string, error: string, solution: string) => {
+    if (!window.flowrider?.crossSession) return;
     try {
-      await window.electron.crossSession.recordErrorResolved(sessionId, error, solution);
+      await window.flowrider.crossSession.recordErrorResolved(sessionId, error, solution);
     } catch (err) {
       console.error('[useCrossSession] Error recording error resolution:', err);
     }
@@ -180,8 +195,10 @@ export function useCrossSession(): UseCrossSessionReturn {
 
   // Context & suggestions
   const getContext = useCallback(async (sessionId: string): Promise<CrossSessionContext | null> => {
+    if (!window.flowrider?.crossSession) return null;
     try {
-      return await window.electron.crossSession.getContext(sessionId);
+      const result = await window.flowrider.crossSession.getContext(sessionId);
+      return (result as any)?.data || null;
     } catch (err) {
       console.error('[useCrossSession] Error getting context:', err);
       return null;
@@ -189,8 +206,10 @@ export function useCrossSession(): UseCrossSessionReturn {
   }, []);
 
   const getSuggestionsForSession = useCallback(async (sessionId: string): Promise<CrossSessionSuggestion[]> => {
+    if (!window.flowrider?.crossSession) return [];
     try {
-      return await window.electron.crossSession.getSuggestions(sessionId) || [];
+      const result = await window.flowrider.crossSession.getSuggestions(sessionId);
+      return (result as any)?.data || [];
     } catch (err) {
       console.error('[useCrossSession] Error getting suggestions:', err);
       return [];
@@ -198,8 +217,9 @@ export function useCrossSession(): UseCrossSessionReturn {
   }, []);
 
   const dismissSuggestion = useCallback(async (suggestionId: string) => {
+    if (!window.flowrider?.crossSession) return;
     try {
-      await window.electron.crossSession.dismissSuggestion(suggestionId);
+      await window.flowrider.crossSession.dismissSuggestion(suggestionId);
       setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
     } catch (err) {
       console.error('[useCrossSession] Error dismissing suggestion:', err);
