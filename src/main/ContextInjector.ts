@@ -1,15 +1,15 @@
 /**
- * ContextInjector - Prepends LEO AI learned context to prompts
+ * ContextInjector - Prepends AI System learned context to prompts
  *
  * This is the "APPLY" step of the learning loop:
  * OBSERVE → ANALYZE → LEARN → APPLY
  *
  * When a user sends a prompt to Claude Code, we can optionally
- * prepend relevant context that LEO AI has learned from past
+ * prepend relevant context that AI System has learned from past
  * interactions.
  */
 
-import { getLeoAI } from './leo-ai';
+import { getAICore } from './ai-core';
 
 export interface ContextInjectionConfig {
   enabled: boolean;
@@ -45,12 +45,12 @@ export class ContextInjector {
   }): string | null {
     if (!this.config.enabled) return null;
 
-    const leoAI = getLeoAI();
-    if (!leoAI.getStatus().enabled) return null;
+    const aiCore = getAICore();
+    if (!aiCore.getStatus().enabled) return null;
 
     try {
-      // Get distilled context from LEO AI
-      const context = leoAI.getContext({
+      // Get distilled context from AI System
+      const context = aiCore.getContext({
         prompt: options.prompt,
         projectId: options.projectId,
         language: options.language,
@@ -88,9 +88,9 @@ export class ContextInjector {
 
       // Format as a comment block that won't interfere with the actual prompt
       const contextBlock = [
-        '<!-- LEO AI Context (learned from past sessions) -->',
+        '<!-- AI System Context (learned from past sessions) -->',
         ...parts,
-        '<!-- End LEO AI Context -->',
+        '<!-- End AI System Context -->',
         '',
       ].join('\n');
 
@@ -115,19 +115,19 @@ export class ContextInjector {
   getErrorContext(errors: string[], language?: string): string | null {
     if (!this.config.enabled) return null;
 
-    const leoAI = getLeoAI();
-    if (!leoAI.getStatus().enabled) return null;
+    const aiCore = getAICore();
+    if (!aiCore.getStatus().enabled) return null;
 
     try {
-      const context = leoAI.getErrorContext(errors, language);
+      const context = aiCore.getErrorContext(errors, language);
       if (!context || context === 'No relevant error patterns found.') {
         return null;
       }
 
       return [
-        '<!-- LEO AI Error Context -->',
+        '<!-- AI System Error Context -->',
         context,
-        '<!-- End LEO AI Error Context -->',
+        '<!-- End AI System Error Context -->',
         '',
       ].join('\n');
 

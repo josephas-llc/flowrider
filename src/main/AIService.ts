@@ -1,6 +1,9 @@
 import { execSync, spawn, ChildProcess } from 'child_process';
 import * as http from 'http';
 import * as https from 'https';
+import { app, safeStorage } from 'electron';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // ============================================
 // TYPES
@@ -72,9 +75,13 @@ export class AIService {
   private ollamaUrl: string = 'http://localhost:11434';
   private claudePath: string = '';
   private apiKeys: Map<AIProviderType, string> = new Map();
+  private apiKeysFilePath: string;
 
   constructor() {
+    const userDataPath = app.getPath('userData');
+    this.apiKeysFilePath = path.join(userDataPath, 'ai-keys.enc');
     this.detectClaudeCLI();
+    this.loadApiKeys();
   }
 
   private detectClaudeCLI(): void {
@@ -497,10 +504,99 @@ export class AIService {
 
   setApiKey(provider: AIProviderType, key: string): void {
     this.apiKeys.set(provider, key);
+    this.saveApiKeys();
   }
 
   getApiKey(provider: AIProviderType): string | undefined {
     return this.apiKeys.get(provider);
+  }
+
+  getApiKeys(): Record<AIProviderType, string | undefined> {
+    const keys: Record<string, string | undefined> = {};
+    const providers: AIProviderType[] = ['claude', 'openai', 'ollama', 'gemini', 'grok', 'local'];
+    for (const provider of providers) {
+      keys[provider] = this.apiKeys.get(provider);
+    }
+    return keys as Record<AIProviderType, string | undefined>;
+  }
+
+  // ========================================
+  // Secure Storage for API Keys
+  // ========================================
+
+  private loadApiKeys(): void {
+    try {
+      if (!fs.existsSync(this.apiKeysFilePath)) {
+        console.log('[AIService] No stored API keys found');
+        return;
+      }
+
+      // Verify encryption is available before attempting to decrypt
+      if (!safeStorage.isEncryptionAvailable()) {
+        console.error('[AIService] SECURITY: Cannot load API keys - encryption unavailable');
+        throw new Error('Secure storage not available. Please ensure your system keychain is unlocked.');
+      }
+
+      // Verify file permissions (macOS/Linux)
+      if (process.platform !== 'win32') {
+        const stats = fs.statSync(this.apiKeysFilePath);
+        const mode = stats.mode & 0o777;
+        if (mode !== 0o600) {
+          console.warn('[AIService] Fixing insecure file permissions on API keys file');
+          fs.chmodSync(this.apiKeysFilePath, 0o600);
+        }
+      }
+
+      const encryptedData = fs.readFileSync(this.apiKeysFilePath);
+      const jsonString = safeStorage.decryptString(encryptedData);
+
+      const keysObj = JSON.parse(jsonString);
+      Object.entries(keysObj).forEach(([provider, key]) => {
+        if (key && typeof key === 'string') {
+          this.apiKeys.set(provider as AIProviderType, key);
+        }
+      });
+
+      console.log(`[AIService] Loaded ${this.apiKeys.size} API keys`);
+    } catch (err) {
+      console.error('[AIService] Failed to load API keys:', err);
+    }
+  }
+
+  private saveApiKeys(): void {
+    try {
+      // Verify encryption is available before attempting to save
+      if (!safeStorage.isEncryptionAvailable()) {
+        console.error('[AIService] SECURITY: Cannot store API keys - encryption unavailable');
+        throw new Error('Secure storage not available. Please ensure your system keychain is unlocked.');
+      }
+
+      const keysObj: Record<string, string> = {};
+      this.apiKeys.forEach((value, key) => {
+        keysObj[key] = value;
+      });
+
+      const jsonString = JSON.stringify(keysObj);
+      const dataToWrite = safeStorage.encryptString(jsonString);
+
+      // Ensure directory exists
+      const dir = path.dirname(this.apiKeysFilePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      fs.writeFileSync(this.apiKeysFilePath, dataToWrite);
+
+      // Set restrictive file permissions (macOS/Linux)
+      if (process.platform !== 'win32') {
+        fs.chmodSync(this.apiKeysFilePath, 0o600);
+      }
+
+      console.log('[AIService] API keys saved securely');
+    } catch (err) {
+      console.error('[AIService] Failed to save API keys:', err);
+      throw err;
+    }
   }
 }
 

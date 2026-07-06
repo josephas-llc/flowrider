@@ -273,5 +273,5 @@ MIT License. See [LICENSE](LICENSE) for details.
 </p>
 
 <p align="center">
-  <em>Built by <a href="https://github.com/josephas-llc">Grey Sky Labs</a></em>
+  <em>Built by <a href="https://github.com/josephas-llc">Josephas LLC</a></em>
 </p>

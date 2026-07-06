@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore, AIProvider } from '../store';
 
 export interface SessionTemplate {
@@ -13,122 +13,10 @@ export interface SessionTemplate {
     workingDir?: string;
     notes?: string;
   };
+  isBuiltIn: boolean;
+  createdAt: number;
+  updatedAt: number;
 }
-
-// Built-in templates
-const BUILTIN_TEMPLATES: SessionTemplate[] = [
-  {
-    id: 'fullstack',
-    name: 'Full-Stack Dev',
-    description: 'Claude Code session for full-stack development',
-    icon: '🏗️',
-    category: 'development',
-    config: {
-      aiProvider: 'claude-code',
-      notes: 'Full-stack development session',
-    },
-  },
-  {
-    id: 'api-backend',
-    name: 'API Backend',
-    description: 'Backend API development with Claude',
-    icon: '🔌',
-    category: 'development',
-    config: {
-      aiProvider: 'claude-code',
-      notes: 'Backend API development',
-    },
-  },
-  {
-    id: 'react-frontend',
-    name: 'React Frontend',
-    description: 'React/TypeScript frontend development',
-    icon: '⚛️',
-    category: 'development',
-    config: {
-      aiProvider: 'claude-code',
-      notes: 'React frontend development',
-    },
-  },
-  {
-    id: 'testing',
-    name: 'Test Suite',
-    description: 'Writing and running tests',
-    icon: '🧪',
-    category: 'development',
-    config: {
-      aiProvider: 'claude-code',
-      notes: 'Testing and QA',
-    },
-  },
-  {
-    id: 'devops',
-    name: 'DevOps/CI',
-    description: 'CI/CD and infrastructure tasks',
-    icon: '🚀',
-    category: 'development',
-    config: {
-      aiProvider: 'claude-code',
-      notes: 'DevOps and CI/CD',
-    },
-  },
-  {
-    id: 'research-ollama',
-    name: 'Local Research',
-    description: 'Research using local Ollama models',
-    icon: '🔬',
-    category: 'research',
-    config: {
-      aiProvider: 'ollama',
-      aiModel: 'llama3:latest',
-      notes: 'Local AI research session',
-    },
-  },
-  {
-    id: 'code-review',
-    name: 'Code Review',
-    description: 'Review and refactor existing code',
-    icon: '👀',
-    category: 'development',
-    config: {
-      aiProvider: 'claude-code',
-      notes: 'Code review and refactoring',
-    },
-  },
-  {
-    id: 'documentation',
-    name: 'Documentation',
-    description: 'Write and update documentation',
-    icon: '📚',
-    category: 'writing',
-    config: {
-      aiProvider: 'claude-code',
-      notes: 'Documentation session',
-    },
-  },
-  {
-    id: 'bugfix',
-    name: 'Bug Hunting',
-    description: 'Debug and fix issues',
-    icon: '🐛',
-    category: 'development',
-    config: {
-      aiProvider: 'claude-code',
-      notes: 'Bug fixing session',
-    },
-  },
-  {
-    id: 'exploration',
-    name: 'Codebase Explore',
-    description: 'Explore and understand a codebase',
-    icon: '🗺️',
-    category: 'research',
-    config: {
-      aiProvider: 'claude-code',
-      notes: 'Codebase exploration',
-    },
-  },
-];
 
 interface SessionTemplatesProps {
   faceIndex: number;
@@ -139,16 +27,46 @@ export const SessionTemplates: React.FC<SessionTemplatesProps> = ({ faceIndex, o
   const { updateSession, sessions } = useStore();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [templates, setTemplates] = useState<SessionTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<SessionTemplate | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   const session = sessions[faceIndex];
+
+  // Load templates from backend
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    if (!window.flowrider) return;
+
+    try {
+      setLoading(true);
+      const result = await window.flowrider.templates.list();
+      if (result.success && result.data) {
+        setTemplates(result.data);
+      } else {
+        setError(result.error || 'Failed to load templates');
+      }
+    } catch (err) {
+      setError('Failed to load templates');
+      console.error('[SessionTemplates] Error loading templates:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Show templates when there's no active tmux session
   if (!session || session.tmuxSession) {
     return null;
   }
 
   const filteredTemplates = selectedCategory === 'all'
-    ? BUILTIN_TEMPLATES
-    : BUILTIN_TEMPLATES.filter(t => t.category === selectedCategory);
+    ? templates
+    : templates.filter(t => t.category === selectedCategory);
 
   const applyTemplate = (template: SessionTemplate) => {
     // Pre-fill session configuration from template
@@ -162,6 +80,54 @@ export const SessionTemplates: React.FC<SessionTemplatesProps> = ({ faceIndex, o
       // Don't set status - session is still empty until tmux session is created
     });
     onApply?.();
+  };
+
+  const handleDeleteTemplate = async (templateId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!window.flowrider) return;
+
+    if (!confirm('Delete this template?')) return;
+
+    try {
+      const result = await window.flowrider.templates.delete(templateId);
+      if (result.success) {
+        // Reload templates
+        await loadTemplates();
+      } else {
+        alert(result.error || 'Failed to delete template');
+      }
+    } catch (err) {
+      alert('Failed to delete template');
+      console.error('[SessionTemplates] Error deleting template:', err);
+    }
+  };
+
+  const handleSaveAsTemplate = () => {
+    if (!session.name) {
+      alert('Please name your session first');
+      return;
+    }
+    setShowSaveDialog(true);
+  };
+
+  const handleSaveTemplate = async (templateData: Partial<SessionTemplate>) => {
+    if (!window.flowrider) return;
+
+    try {
+      const result = await window.flowrider.templates.save(templateData);
+      if (result.success) {
+        setShowSaveDialog(false);
+        setEditingTemplate(null);
+        // Reload templates
+        await loadTemplates();
+      } else {
+        alert(result.error || 'Failed to save template');
+      }
+    } catch (err) {
+      alert('Failed to save template');
+      console.error('[SessionTemplates] Error saving template:', err);
+    }
   };
 
   const categories = [
@@ -183,6 +149,20 @@ export const SessionTemplates: React.FC<SessionTemplatesProps> = ({ faceIndex, o
 
       {isExpanded && (
         <div className="templates-content">
+          {error && (
+            <div style={{
+              padding: '8px',
+              background: 'rgba(255, 68, 68, 0.1)',
+              border: '1px solid #ff4444',
+              borderRadius: 4,
+              fontSize: 11,
+              color: '#ff6666',
+              marginBottom: 8,
+            }}>
+              {error}
+            </div>
+          )}
+
           <div className="templates-categories">
             {categories.map(cat => (
               <button
@@ -196,24 +176,92 @@ export const SessionTemplates: React.FC<SessionTemplatesProps> = ({ faceIndex, o
             ))}
           </div>
 
-          <div className="templates-grid">
-            {filteredTemplates.map(template => (
-              <div
-                key={template.id}
-                className="template-card"
-                onClick={() => applyTemplate(template)}
-              >
-                <span className="template-icon">{template.icon}</span>
-                <div className="template-info">
-                  <div className="template-name">{template.name}</div>
-                  <div className="template-desc">{template.description}</div>
+          <button
+            className="save-as-template-btn"
+            onClick={handleSaveAsTemplate}
+            style={{
+              width: '100%',
+              padding: '8px',
+              marginBottom: 8,
+              background: 'rgba(0, 255, 255, 0.1)',
+              border: '1px solid rgba(0, 255, 255, 0.3)',
+              borderRadius: 4,
+              color: '#00ffff',
+              fontSize: 11,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            + Save Current as Template
+          </button>
+
+          {loading ? (
+            <div style={{ padding: 20, textAlign: 'center', color: '#888', fontSize: 11 }}>
+              Loading templates...
+            </div>
+          ) : (
+            <div className="templates-grid">
+              {filteredTemplates.map(template => (
+                <div
+                  key={template.id}
+                  className="template-card"
+                  onClick={() => applyTemplate(template)}
+                >
+                  <span className="template-icon">{template.icon}</span>
+                  <div className="template-info">
+                    <div className="template-name">
+                      {template.name}
+                      {!template.isBuiltIn && (
+                        <span style={{
+                          marginLeft: 6,
+                          fontSize: 9,
+                          padding: '2px 4px',
+                          background: 'rgba(0, 255, 255, 0.2)',
+                          borderRadius: 2,
+                          color: '#00ffff',
+                        }}>
+                          CUSTOM
+                        </span>
+                      )}
+                    </div>
+                    <div className="template-desc">{template.description}</div>
+                  </div>
+                  <div className="template-provider">
+                    {template.config.aiProvider === 'claude-code' ? 'Claude' : 'Ollama'}
+                  </div>
+                  {!template.isBuiltIn && (
+                    <button
+                      className="template-delete-btn"
+                      onClick={(e) => handleDeleteTemplate(template.id, e)}
+                      style={{
+                        marginLeft: 8,
+                        padding: '2px 6px',
+                        background: 'rgba(255, 68, 68, 0.1)',
+                        border: '1px solid rgba(255, 68, 68, 0.3)',
+                        borderRadius: 3,
+                        color: '#ff4444',
+                        fontSize: 10,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                      title="Delete template"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
-                <div className="template-provider">
-                  {template.config.aiProvider === 'claude-code' ? 'Claude' : 'Ollama'}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {/* Save Template Dialog */}
+          {showSaveDialog && (
+            <SaveTemplateDialog
+              session={session}
+              onSave={handleSaveTemplate}
+              onCancel={() => setShowSaveDialog(false)}
+            />
+          )}
         </div>
       )}
 
@@ -363,6 +411,198 @@ export const SessionTemplates: React.FC<SessionTemplatesProps> = ({ faceIndex, o
           border-radius: 2px;
         }
       `}</style>
+    </div>
+  );
+};
+
+// Save Template Dialog Component
+interface SaveTemplateDialogProps {
+  session: any;
+  onSave: (template: Partial<SessionTemplate>) => void;
+  onCancel: () => void;
+}
+
+const SaveTemplateDialog: React.FC<SaveTemplateDialogProps> = ({ session, onSave, onCancel }) => {
+  const [name, setName] = useState(session.name || '');
+  const [description, setDescription] = useState('');
+  const [icon, setIcon] = useState('⚡');
+  const [category, setCategory] = useState<TemplateCategory>('custom');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      alert('Please enter a template name');
+      return;
+    }
+
+    onSave({
+      name: name.trim(),
+      description: description.trim() || `Custom template for ${name}`,
+      icon,
+      category,
+      config: {
+        aiProvider: session.aiProvider || 'claude-code',
+        aiModel: session.aiModel,
+        workingDir: session.workingDir,
+        notes: session.notes,
+      },
+    });
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0, 0, 0, 0.7)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999,
+    }}>
+      <div style={{
+        background: '#1a1a1f',
+        border: '1px solid rgba(0, 255, 255, 0.3)',
+        borderRadius: 8,
+        padding: 24,
+        width: 400,
+        maxWidth: '90%',
+      }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#00ffff', fontSize: 16 }}>
+          Save as Template
+        </h3>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#888' }}>
+              Template Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="My Custom Template"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: 'rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 4,
+                color: '#e0e0e0',
+                fontSize: 13,
+                fontFamily: 'inherit',
+              }}
+              autoFocus
+            />
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#888' }}>
+              Description
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What is this template for?"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: 'rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 4,
+                color: '#e0e0e0',
+                fontSize: 13,
+                fontFamily: 'inherit',
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#888' }}>
+              Icon (emoji)
+            </label>
+            <input
+              type="text"
+              value={icon}
+              onChange={(e) => setIcon(e.target.value)}
+              placeholder="⚡"
+              maxLength={2}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: 'rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 4,
+                color: '#e0e0e0',
+                fontSize: 13,
+                fontFamily: 'inherit',
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#888' }}>
+              Category
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as TemplateCategory)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: 'rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 4,
+                color: '#e0e0e0',
+                fontSize: 13,
+                fontFamily: 'inherit',
+              }}
+            >
+              <option value="development">Development</option>
+              <option value="research">Research</option>
+              <option value="writing">Writing</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={onCancel}
+              style={{
+                padding: '8px 16px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 4,
+                color: '#888',
+                fontSize: 13,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              style={{
+                padding: '8px 16px',
+                background: 'rgba(0, 255, 255, 0.2)',
+                border: '1px solid rgba(0, 255, 255, 0.4)',
+                borderRadius: 4,
+                color: '#00ffff',
+                fontSize: 13,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Save Template
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

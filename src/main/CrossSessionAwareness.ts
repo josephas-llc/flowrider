@@ -8,7 +8,7 @@
  * - Conflict detection when sessions modify the same files
  */
 
-import { getLeoAI } from './leo-ai';
+import { getAICore } from './ai-core';
 
 // ============================================
 // Types
@@ -235,8 +235,8 @@ export class CrossSessionAwareness {
     // Find related sessions
     const relatedSessions = this.findRelatedSessions(session);
 
-    // Get recent solutions from LEO AI that might be relevant
-    const leoAI = getLeoAI();
+    // Get recent solutions from AI System that might be relevant
+    const aiCore = getAICore();
     const recentSolutions = this.extractRecentSolutions(session);
 
     // Get active conflicts
@@ -326,10 +326,10 @@ export class CrossSessionAwareness {
    */
   private extractRecentSolutions(session: SessionActivity): CrossSessionContext['recentSolutions'] {
     const solutions: CrossSessionContext['recentSolutions'] = [];
-    const leoAI = getLeoAI();
+    const aiCore = getAICore();
 
-    // Get recent interactions from LEO AI
-    const recentInteractions = leoAI.getRecentInteractions(50);
+    // Get recent interactions from AI System
+    const recentInteractions = aiCore.getRecentInteractions(50);
 
     for (const interaction of recentInteractions) {
       // Skip interactions from the same session
@@ -399,10 +399,10 @@ export class CrossSessionAwareness {
    * Find a solution for an error from other sessions
    */
   private findSolutionForError(sessionId: string, error: string): void {
-    const leoAI = getLeoAI();
+    const aiCore = getAICore();
 
     // Search for patterns that match this error
-    const patterns = leoAI.getPatterns(0.6);
+    const patterns = aiCore.getPatterns(0.6);
 
     for (const pattern of patterns) {
       if (pattern.type === 'error' && this.errorsSimilar(pattern.name, error)) {
@@ -411,7 +411,7 @@ export class CrossSessionAwareness {
             type: 'solution',
             sourceSessionId: 'leo-ai',
             targetSessionId: sessionId,
-            title: 'LEO AI found a solution',
+            title: 'AI System found a solution',
             description: 'This error pattern has been resolved before',
             context: pattern.solution,
             relevance: pattern.confidence,

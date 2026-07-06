@@ -1,0 +1,1288 @@
+openapi: 3.0.3
+info:
+  title: Flowrider API
+  description: |
+    REST API for Flowrider - AI Session Orchestration Platform
+
+    Flowrider is an Electron app for orchestrating multiple AI terminal sessions using a 3D icosahedron interface (20 faces = 20 sessions).
+
+    ## Authentication
+    All API requests require authentication using an API key passed in the `X-API-Key` header.
+
+    ## Rate Limiting
+    API requests are rate-limited to 100 requests per minute per API key.
+
+    ## Error Handling
+    The API uses standard HTTP status codes and returns error details in JSON format.
+  version: 1.0.0
+  contact:
+    name: Josephas LLC
+    url: https://github.com/josephas-llc/flowrider
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3737/api
+    description: Local development server
+  - url: https://api.flowrider.local/api
+    description: Production server (when deployed)
+
+tags:
+  - name: Sessions
+    description: Manage AI terminal sessions
+  - name: Projects
+    description: Manage projects and workspaces
+  - name: Webhooks
+    description: Webhook management for external integrations
+  - name: API Keys
+    description: API key management
+  - name: Health
+    description: System health and version endpoints
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  # ========================================
+  # SESSIONS
+  # ========================================
+  /sessions:
+    get:
+      tags:
+        - Sessions
+      summary: List all sessions
+      description: Retrieve a list of all AI terminal sessions
+      operationId: listSessions
+      parameters:
+        - name: status
+          in: query
+          description: Filter sessions by status
+          schema:
+            type: string
+            enum: [active, idle, terminated]
+        - name: limit
+          in: query
+          description: Maximum number of sessions to return
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of sessions to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Session'
+                  total:
+                    type: integer
+                    description: Total number of sessions
+                    example: 42
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Sessions
+      summary: Create a new session
+      description: Create a new AI terminal session
+      operationId: createSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - faceIndex
+                - workingDir
+              properties:
+                name:
+                  type: string
+                  description: Session name
+                  example: "Backend API Development"
+                faceIndex:
+                  type: integer
+                  description: Icosahedron face index (0-19)
+                  minimum: 0
+                  maximum: 19
+                  example: 5
+                workingDir:
+                  type: string
+                  description: Working directory path
+                  example: "/Users/dev/my-project"
+                projectId:
+                  type: string
+                  description: Associated project ID
+                  example: "proj_123abc"
+                aiProvider:
+                  type: string
+                  description: AI provider to use
+                  enum: [ollama, claude, openai, gemini]
+                  example: "claude"
+                model:
+                  type: string
+                  description: AI model name
+                  example: "claude-opus-4-5"
+      responses:
+        '201':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Session limit reached
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{id}:
+    get:
+      tags:
+        - Sessions
+      summary: Get session details
+      description: Retrieve details for a specific session
+      operationId: getSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Sessions
+      summary: Update session
+      description: Update session details
+      operationId: updateSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Updated Session Name"
+                status:
+                  type: string
+                  enum: [active, idle, terminated]
+                  example: "active"
+                currentTask:
+                  type: string
+                  example: "Debugging authentication flow"
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["backend", "api", "typescript"]
+      responses:
+        '200':
+          description: Session updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Sessions
+      summary: Delete session
+      description: Terminate and delete a session
+      operationId: deleteSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Session deleted successfully"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{id}/send:
+    post:
+      tags:
+        - Sessions
+      summary: Send input to session
+      description: Send command/input to a terminal session
+      operationId: sendInput
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - input
+              properties:
+                input:
+                  type: string
+                  description: Input/command to send
+                  example: "npm test"
+      responses:
+        '200':
+          description: Input sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Input sent successfully"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{id}/output:
+    get:
+      tags:
+        - Sessions
+      summary: Get session output
+      description: Retrieve terminal output from a session
+      operationId: getOutput
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: lines
+          in: query
+          description: Number of lines to retrieve
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 10000
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      output:
+                        type: string
+                        description: Terminal output
+                        example: "npm test\n✓ All tests passed (42 tests)"
+                      lines:
+                        type: integer
+                        example: 100
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{id}/restart:
+    post:
+      tags:
+        - Sessions
+      summary: Restart session
+      description: Restart a terminated session
+      operationId: restartSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session restarted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ========================================
+  # PROJECTS
+  # ========================================
+  /projects:
+    get:
+      tags:
+        - Projects
+      summary: List all projects
+      description: Retrieve a list of all projects
+      operationId: listProjects
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+                  total:
+                    type: integer
+                    example: 15
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Projects
+      summary: Create a new project
+      description: Create a new project workspace
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - path
+              properties:
+                name:
+                  type: string
+                  example: "E-commerce Platform"
+                path:
+                  type: string
+                  description: Local file system path
+                  example: "/Users/dev/ecommerce"
+                description:
+                  type: string
+                  example: "Full-stack e-commerce platform with Next.js and Stripe"
+                repoUrl:
+                  type: string
+                  format: uri
+                  example: "https://github.com/myorg/ecommerce"
+                language:
+                  type: string
+                  example: "typescript"
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["nextjs", "stripe", "postgresql"]
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /projects/{id}:
+    get:
+      tags:
+        - Projects
+      summary: Get project details
+      description: Retrieve details for a specific project
+      operationId: getProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Projects
+      summary: Update project
+      description: Update project details
+      operationId: updateProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Updated Project Name"
+                description:
+                  type: string
+                path:
+                  type: string
+                repoUrl:
+                  type: string
+                  format: uri
+                language:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Projects
+      summary: Delete project
+      description: Delete a project
+      operationId: deleteProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Project deleted successfully"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ========================================
+  # WEBHOOKS
+  # ========================================
+  /webhooks:
+    get:
+      tags:
+        - Webhooks
+      summary: List all webhooks
+      description: Retrieve a list of all configured webhooks
+      operationId: listWebhooks
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Webhook'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Webhooks
+      summary: Create a new webhook
+      description: Register a new webhook endpoint
+      operationId: createWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+                - events
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: Webhook endpoint URL
+                  example: "https://api.example.com/webhooks/flowrider"
+                events:
+                  type: array
+                  description: Events to subscribe to
+                  items:
+                    type: string
+                    enum:
+                      - session.created
+                      - session.updated
+                      - session.deleted
+                      - session.output
+                      - project.created
+                      - project.updated
+                      - project.deleted
+                      - deployment.started
+                      - deployment.completed
+                      - deployment.failed
+                  example: ["session.created", "session.output"]
+                secret:
+                  type: string
+                  description: Secret for webhook signature verification
+                  example: "whsec_abc123def456"
+                active:
+                  type: boolean
+                  default: true
+                  example: true
+      responses:
+        '201':
+          description: Webhook created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Webhook'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /webhooks/{id}:
+    delete:
+      tags:
+        - Webhooks
+      summary: Delete webhook
+      description: Remove a webhook endpoint
+      operationId: deleteWebhook
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '200':
+          description: Webhook deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Webhook deleted successfully"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /webhooks/{id}/deliveries:
+    get:
+      tags:
+        - Webhooks
+      summary: Get webhook deliveries
+      description: Retrieve delivery history for a webhook
+      operationId: getWebhookDeliveries
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookDelivery'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ========================================
+  # API KEYS
+  # ========================================
+  /keys:
+    get:
+      tags:
+        - API Keys
+      summary: List all API keys
+      description: Retrieve a list of all API keys
+      operationId: listApiKeys
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - API Keys
+      summary: Create a new API key
+      description: Generate a new API key
+      operationId: createApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: Descriptive name for the API key
+                  example: "CI/CD Pipeline"
+                scopes:
+                  type: array
+                  description: Permission scopes
+                  items:
+                    type: string
+                    enum:
+                      - sessions:read
+                      - sessions:write
+                      - projects:read
+                      - projects:write
+                      - webhooks:read
+                      - webhooks:write
+                      - keys:read
+                      - keys:write
+                  example: ["sessions:read", "sessions:write", "projects:read"]
+                expiresAt:
+                  type: string
+                  format: date-time
+                  description: Optional expiration date
+                  example: "2026-12-31T23:59:59Z"
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/ApiKey'
+                      - type: object
+                        properties:
+                          key:
+                            type: string
+                            description: The actual API key (only shown once)
+                            example: "fwr_live_abc123def456ghi789"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /keys/{id}:
+    delete:
+      tags:
+        - API Keys
+      summary: Delete API key
+      description: Revoke an API key
+      operationId: deleteApiKey
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyId'
+      responses:
+        '200':
+          description: API key deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "API key revoked successfully"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ========================================
+  # HEALTH
+  # ========================================
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check API health status
+      operationId: healthCheck
+      security: []  # No authentication required
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-07-06T21:30:00Z"
+                  uptime:
+                    type: number
+                    description: Uptime in seconds
+                    example: 86400
+                  version:
+                    type: string
+                    example: "1.0.0"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /version:
+    get:
+      tags:
+        - Health
+      summary: Get API version
+      description: Retrieve API version information
+      operationId: getVersion
+      security: []  # No authentication required
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  apiVersion:
+                    type: string
+                    example: "v1"
+                  electron:
+                    type: string
+                    example: "43.0.0"
+                  node:
+                    type: string
+                    example: "v20.11.0"
+
+# ========================================
+# COMPONENTS
+# ========================================
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  parameters:
+    SessionId:
+      name: id
+      in: path
+      required: true
+      description: Session ID
+      schema:
+        type: string
+        example: "face-5"
+
+    ProjectId:
+      name: id
+      in: path
+      required: true
+      description: Project ID
+      schema:
+        type: string
+        example: "proj_123abc"
+
+    WebhookId:
+      name: id
+      in: path
+      required: true
+      description: Webhook ID
+      schema:
+        type: string
+        example: "wh_456def"
+
+    ApiKeyId:
+      name: id
+      in: path
+      required: true
+      description: API Key ID
+      schema:
+        type: string
+        example: "key_789ghi"
+
+  schemas:
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "face-5"
+        name:
+          type: string
+          example: "Backend API Development"
+        faceIndex:
+          type: integer
+          minimum: 0
+          maximum: 19
+          example: 5
+        status:
+          type: string
+          enum: [active, idle, terminated]
+          example: "active"
+        workingDir:
+          type: string
+          example: "/Users/dev/my-project"
+        projectId:
+          type: string
+          nullable: true
+          example: "proj_123abc"
+        tmuxSessionName:
+          type: string
+          example: "flowrider-face-5"
+        aiProvider:
+          type: string
+          enum: [ollama, claude, openai, gemini]
+          example: "claude"
+        model:
+          type: string
+          example: "claude-opus-4-5"
+        currentTask:
+          type: string
+          nullable: true
+          example: "Implementing authentication middleware"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["backend", "api", "typescript"]
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-06T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-07-06T15:45:00Z"
+        lastActivity:
+          type: string
+          format: date-time
+          example: "2026-07-06T15:45:00Z"
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "proj_123abc"
+        name:
+          type: string
+          example: "E-commerce Platform"
+        path:
+          type: string
+          example: "/Users/dev/ecommerce"
+        description:
+          type: string
+          nullable: true
+          example: "Full-stack e-commerce platform"
+        repoUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://github.com/myorg/ecommerce"
+        language:
+          type: string
+          nullable: true
+          example: "typescript"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["nextjs", "stripe", "postgresql"]
+        sessionCount:
+          type: integer
+          description: Number of active sessions for this project
+          example: 3
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-01T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-07-06T15:30:00Z"
+
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "wh_456def"
+        url:
+          type: string
+          format: uri
+          example: "https://api.example.com/webhooks/flowrider"
+        events:
+          type: array
+          items:
+            type: string
+          example: ["session.created", "session.output"]
+        active:
+          type: boolean
+          example: true
+        secret:
+          type: string
+          description: Webhook secret (masked)
+          example: "whsec_***************"
+        deliveryCount:
+          type: integer
+          description: Total number of deliveries
+          example: 142
+        lastDeliveryAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-07-06T15:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-01T12:00:00Z"
+
+    WebhookDelivery:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "del_789xyz"
+        webhookId:
+          type: string
+          example: "wh_456def"
+        event:
+          type: string
+          example: "session.created"
+        payload:
+          type: object
+          description: Event payload
+        status:
+          type: string
+          enum: [pending, success, failed]
+          example: "success"
+        statusCode:
+          type: integer
+          nullable: true
+          example: 200
+        response:
+          type: string
+          nullable: true
+          description: Response from webhook endpoint
+        attempts:
+          type: integer
+          description: Number of delivery attempts
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-06T15:30:00Z"
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-07-06T15:30:01Z"
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "key_789ghi"
+        name:
+          type: string
+          example: "CI/CD Pipeline"
+        prefix:
+          type: string
+          description: First few characters of the key
+          example: "fwr_live_abc"
+        scopes:
+          type: array
+          items:
+            type: string
+          example: ["sessions:read", "sessions:write"]
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-07-06T15:30:00Z"
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-12-31T23:59:59Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-01T10:00:00Z"
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Invalid request parameters"
+        code:
+          type: string
+          description: Error code
+          example: "INVALID_INPUT"
+        details:
+          type: object
+          nullable: true
+          description: Additional error details
+
+  responses:
+    BadRequestError:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Invalid request parameters"
+            code: "INVALID_INPUT"
+
+    UnauthorizedError:
+      description: Unauthorized - Invalid or missing API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Invalid or missing API key"
+            code: "UNAUTHORIZED"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Resource not found"
+            code: "NOT_FOUND"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "An internal server error occurred"
+            code: "INTERNAL_ERROR"

@@ -1,4 +1,5 @@
-import { execSync, spawn } from 'child_process';
+import { execSync, spawn, spawnSync } from 'child_process';
+import { existsSync, statSync } from 'fs';
 
 export interface TmuxSession {
   name: string;
@@ -22,6 +23,9 @@ export interface GitHubRepo {
 
 const SESSION_PREFIX = 'fr2';
 
+// Session name validation - only allow alphanumeric, dash, underscore
+const SESSION_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
+
 export class TmuxManager {
   private tmuxPath: string;
 
@@ -36,13 +40,68 @@ export class TmuxManager {
     }
   }
 
-  private exec(cmd: string): string {
-    try {
-      return execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim();
-    } catch (error: unknown) {
-      const err = error as { stderr?: Buffer; message?: string };
-      throw new Error(err.stderr?.toString() || err.message || 'Command failed');
+  /**
+   * Validate session name to prevent command injection
+   * Only allows alphanumeric, dash, and underscore characters
+   */
+  private validateSessionName(sessionName: string): void {
+    if (!sessionName || typeof sessionName !== 'string') {
+      throw new Error('Session name must be a non-empty string');
     }
+    if (!SESSION_NAME_REGEX.test(sessionName)) {
+      throw new Error(
+        `Invalid session name: "${sessionName}". Only alphanumeric, dash, and underscore characters are allowed.`
+      );
+    }
+  }
+
+  /**
+   * Validate and resolve working directory path
+   * Ensures the path exists and is a directory
+   */
+  private validateAndResolvePath(workingDir: string): string {
+    if (!workingDir || typeof workingDir !== 'string') {
+      throw new Error('Working directory must be a non-empty string');
+    }
+
+    // Expand ~ to home directory
+    const resolvedDir = workingDir.startsWith('~')
+      ? workingDir.replace('~', process.env.HOME || '')
+      : workingDir;
+
+    // Verify path exists and is a directory
+    if (!existsSync(resolvedDir)) {
+      throw new Error(`Working directory does not exist: ${resolvedDir}`);
+    }
+
+    const stats = statSync(resolvedDir);
+    if (!stats.isDirectory()) {
+      throw new Error(`Path is not a directory: ${resolvedDir}`);
+    }
+
+    return resolvedDir;
+  }
+
+  /**
+   * Execute tmux command safely using spawnSync
+   * Prevents command injection by using array arguments
+   */
+  private execTmux(args: string[], options: { allowError?: boolean } = {}): string {
+    const result = spawnSync(this.tmuxPath, args, {
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+
+    if (result.error) {
+      throw new Error(`Failed to execute tmux: ${result.error.message}`);
+    }
+
+    if (!options.allowError && result.status !== 0) {
+      const errorMsg = result.stderr?.trim() || result.stdout?.trim() || 'Command failed';
+      throw new Error(errorMsg);
+    }
+
+    return result.stdout?.trim() || '';
   }
 
   private makeSessionName(name: string, faceIndex: number): string {
@@ -55,27 +114,26 @@ export class TmuxManager {
     const sessionName = this.makeSessionName(name, faceIndex);
 
     try {
+      // Validate session name
+      this.validateSessionName(sessionName);
+
+      // Validate and resolve working directory
+      const resolvedDir = this.validateAndResolvePath(workingDir);
+
       // Check if session already exists
       try {
-        this.exec(`${this.tmuxPath} has-session -t "${sessionName}" 2>/dev/null`);
+        this.execTmux(['has-session', '-t', sessionName]);
         return { success: false, error: `Session "${sessionName}" already exists` };
       } catch {
         // Session doesn't exist, good to create
       }
 
-      // Expand ~ to home directory
-      const resolvedDir = workingDir.startsWith('~')
-        ? workingDir.replace('~', process.env.HOME || '')
-        : workingDir;
-
       // Create the tmux session with claude command
       // Using detached mode so we can control it
-      const createCmd = `${this.tmuxPath} new-session -d -s "${sessionName}" -c "${resolvedDir}"`;
-      this.exec(createCmd);
+      this.execTmux(['new-session', '-d', '-s', sessionName, '-c', resolvedDir]);
 
       // Send the claude command to the session
-      const claudeCmd = `${this.tmuxPath} send-keys -t "${sessionName}" "claude" Enter`;
-      this.exec(claudeCmd);
+      this.execTmux(['send-keys', '-t', sessionName, 'claude', 'Enter']);
 
       console.log(`[TmuxManager] Created session: ${sessionName} in ${resolvedDir}`);
 
@@ -97,8 +155,9 @@ export class TmuxManager {
 
   async listSessions(): Promise<TmuxResult<TmuxSession[]>> {
     try {
-      const output = this.exec(
-        `${this.tmuxPath} list-sessions -F "#{session_name}:#{session_created}:#{session_attached}" 2>/dev/null || echo ""`
+      const output = this.execTmux(
+        ['list-sessions', '-F', '#{session_name}:#{session_created}:#{session_attached}'],
+        { allowError: true }
       );
 
       if (!output) {
@@ -131,7 +190,10 @@ export class TmuxManager {
 
   async killSession(sessionName: string): Promise<TmuxResult> {
     try {
-      this.exec(`${this.tmuxPath} kill-session -t "${sessionName}"`);
+      // Validate session name
+      this.validateSessionName(sessionName);
+
+      this.execTmux(['kill-session', '-t', sessionName]);
       console.log(`[TmuxManager] Killed session: ${sessionName}`);
       return { success: true };
     } catch (error: unknown) {
@@ -142,10 +204,12 @@ export class TmuxManager {
 
   async sendInput(sessionName: string, data: string): Promise<TmuxResult> {
     try {
-      // Escape special characters for tmux send-keys
+      // Validate session name
+      this.validateSessionName(sessionName);
+
       // For raw key input, we use send-keys -l (literal)
-      const escaped = data.replace(/'/g, "'\\''");
-      this.exec(`${this.tmuxPath} send-keys -t "${sessionName}" -l '${escaped}'`);
+      // This safely handles all characters without escaping
+      this.execTmux(['send-keys', '-t', sessionName, '-l', data]);
       return { success: true };
     } catch (error: unknown) {
       const err = error as Error;
@@ -155,10 +219,11 @@ export class TmuxManager {
 
   async getOutput(sessionName: string, lines: number = 500): Promise<TmuxResult<string>> {
     try {
+      // Validate session name
+      this.validateSessionName(sessionName);
+
       // Capture the pane content
-      const output = this.exec(
-        `${this.tmuxPath} capture-pane -t "${sessionName}" -p -S -${lines}`
-      );
+      const output = this.execTmux(['capture-pane', '-t', sessionName, '-p', '-S', `-${lines}`]);
       return { success: true, data: output };
     } catch (error: unknown) {
       const err = error as Error;
@@ -168,7 +233,11 @@ export class TmuxManager {
 
   async renameSession(oldName: string, newName: string): Promise<TmuxResult> {
     try {
-      this.exec(`${this.tmuxPath} rename-session -t "${oldName}" "${newName}"`);
+      // Validate both session names
+      this.validateSessionName(oldName);
+      this.validateSessionName(newName);
+
+      this.execTmux(['rename-session', '-t', oldName, newName]);
       console.log(`[TmuxManager] Renamed session: ${oldName} -> ${newName}`);
       return { success: true };
     } catch (error: unknown) {
@@ -180,19 +249,24 @@ export class TmuxManager {
   // Detect GitHub repository from working directory
   async detectGitRepo(workingDir: string): Promise<TmuxResult<GitHubRepo | null>> {
     try {
-      // Expand ~ to home directory
-      const resolvedDir = workingDir.startsWith('~')
-        ? workingDir.replace('~', process.env.HOME || '')
-        : workingDir;
+      // Validate and resolve working directory
+      const resolvedDir = this.validateAndResolvePath(workingDir);
 
       // Get remote URL
       let remoteUrl: string;
       try {
-        remoteUrl = execSync('git config --get remote.origin.url', {
+        const result = spawnSync('git', ['config', '--get', 'remote.origin.url'], {
           cwd: resolvedDir,
           encoding: 'utf-8',
           timeout: 5000,
-        }).trim();
+        });
+
+        if (result.status !== 0 || !result.stdout) {
+          // Not a git repo or no remote
+          return { success: true, data: null };
+        }
+
+        remoteUrl = result.stdout.trim();
       } catch {
         // Not a git repo or no remote
         return { success: true, data: null };
@@ -215,11 +289,15 @@ export class TmuxManager {
       // Get current branch
       let branch = 'main';
       try {
-        branch = execSync('git branch --show-current', {
+        const result = spawnSync('git', ['branch', '--show-current'], {
           cwd: resolvedDir,
           encoding: 'utf-8',
           timeout: 5000,
-        }).trim() || 'main';
+        });
+
+        if (result.status === 0 && result.stdout) {
+          branch = result.stdout.trim() || 'main';
+        }
       } catch {
         // Default to main
       }

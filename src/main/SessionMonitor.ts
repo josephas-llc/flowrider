@@ -1,11 +1,11 @@
 /**
- * SessionMonitor - Watches tmux sessions and captures interactions for LEO AI
+ * SessionMonitor - Watches tmux sessions and captures interactions for AI System
  *
  * Parses terminal output to detect prompt/response boundaries and
  * automatically records interactions for learning.
  */
 
-import { getLeoAI } from './leo-ai';
+import { getAICore } from './ai-core';
 
 interface MonitoredSession {
   sessionName: string;
@@ -46,20 +46,39 @@ const ERROR_PATTERNS = [
   /TypeError:/gi,                      // JS/TS errors
   /SyntaxError:/gi,
   /ReferenceError:/gi,
+  /RangeError:/gi,
   /Cannot find module/gi,
+  /Module not found/gi,
   /ENOENT:/gi,                         // File not found
+  /EACCES:/gi,                         // Permission denied
   /Permission denied/gi,
   /Command failed/gi,
   /Build failed/gi,
   /Test failed/gi,
+  /Compilation failed/gi,
   /npm ERR!/gi,
+  /yarn error/gi,
+  /pnpm ERR!/gi,
   /warning:/gi,
+  /WARN:/gi,
+  /Exception:/gi,
+  /Traceback/gi,                       // Python errors
+  /AssertionError:/gi,
+  /ImportError:/gi,
+  /KeyError:/gi,
+  /ValueError:/gi,
+  /panic:/gi,                          // Rust/Go panics
+  /fatal:/gi,
+  /FATAL:/gi,
 ];
 
 // File modification patterns
 const FILE_PATTERNS = [
   /(?:created?|modified?|updated?|wrote|writing|editing)\s+['"`]?([^\s'"`]+\.[a-z]+)['"`]?/gi,
-  /(?:src|lib|app)\/[^\s]+\.[a-z]+/gi,
+  /(?:src|lib|app|components|pages|utils|services|hooks)\/[^\s]+\.[a-z]+/gi,
+  /(?:Created file|Modified|Updated|Wrote to):\s*['"`]?([^\s'"`\n]+)['"`]?/gi,
+  /(?:Saving|Writing|Creating)\s+(?:file\s+)?['"`]?([^\s'"`\n]+\.[a-z]{2,4})['"`]?/gi,
+  /\[(?:Write|Edit|Create)\]\s+['"`]?([^\s'"`\n]+)['"`]?/gi,
 ];
 
 export class SessionMonitor {
@@ -107,9 +126,9 @@ export class SessionMonitor {
 
     this.sessions.set(sessionName, session);
 
-    // Register session with LEO AI
-    const leoAI = getLeoAI();
-    leoAI.registerSession({
+    // Register session with AI System
+    const aiCore = getAICore();
+    aiCore.registerSession({
       sessionId,
       sessionName,
       projectId: projectId ?? null,
@@ -265,6 +284,13 @@ export class SessionMonitor {
       if (humanMatch && humanMatch[1]) {
         return humanMatch[1].trim();
       }
+
+      // Detect multi-line prompts (common in Claude Code)
+      // Look for lines that start with common command patterns
+      const commandMatch = line.match(/^(?:create|add|fix|update|modify|implement|write|build|refactor|test)\s+.{5,}/i);
+      if (commandMatch && commandMatch[0]) {
+        return commandMatch[0].trim();
+      }
     }
 
     return null;
@@ -300,10 +326,10 @@ export class SessionMonitor {
   }
 
   /**
-   * Record the interaction with LEO AI
+   * Record the interaction with AI System
    */
   private recordInteraction(session: MonitoredSession, prompt: string, response: string): void {
-    const leoAI = getLeoAI();
+    const aiCore = getAICore();
 
     // Extract metadata from the response
     const filesModified = this.extractFilesModified(response);
@@ -315,7 +341,7 @@ export class SessionMonitor {
     console.log(`  Response length: ${response.length}`);
     console.log(`  Files: ${filesModified.length}, Errors: ${errorsSeen.length}`);
 
-    leoAI.recordInteraction(session.sessionId, prompt, response, {
+    aiCore.recordInteraction(session.sessionId, prompt, response, {
       filesModified,
       outcome,
     });
@@ -331,9 +357,29 @@ export class SessionMonitor {
       const matches = response.matchAll(pattern);
       for (const match of matches) {
         if (match[1]) {
-          files.add(match[1]);
+          // Clean up the file path
+          const filePath = match[1].trim();
+          // Filter out noise (URLs, etc.)
+          if (filePath && !filePath.startsWith('http') && filePath.length < 200) {
+            files.add(filePath);
+          }
         } else if (match[0]) {
-          files.add(match[0]);
+          const filePath = match[0].trim();
+          if (filePath && !filePath.startsWith('http') && filePath.length < 200) {
+            files.add(filePath);
+          }
+        }
+      }
+    }
+
+    // Also parse tool call patterns like [Write] filename or [Edit] filename
+    const toolCallRegex = /\[(?:Write|Edit|Create|Read)\]\s+([^\s\n]+)/gi;
+    let toolMatch;
+    while ((toolMatch = toolCallRegex.exec(response)) !== null) {
+      if (toolMatch[1]) {
+        const filePath = toolMatch[1].trim();
+        if (filePath && !filePath.startsWith('http') && filePath.length < 200) {
+          files.add(filePath);
         }
       }
     }
@@ -401,12 +447,12 @@ export class SessionMonitor {
     response: string,
     feedback?: number
   ): void {
-    const leoAI = getLeoAI();
+    const aiCore = getAICore();
     const filesModified = this.extractFilesModified(response);
     const errorsSeen = this.extractErrors(response);
     const outcome = this.inferOutcome(response, errorsSeen);
 
-    leoAI.recordInteraction(sessionId, prompt, response, {
+    aiCore.recordInteraction(sessionId, prompt, response, {
       filesModified,
       outcome,
       feedback,

@@ -58,7 +58,7 @@ contextBridge.exposeInMainWorld('flowrider', {
     getSelfInfo: () => ipcRenderer.invoke('leo:selfInfo'),
   },
 
-  // Session Monitor (auto-captures interactions for LEO AI)
+  // Session Monitor (auto-captures interactions for AI System)
   monitor: {
     start: (sessionName: string, sessionId: string, workingDir: string, projectId?: string, language?: string) =>
       ipcRenderer.invoke('monitor:start', sessionName, sessionId, workingDir, projectId, language),
@@ -69,7 +69,7 @@ contextBridge.exposeInMainWorld('flowrider', {
       ipcRenderer.invoke('monitor:recordInteraction', sessionId, prompt, response, feedback),
   },
 
-  // LEO AI (Self-Improving Learning System)
+  // AI System (Self-Improving Learning System)
   leoai: {
     // Lifecycle
     enable: () => ipcRenderer.invoke('leoai:enable'),
@@ -124,9 +124,30 @@ contextBridge.exposeInMainWorld('flowrider', {
     getInsights: (limit?: number) => ipcRenderer.invoke('leoai:getInsights', limit),
     searchSnippets: (query: string) => ipcRenderer.invoke('leoai:searchSnippets', query),
     getLearningEvents: (since: number) => ipcRenderer.invoke('leoai:getLearningEvents', since),
+
+    // Suggestions (Intelligence Layer)
+    getSuggestions: (request?: {
+      sessionId?: string;
+      projectId?: string;
+      workingDir?: string;
+      language?: string;
+      currentTask?: string;
+      recentErrors?: string[];
+      aiProvider?: string;
+      limit?: number;
+    }) => ipcRenderer.invoke('leoai:getSuggestions', request),
+    getSessionStartSuggestions: (workingDir: string, projectId?: string, language?: string) =>
+      ipcRenderer.invoke('leoai:getSessionStartSuggestions', workingDir, projectId, language),
+    getErrorSuggestions: (errors: string[], language?: string) =>
+      ipcRenderer.invoke('leoai:getErrorSuggestions', errors, language),
+    dismissSuggestion: (suggestionId: string) =>
+      ipcRenderer.invoke('leoai:dismissSuggestion', suggestionId),
+    recordSuggestionAction: (suggestionId: string, accepted: boolean) =>
+      ipcRenderer.invoke('leoai:recordSuggestionAction', suggestionId, accepted),
+    clearDismissedSuggestions: () => ipcRenderer.invoke('leoai:clearDismissedSuggestions'),
   },
 
-  // Context Injection (applies LEO AI learned knowledge to prompts)
+  // Context Injection (applies AI System learned knowledge to prompts)
   context: {
     getForPrompt: (options: { prompt: string; projectId?: string; language?: string; sessionId?: string }) =>
       ipcRenderer.invoke('context:getForPrompt', options),
@@ -149,6 +170,13 @@ contextBridge.exposeInMainWorld('flowrider', {
     // Ollama specific
     listOllamaModels: () => ipcRenderer.invoke('ai:listOllamaModels'),
     setOllamaUrl: (url: string) => ipcRenderer.invoke('ai:setOllamaUrl', url),
+
+    // API key management
+    setApiKey: (provider: 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local', key: string) =>
+      ipcRenderer.invoke('ai:setApiKey', provider, key),
+    getApiKey: (provider: 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local') =>
+      ipcRenderer.invoke('ai:getApiKey', provider),
+    getApiKeys: () => ipcRenderer.invoke('ai:getApiKeys'),
 
     // AI calls
     call: (options: {
@@ -249,6 +277,54 @@ contextBridge.exposeInMainWorld('flowrider', {
       ipcRenderer.invoke('crosssession:getSession', sessionId),
   },
 
+  // License management (Lemon Squeezy)
+  license: {
+    activate: (licenseKey: string) => ipcRenderer.invoke('license:activate', licenseKey),
+    validate: () => ipcRenderer.invoke('license:validate'),
+    deactivate: () => ipcRenderer.invoke('license:deactivate'),
+    get: () => ipcRenderer.invoke('license:get'),
+    canCreateSession: (currentCount: number) => ipcRenderer.invoke('license:canCreateSession', currentCount),
+    getSessionLimit: () => ipcRenderer.invoke('license:getSessionLimit'),
+  },
+
+  // Auto-update
+  update: {
+    check: () => ipcRenderer.invoke('update:check'),
+    download: () => ipcRenderer.invoke('update:download'),
+    install: () => ipcRenderer.invoke('update:install'),
+    getStatus: () => ipcRenderer.invoke('update:status'),
+    getVersion: () => ipcRenderer.invoke('update:version'),
+    onStatusChange: (callback: (status: UpdateStatus) => void) => {
+      const listener = (_event: unknown, status: UpdateStatus) => callback(status);
+      ipcRenderer.on('update:status-changed', listener);
+      return () => ipcRenderer.removeListener('update:status-changed', listener);
+    },
+  },
+
+  // Template management
+  templates: {
+    list: () => ipcRenderer.invoke('templates:list'),
+    get: (id: string) => ipcRenderer.invoke('templates:get', id),
+    save: (template: unknown) => ipcRenderer.invoke('templates:save', template),
+    delete: (id: string) => ipcRenderer.invoke('templates:delete', id),
+    getByCategory: (category: string) => ipcRenderer.invoke('templates:getByCategory', category),
+  },
+
+  // API server management
+  api: {
+    getStatus: () => ipcRenderer.invoke('api:getStatus'),
+    start: () => ipcRenderer.invoke('api:start'),
+    stop: () => ipcRenderer.invoke('api:stop'),
+    getConfig: () => ipcRenderer.invoke('api:getConfig'),
+    setConfig: (config: unknown) => ipcRenderer.invoke('api:setConfig', config),
+  },
+
+  // Cursor IDE integration
+  cursor: {
+    open: (workingDir: string) => ipcRenderer.invoke('cursor:open', workingDir),
+    checkInstalled: () => ipcRenderer.invoke('cursor:check'),
+  },
+
   // App info
   platform: process.platform,
   version: '0.1.0',
@@ -296,7 +372,7 @@ declare global {
         // Lifecycle
         enable: () => Promise<{ success: boolean }>;
         disable: () => Promise<{ success: boolean }>;
-        getStatus: () => Promise<{ success: boolean; data: LeoAIStatus }>;
+        getStatus: () => Promise<{ success: boolean; data: AICoreStatus }>;
 
         // Session registration
         registerSession: (context: {
@@ -337,7 +413,7 @@ declare global {
         analyze: () => Promise<{ success: boolean; data: AnalysisResult }>;
 
         // Stats & data
-        getStats: () => Promise<{ success: boolean; data: LeoStats }>;
+        getStats: () => Promise<{ success: boolean; data: AIStats }>;
         getInteractions: (limit?: number) => Promise<{ success: boolean; data: Interaction[] }>;
         getPatterns: (minConfidence?: number) => Promise<{ success: boolean; data: Pattern[] }>;
         getInsights: (limit?: number) => Promise<{ success: boolean; data: Insight[] }>;
@@ -360,6 +436,9 @@ declare global {
         checkClaude: () => Promise<{ success: boolean; data: ProviderHealth }>;
         listOllamaModels: () => Promise<{ success: boolean; data?: OllamaModel[]; error?: string }>;
         setOllamaUrl: (url: string) => Promise<{ success: boolean }>;
+        setApiKey: (provider: AIProviderType, key: string) => Promise<{ success: boolean; error?: string }>;
+        getApiKey: (provider: AIProviderType) => Promise<{ success: boolean; data?: string; error?: string }>;
+        getApiKeys: () => Promise<{ success: boolean; data?: Record<AIProviderType, string | undefined>; error?: string }>;
         call: (options: AICallOptions) => Promise<AICallResult>;
         quickPrompt: (
           provider: AIProviderType,
@@ -403,9 +482,89 @@ declare global {
         getActiveSessions: () => Promise<{ success: boolean; data?: unknown[] }>;
         getSession: (sessionId: string) => Promise<{ success: boolean; data?: unknown }>;
       };
+      license: {
+        activate: (licenseKey: string) => Promise<{ success: boolean; error?: string; license?: LicenseInfo }>;
+        validate: () => Promise<{ success: boolean; error?: string; license?: LicenseInfo }>;
+        deactivate: () => Promise<{ success: boolean; error?: string }>;
+        get: () => Promise<{ success: boolean; license: LicenseInfo }>;
+        canCreateSession: (currentCount: number) => Promise<{ success: boolean; allowed: boolean }>;
+        getSessionLimit: () => Promise<{ success: boolean; limit: number }>;
+      };
+      update: {
+        check: () => Promise<{ success: boolean; updateInfo?: unknown }>;
+        download: () => Promise<{ success: boolean; error?: string }>;
+        install: () => void;
+        getStatus: () => Promise<UpdateStatus>;
+        getVersion: () => Promise<string>;
+        onStatusChange: (callback: (status: UpdateStatus) => void) => () => void;
+      };
+      templates: {
+        list: () => Promise<{ success: boolean; data?: SessionTemplate[]; error?: string }>;
+        get: (id: string) => Promise<{ success: boolean; data?: SessionTemplate; error?: string }>;
+        save: (template: unknown) => Promise<{ success: boolean; id?: string; error?: string }>;
+        delete: (id: string) => Promise<{ success: boolean; error?: string }>;
+        getByCategory: (category: string) => Promise<{ success: boolean; data?: SessionTemplate[]; error?: string }>;
+      };
+      api: {
+        getStatus: () => Promise<{ success: boolean; data?: ApiStatus; error?: string }>;
+        start: () => Promise<{ success: boolean; data?: ApiStatus; error?: string }>;
+        stop: () => Promise<{ success: boolean; data?: { running: boolean }; error?: string }>;
+        getConfig: () => Promise<{ success: boolean; data?: ApiConfig; error?: string }>;
+        setConfig: (config: Partial<ApiConfig>) => Promise<{ success: boolean; data?: ApiConfig; error?: string }>;
+      };
+      cursor: {
+        open: (workingDir: string) => Promise<{ success: boolean; error?: string }>;
+        checkInstalled: () => Promise<{ installed: boolean }>;
+      };
       platform: string;
       version: string;
     };
+  }
+
+  // Template types
+  type AIProvider = 'claude-code' | 'ollama' | 'custom';
+  type TemplateCategory = 'development' | 'research' | 'writing' | 'custom';
+
+  interface SessionTemplate {
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    category: TemplateCategory;
+    config: {
+      aiProvider: AIProvider;
+      aiModel?: string;
+      workingDir?: string;
+      notes?: string;
+    };
+    isBuiltIn: boolean;
+    createdAt: number;
+    updatedAt: number;
+  }
+
+  // Update types
+  interface UpdateStatus {
+    status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'ready' | 'error';
+    version?: string;
+    releaseNotes?: string;
+    progress?: number;
+    error?: string;
+  }
+
+  // License types
+  type LicenseTier = 'free' | 'pro' | 'team' | 'enterprise';
+
+  interface LicenseInfo {
+    tier: LicenseTier;
+    maxSessions: number;
+    licenseKey: string | null;
+    customerEmail: string | null;
+    customerName: string | null;
+    productName: string | null;
+    expiresAt: string | null;
+    isValid: boolean;
+    lastValidated: string;
+    instanceId: string | null;
   }
 
   interface ContextInjectionConfig {
@@ -416,11 +575,11 @@ declare global {
     includeWarnings: boolean;
   }
 
-  // LEO AI Types (for type-safety in renderer)
-  interface LeoAIStatus {
+  // AI System Types (for type-safety in renderer)
+  interface AICoreStatus {
     enabled: boolean;
     learning: boolean;
-    stats: LeoStats;
+    stats: AIStats;
     lastAnalysis: number | null;
     config: {
       analysisInterval: number;
@@ -430,7 +589,7 @@ declare global {
     };
   }
 
-  interface LeoStats {
+  interface AIStats {
     totalInteractions: number;
     totalPatterns: number;
     totalInsights: number;
@@ -665,5 +824,19 @@ declare global {
     deploymentFrequency: { daily: number; weekly: number; monthly: number };
     successfulWorkflows: Array<{ name: string; successRate: number; avgDuration: number }>;
     peakDeploymentTimes: Array<{ hour: number; count: number }>;
+  }
+
+  // API Server Types
+  interface ApiConfig {
+    port: number;
+    enabled: boolean;
+    allowRemote: boolean;
+    apiKeyRequired: boolean;
+  }
+
+  interface ApiStatus {
+    running: boolean;
+    port: number;
+    url: string | null;
   }
 }

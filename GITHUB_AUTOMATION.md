@@ -1,6 +1,6 @@
 # GitHub Automation
 
-> See [Grey Sky Labs GitHub Automation Template](https://github.com/josephas-llc/greyskylabs/blob/main/templates/github-automation.md.template) for CI/CD setup instructions.
+> See [Josephas LLC GitHub Automation Template](https://github.com/josephas-llc/greyskylabs/blob/main/templates/github-automation.md.template) for CI/CD setup instructions.
 
 ## Quick Start
 
@@ -24,4 +24,4 @@ Just ask Claude Code:
 
 ---
 
-*Part of [Grey Sky Labs](https://github.com/josephas-llc/greyskylabs) standards.*
+*Part of [Josephas LLC](https://github.com/josephas-llc) standards.*

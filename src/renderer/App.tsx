@@ -7,14 +7,17 @@ import { SessionSearch } from './components/SessionSearch';
 import { TerminalView } from './components/TerminalView';
 import { Dashboard } from './components/Dashboard';
 import { DemoMode } from './components/DemoMode';
-import { LeoAIStatus } from './components/LeoAIStatus';
+import { AIStatusType } from './components/AIStatus';
 import { CrossSessionPanel } from './components/CrossSessionPanel';
 import { DeployPanel } from './components/DeployPanel';
 import { ProjectsPanel } from './components/ProjectsPanel';
+import { LicensePanel } from './components/LicensePanel';
+import { UpdatePanel } from './components/UpdatePanel';
+import { APIKeysPanel } from './components/APIKeysPanel';
 import { useStore } from './store';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
-type MainView = 'sessions' | 'projects' | 'dashboard' | 'deploy';
+type MainView = 'sessions' | 'projects' | 'dashboard' | 'deploy' | 'settings';
 
 // Loading fallback for 3D canvas
 const CanvasLoading: React.FC = () => (
@@ -105,6 +108,13 @@ const App: React.FC = () => {
             <span className="tab-icon">▲</span>
             Deploy
           </button>
+          <button
+            className={`nav-tab ${mainView === 'settings' ? 'active' : ''}`}
+            onClick={() => setMainView('settings')}
+          >
+            <span className="tab-icon">⚙</span>
+            Settings
+          </button>
         </div>
 
         <div className="nav-stats">
@@ -193,14 +203,25 @@ const App: React.FC = () => {
         <div className="dashboard-container">
           <Dashboard />
         </div>
-      ) : (
+      ) : mainView === 'deploy' ? (
         <div className="deploy-container" style={{ padding: '20px', overflow: 'auto', height: 'calc(100vh - 60px)' }}>
           <DeployPanel />
         </div>
+      ) : (
+        <div className="settings-container" style={{ padding: '20px', overflow: 'auto', height: 'calc(100vh - 60px)', background: '#0a0a0f' }}>
+          <LicensePanel />
+          <div style={{ marginTop: '32px' }}>
+            <APIKeysPanel />
+          </div>
+          <div style={{ marginTop: '24px' }}>
+            <h3 style={{ color: '#fff', fontSize: '14px', marginBottom: '12px', fontWeight: 600 }}>Updates</h3>
+            <UpdatePanel />
+          </div>
+        </div>
       )}
 
-      {/* LEO AI Status Widget */}
-      <LeoAIStatus />
+      {/* AI System Status Widget */}
+      <AIStatus />
 
       {/* Cross-Session Awareness Panel */}
       <CrossSessionPanel />

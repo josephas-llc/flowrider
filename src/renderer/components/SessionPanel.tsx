@@ -2,6 +2,8 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useStore } from '../store';
 import { ArborPanel } from './ArborPanel';
 import { SessionTemplates } from './SessionTemplates';
+import { SuggestionPanel } from './SuggestionPanel';
+import { OpenInCursor } from './OpenInCursor';
 
 // Feedback button component
 const FeedbackButton: React.FC<{
@@ -120,7 +122,7 @@ export const SessionPanel: React.FC = () => {
     }
   };
 
-  // Send feedback to LEO AI
+  // Send feedback to AI System
   const handleFeedback = useCallback(async (type: 'positive' | 'negative') => {
     if (!selectedSession || !window.flowrider) return;
 
@@ -129,12 +131,13 @@ export const SessionPanel: React.FC = () => {
 
     try {
       await window.flowrider.leoai.recordFeedback(sessionId, {
-        type: 'manual',
+        type: type === 'positive' ? 'accept' : 'reject',
         value,
         context: selectedSession.notes || undefined,
       });
       setLastFeedback(type);
       setFeedbackSent(true);
+      console.log(`[SessionPanel] Recorded ${type} feedback for session ${sessionId}`);
       // Reset feedback sent indicator after 2s
       setTimeout(() => setFeedbackSent(false), 2000);
     } catch (err) {
@@ -278,6 +281,18 @@ export const SessionPanel: React.FC = () => {
           </div>
         )}
 
+        {/* AI System Smart Suggestions */}
+        {hasActiveTmux && (
+          <SuggestionPanel
+            sessionId={selectedSession?.id}
+            projectId={selectedSession?.projectId}
+            workingDir={selectedSession?.workingDir}
+            language={selectedSession?.language}
+            compact={true}
+            maxSuggestions={3}
+          />
+        )}
+
         <div className="session-info">
           <div className="info-row">
             <span className="info-label">Face</span>
@@ -342,6 +357,13 @@ export const SessionPanel: React.FC = () => {
                 <span className="info-label">Directory</span>
                 <span className="info-value">{selectedSession.workingDir}</span>
               </div>
+
+              {/* Open in Cursor IDE button */}
+              {selectedSession.workingDir && (
+                <div style={{ marginTop: 12 }}>
+                  <OpenInCursor workingDir={selectedSession.workingDir} />
+                </div>
+              )}
 
               {/* Session Notes */}
               <div style={{ marginTop: 16 }}>
@@ -548,7 +570,7 @@ export const SessionPanel: React.FC = () => {
           )}
         </div>
 
-        {/* LEO AI Feedback Section */}
+        {/* AI System Feedback Section */}
         {hasActiveTmux && (
           <div style={{
             marginTop: 16,
@@ -569,7 +591,7 @@ export const SessionPanel: React.FC = () => {
                 fontWeight: 500,
                 letterSpacing: '0.5px',
               }}>
-                LEO AI FEEDBACK
+                AI System FEEDBACK
               </span>
               {feedbackSent && (
                 <span style={{

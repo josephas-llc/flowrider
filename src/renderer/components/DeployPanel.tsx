@@ -462,7 +462,7 @@ export const DeployPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
               <div style={{ color: '#ddd', fontSize: 14 }}>{formatTime(stats.lastDeployment)}</div>
             </div>
             <div style={{ marginTop: 16, padding: '8px 12px', background: 'rgba(0,212,255,0.1)', borderRadius: 8, fontSize: 11, color: '#888' }}>
-              All deployment data is being fed to LEO AI for pattern analysis and self-improvement
+              All deployment data is being fed to AI System for pattern analysis and self-improvement
             </div>
           </div>
         )}

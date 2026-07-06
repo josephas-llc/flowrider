@@ -8,7 +8,10 @@ import { MCPStatus } from './MCPStatus';
 import { SessionMessaging } from './SessionMessaging';
 import { AIProviders } from './AIProviders';
 import { LeoDodecahedron } from './LeoDodecahedron';
-import { LeoAIView } from './LeoAIView';
+import { LeoAIView } from './AIView';
+import { ApiSettings } from './dashboard/ApiSettings';
+import { ApiKeyManager } from './dashboard/ApiKeyManager';
+import { ApiDocs } from './dashboard/ApiDocs';
 
 const formatCost = (cost: number): string => {
   return cost < 0.01 ? '<$0.01' : `$${cost.toFixed(2)}`;
@@ -39,13 +42,13 @@ export const Dashboard: React.FC = () => {
       <div className="dashboard-header">
         <h2>Dashboard</h2>
         <div className="dashboard-tabs">
-          {(['overview', 'providers', 'roi', 'mcp', 'messaging', 'activity', 'leo', 'leoai'] as const).map((tab) => (
+          {(['overview', 'providers', 'roi', 'mcp', 'messaging', 'activity', 'leo', 'leoai', 'api'] as const).map((tab) => (
             <button
               key={tab}
               className={`tab ${dashboardView === tab ? 'active' : ''}`}
               onClick={() => setDashboardView(tab as any)}
             >
-              {tab === 'roi' ? 'ROI' : tab === 'mcp' ? 'MCP' : tab === 'providers' ? 'AI Models' : tab === 'leoai' ? 'LEO AI' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'roi' ? 'ROI' : tab === 'mcp' ? 'MCP' : tab === 'providers' ? 'AI Models' : tab === 'leoai' ? 'AI System' : tab === 'api' ? 'API' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -94,7 +97,11 @@ export const Dashboard: React.FC = () => {
         )}
 
         {dashboardView === 'leoai' && (
-          <LeoAIView />
+          <AIView />
+        )}
+
+        {dashboardView === 'api' && (
+          <ApiView />
         )}
       </div>
     </div>
@@ -687,6 +694,88 @@ const SelectedFlowriderPanel: React.FC<SelectedFlowriderPanelProps> = ({ flowrid
       </div>
     </div>
   );
+};
+
+// ============================================
+// API VIEW
+// ============================================
+
+const ApiView: React.FC = () => {
+  const [apiTab, setApiTab] = useState<'settings' | 'keys' | 'docs'>('settings');
+
+  return (
+    <div className="api-view">
+      {/* Sub-navigation for API sections */}
+      <div className="api-sub-tabs" style={apiSubTabsStyle}>
+        <button
+          className={`api-tab ${apiTab === 'settings' ? 'active' : ''}`}
+          onClick={() => setApiTab('settings')}
+          style={{
+            ...apiTabStyle,
+            backgroundColor: apiTab === 'settings' ? 'rgba(0, 255, 255, 0.1)' : 'transparent',
+            borderBottom: apiTab === 'settings' ? '2px solid #00ffff' : '2px solid transparent',
+          }}
+        >
+          ⚙️ Settings
+        </button>
+        <button
+          className={`api-tab ${apiTab === 'keys' ? 'active' : ''}`}
+          onClick={() => setApiTab('keys')}
+          style={{
+            ...apiTabStyle,
+            backgroundColor: apiTab === 'keys' ? 'rgba(0, 255, 255, 0.1)' : 'transparent',
+            borderBottom: apiTab === 'keys' ? '2px solid #00ffff' : '2px solid transparent',
+          }}
+        >
+          🔑 API Keys
+        </button>
+        <button
+          className={`api-tab ${apiTab === 'docs' ? 'active' : ''}`}
+          onClick={() => setApiTab('docs')}
+          style={{
+            ...apiTabStyle,
+            backgroundColor: apiTab === 'docs' ? 'rgba(0, 255, 255, 0.1)' : 'transparent',
+            borderBottom: apiTab === 'docs' ? '2px solid #00ffff' : '2px solid transparent',
+          }}
+        >
+          📘 Documentation
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <div className="api-tab-content" style={apiContentStyle}>
+        {apiTab === 'settings' && <ApiSettings />}
+        {apiTab === 'keys' && <ApiKeyManager />}
+        {apiTab === 'docs' && <ApiDocs />}
+      </div>
+    </div>
+  );
+};
+
+const apiSubTabsStyle: React.CSSProperties = {
+  display: 'flex',
+  gap: '8px',
+  padding: '16px 24px',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+  background: 'rgba(0, 0, 0, 0.2)',
+};
+
+const apiTabStyle: React.CSSProperties = {
+  padding: '12px 24px',
+  background: 'transparent',
+  border: 'none',
+  color: '#fff',
+  fontFamily: 'monospace',
+  fontSize: '14px',
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+  borderRadius: '4px 4px 0 0',
+};
+
+const apiContentStyle: React.CSSProperties = {
+  padding: '0',
+  overflowY: 'auto',
+  maxHeight: 'calc(100vh - 200px)',
 };
 
 export default Dashboard;

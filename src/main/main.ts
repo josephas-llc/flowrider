@@ -1,17 +1,54 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
 import { TmuxManager } from './TmuxManager';
-import { LeoManager } from './LeoManager';
+import { FleetManager } from './FleetManager';
 import { SessionMonitor } from './SessionMonitor';
-import { getLeoAI, shutdownLeoAI } from './leo-ai';
+import { getAICore, shutdownAICore } from './ai-core';
 import { getContextInjector } from './ContextInjector';
 import { getAIService, AIProviderType, AIMessage } from './AIService';
 import { getCrossSessionAwareness, shutdownCrossSessionAwareness } from './CrossSessionAwareness';
 import { deploymentService } from './DeploymentService';
+import { getLicenseService } from './LicenseService';
+import { getAutoUpdateService } from './AutoUpdateService';
+import { getTemplateService, shutdownTemplateService } from './TemplateService';
+import { getApiServer, stopApiServer } from './api';
+import { registerApiHandlers, setApiServer } from './ipc/api-handlers';
+import { registerCursorHandlers } from './ipc/cursor-handlers';
+import { getApiConfigService, shutdownApiConfigService } from './api/ApiConfig';
+import { z } from 'zod';
+import {
+  validate,
+  validateWithResponse,
+  createSessionSchema,
+  sessionNameSchema,
+  sendInputSchema,
+  outputLinesSchema,
+  workingDirSchema,
+  sessionIdSchema,
+  projectIdSchema,
+  languageSchema,
+  feedbackSchema,
+  updateActivitySchema,
+  filePathSchema,
+  errorMessageSchema,
+  solutionSchema,
+  aiCallSchema,
+  setApiKeySchema,
+  aiProviderSchema,
+  licenseKeySchema,
+  templateIdSchema,
+  templateCategorySchema,
+  repoNameSchema,
+  workflowIdSchema,
+  prNumberSchema,
+  tagNameSchema,
+  mergeMethodSchema,
+  prStateSchema,
+} from './utils/validation';
 
 let mainWindow: BrowserWindow | null = null;
 let tmuxManager: TmuxManager;
-let leoManager: LeoManager;
+let leoManager: FleetManager;
 let sessionMonitor: SessionMonitor;
 
 // Check if we should run in dev mode:
@@ -96,7 +133,7 @@ function createWindow() {
 
 function setupIPC() {
   tmuxManager = new TmuxManager();
-  leoManager = new LeoManager();
+  leoManager = new FleetManager();
 
   // Create SessionMonitor with access to tmuxManager.getOutput
   sessionMonitor = new SessionMonitor(
@@ -105,17 +142,22 @@ function setupIPC() {
 
   // Create a new tmux session
   ipcMain.handle('tmux:create', async (_event, name: string, faceIndex: number, workingDir: string) => {
-    console.log(`[IPC] Creating session: ${name} for face ${faceIndex}`);
-    const result = await tmuxManager.createSession(name, faceIndex, workingDir);
+    try {
+      const validated = validate(createSessionSchema, { name, faceIndex, workingDir });
+      console.log(`[IPC] Creating session: ${validated.name} for face ${validated.faceIndex}`);
+      const result = await tmuxManager.createSession(validated.name, validated.faceIndex, validated.workingDir);
 
-    // Auto-start monitoring the session for LEO AI
-    if ((result as any).success) {
-      const sessionId = `face-${faceIndex}`;
-      const tmuxSessionName = (result as any).data?.name || name;
-      sessionMonitor.startMonitoring(tmuxSessionName, sessionId, workingDir);
+      // Auto-start monitoring the session for AI System
+      if ((result as any).success) {
+        const sessionId = `face-${validated.faceIndex}`;
+        const tmuxSessionName = (result as any).data?.name || validated.name;
+        sessionMonitor.startMonitoring(tmuxSessionName, sessionId, validated.workingDir);
+      }
+
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
     }
-
-    return result;
   });
 
   // List all flowrider tmux sessions
@@ -125,32 +167,59 @@ function setupIPC() {
 
   // Kill a tmux session
   ipcMain.handle('tmux:kill', async (_event, sessionName: string) => {
-    console.log(`[IPC] Killing session: ${sessionName}`);
-    // Stop monitoring before killing
-    sessionMonitor.stopMonitoring(sessionName);
-    return tmuxManager.killSession(sessionName);
+    try {
+      const validated = validate(sessionNameSchema, sessionName);
+      console.log(`[IPC] Killing session: ${validated}`);
+      // Stop monitoring before killing
+      sessionMonitor.stopMonitoring(validated);
+      return tmuxManager.killSession(validated);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Send input to a tmux session
   ipcMain.handle('tmux:input', async (_event, sessionName: string, data: string) => {
-    return tmuxManager.sendInput(sessionName, data);
+    try {
+      const validated = validate(sendInputSchema, { sessionId: sessionName, input: data });
+      return tmuxManager.sendInput(validated.sessionId, validated.input);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Get output from a tmux session
   ipcMain.handle('tmux:output', async (_event, sessionName: string, lines: number) => {
-    return tmuxManager.getOutput(sessionName, lines);
+    try {
+      const validatedSession = validate(sessionNameSchema, sessionName);
+      const validatedLines = validate(outputLinesSchema, lines);
+      return tmuxManager.getOutput(validatedSession, validatedLines);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Rename a tmux session
   ipcMain.handle('tmux:rename', async (_event, oldName: string, newName: string) => {
-    console.log(`[IPC] Renaming session: ${oldName} -> ${newName}`);
-    return tmuxManager.renameSession(oldName, newName);
+    try {
+      const validatedOld = validate(sessionNameSchema, oldName);
+      const validatedNew = validate(sessionNameSchema, newName);
+      console.log(`[IPC] Renaming session: ${validatedOld} -> ${validatedNew}`);
+      return tmuxManager.renameSession(validatedOld, validatedNew);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Detect GitHub repo from working directory
   ipcMain.handle('git:detect', async (_event, workingDir: string) => {
-    console.log(`[IPC] Detecting git repo in: ${workingDir}`);
-    return tmuxManager.detectGitRepo(workingDir);
+    try {
+      const validated = validate(workingDirSchema, workingDir);
+      console.log(`[IPC] Detecting git repo in: ${validated}`);
+      return tmuxManager.detectGitRepo(validated);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Open directory picker dialog
@@ -236,12 +305,22 @@ function setupIPC() {
 
   // Ping a specific flowrider
   ipcMain.handle('leo:ping', async (_event, flowriderId: string) => {
-    return leoManager.pingFlowrider(flowriderId);
+    try {
+      const validated = validate(sessionIdSchema, flowriderId);
+      return leoManager.pingFlowrider(validated);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Get sessions from a remote flowrider
   ipcMain.handle('leo:remoteSessions', async (_event, flowriderId: string) => {
-    return leoManager.getRemoteSessions(flowriderId);
+    try {
+      const validated = validate(sessionIdSchema, flowriderId);
+      return leoManager.getRemoteSessions(validated);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Get this instance's info
@@ -250,32 +329,32 @@ function setupIPC() {
   });
 
   // ========================================
-  // LEO AI (Self-Improving Learning) IPC
+  // AI System (Self-Improving Learning) IPC
   // ========================================
 
-  const leoAI = getLeoAI();
+  const aiCore = getAICore();
 
-  // Auto-enable LEO AI learning on startup
-  leoAI.enable();
-  console.log('[IPC] LEO AI auto-enabled on startup');
+  // Auto-enable AI System learning on startup
+  aiCore.enable();
+  console.log('[IPC] AI System auto-enabled on startup');
 
-  // Enable LEO AI learning
+  // Enable AI System learning
   ipcMain.handle('leoai:enable', async () => {
-    console.log('[IPC] Enabling LEO AI');
-    leoAI.enable();
+    console.log('[IPC] Enabling AI System');
+    aiCore.enable();
     return { success: true };
   });
 
-  // Disable LEO AI learning
+  // Disable AI System learning
   ipcMain.handle('leoai:disable', async () => {
-    console.log('[IPC] Disabling LEO AI');
-    leoAI.disable();
+    console.log('[IPC] Disabling AI System');
+    aiCore.disable();
     return { success: true };
   });
 
-  // Get LEO AI status
+  // Get AI System status
   ipcMain.handle('leoai:status', async () => {
-    return { success: true, data: leoAI.getStatus() };
+    return { success: true, data: aiCore.getStatus() };
   });
 
   // Record an interaction for learning
@@ -286,7 +365,7 @@ function setupIPC() {
     response: string,
     metadata?: { filesModified?: string[]; outcome?: string; feedback?: number }
   ) => {
-    const id = leoAI.recordInteraction(sessionId, prompt, response, metadata as any);
+    const id = aiCore.recordInteraction(sessionId, prompt, response, metadata as any);
     return { success: true, id };
   });
 
@@ -296,7 +375,7 @@ function setupIPC() {
     sessionId: string,
     signal: { type: string; value: number; context?: string }
   ) => {
-    leoAI.recordFeedback(sessionId, signal as any);
+    aiCore.recordFeedback(sessionId, signal as any);
     return { success: true };
   });
 
@@ -305,57 +384,57 @@ function setupIPC() {
     _event,
     request?: { prompt?: string; projectId?: string; language?: string; tags?: string[]; errors?: string[] }
   ) => {
-    const context = leoAI.getContext(request);
+    const context = aiCore.getContext(request);
     return { success: true, data: context };
   });
 
   // Get quick context
   ipcMain.handle('leoai:getQuickContext', async (_event, projectId?: string, language?: string) => {
-    const context = leoAI.getQuickContext(projectId, language);
+    const context = aiCore.getQuickContext(projectId, language);
     return { success: true, data: context };
   });
 
   // Get error-specific context
   ipcMain.handle('leoai:getErrorContext', async (_event, errors: string[], language?: string) => {
-    const context = leoAI.getErrorContext(errors, language);
+    const context = aiCore.getErrorContext(errors, language);
     return { success: true, data: context };
   });
 
   // Trigger manual analysis
   ipcMain.handle('leoai:analyze', async () => {
-    console.log('[IPC] Triggering LEO AI analysis');
-    const result = await leoAI.analyze();
+    console.log('[IPC] Triggering AI System analysis');
+    const result = await aiCore.analyze();
     return { success: true, data: result };
   });
 
   // Get knowledge stats
   ipcMain.handle('leoai:stats', async () => {
-    return { success: true, data: leoAI.getKnowledgeStats() };
+    return { success: true, data: aiCore.getKnowledgeStats() };
   });
 
   // Get recent interactions
   ipcMain.handle('leoai:getInteractions', async (_event, limit: number = 50) => {
-    return { success: true, data: leoAI.getRecentInteractions(limit) };
+    return { success: true, data: aiCore.getRecentInteractions(limit) };
   });
 
   // Get patterns
   ipcMain.handle('leoai:getPatterns', async (_event, minConfidence: number = 0.5) => {
-    return { success: true, data: leoAI.getPatterns(minConfidence) };
+    return { success: true, data: aiCore.getPatterns(minConfidence) };
   });
 
   // Get insights
   ipcMain.handle('leoai:getInsights', async (_event, limit: number = 20) => {
-    return { success: true, data: leoAI.getInsights(limit) };
+    return { success: true, data: aiCore.getInsights(limit) };
   });
 
   // Search snippets
   ipcMain.handle('leoai:searchSnippets', async (_event, query: string) => {
-    return { success: true, data: leoAI.searchSnippets(query) };
+    return { success: true, data: aiCore.searchSnippets(query) };
   });
 
   // Get learning events
   ipcMain.handle('leoai:getLearningEvents', async (_event, since: number) => {
-    return { success: true, data: leoAI.getLearningEvents(since) };
+    return { success: true, data: aiCore.getLearningEvents(since) };
   });
 
   // Register a session for learning
@@ -363,7 +442,60 @@ function setupIPC() {
     _event,
     context: { sessionId: string; sessionName: string; projectId?: string; workingDir: string; repoUrl?: string; language?: string }
   ) => {
-    leoAI.registerSession(context as any);
+    aiCore.registerSession(context as any);
+    return { success: true };
+  });
+
+  // ========================================
+  // AI System Suggestions IPC (Intelligence Layer)
+  // ========================================
+
+  // Get smart suggestions based on context
+  ipcMain.handle('leoai:getSuggestions', async (
+    _event,
+    request?: { sessionId?: string; projectId?: string; workingDir?: string; language?: string; currentTask?: string; recentErrors?: string[]; aiProvider?: string; limit?: number }
+  ) => {
+    return { success: true, data: aiCore.getSuggestions(request) };
+  });
+
+  // Get session start suggestions
+  ipcMain.handle('leoai:getSessionStartSuggestions', async (
+    _event,
+    workingDir: string,
+    projectId?: string,
+    language?: string
+  ) => {
+    return { success: true, data: aiCore.getSessionStartSuggestions(workingDir, projectId, language) };
+  });
+
+  // Get error-specific suggestions
+  ipcMain.handle('leoai:getErrorSuggestions', async (
+    _event,
+    errors: string[],
+    language?: string
+  ) => {
+    return { success: true, data: aiCore.getErrorSuggestions(errors, language) };
+  });
+
+  // Dismiss a suggestion
+  ipcMain.handle('leoai:dismissSuggestion', async (_event, suggestionId: string) => {
+    aiCore.dismissSuggestion(suggestionId);
+    return { success: true };
+  });
+
+  // Record suggestion action (for learning)
+  ipcMain.handle('leoai:recordSuggestionAction', async (
+    _event,
+    suggestionId: string,
+    accepted: boolean
+  ) => {
+    aiCore.recordSuggestionAction(suggestionId, accepted);
+    return { success: true };
+  });
+
+  // Clear dismissed suggestions
+  ipcMain.handle('leoai:clearDismissedSuggestions', async () => {
+    aiCore.clearDismissedSuggestions();
     return { success: true };
   });
 
@@ -380,14 +512,28 @@ function setupIPC() {
     projectId?: string,
     language?: string
   ) => {
-    sessionMonitor.startMonitoring(sessionName, sessionId, workingDir, projectId, language);
-    return { success: true };
+    try {
+      const validatedSession = validate(sessionNameSchema, sessionName);
+      const validatedId = validate(sessionIdSchema, sessionId);
+      const validatedDir = validate(workingDirSchema, workingDir);
+      const validatedProject = projectId ? validate(projectIdSchema, projectId) : undefined;
+      const validatedLang = language ? validate(languageSchema, language) : undefined;
+      sessionMonitor.startMonitoring(validatedSession, validatedId, validatedDir, validatedProject, validatedLang);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Stop monitoring a session
   ipcMain.handle('monitor:stop', async (_event, sessionName: string) => {
-    sessionMonitor.stopMonitoring(sessionName);
-    return { success: true };
+    try {
+      const validated = validate(sessionNameSchema, sessionName);
+      sessionMonitor.stopMonitoring(validated);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Get monitored sessions
@@ -397,7 +543,12 @@ function setupIPC() {
 
   // Check if session is being monitored
   ipcMain.handle('monitor:isMonitoring', async (_event, sessionName: string) => {
-    return { success: true, data: sessionMonitor.isMonitoring(sessionName) };
+    try {
+      const validated = validate(sessionNameSchema, sessionName);
+      return { success: true, data: sessionMonitor.isMonitoring(validated) };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Record manual interaction (from UI)
@@ -408,8 +559,16 @@ function setupIPC() {
     response: string,
     feedback?: number
   ) => {
-    sessionMonitor.recordManualInteraction(sessionId, prompt, response, feedback);
-    return { success: true };
+    try {
+      const validatedId = validate(sessionIdSchema, sessionId);
+      const validatedPrompt = validate(z.string().max(50000), prompt);
+      const validatedResponse = validate(z.string().max(100000), response);
+      const validatedFeedback = feedback !== undefined ? validate(z.number().min(-1).max(1), feedback) : undefined;
+      sessionMonitor.recordManualInteraction(validatedId, validatedPrompt, validatedResponse, validatedFeedback);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // ========================================
@@ -509,9 +668,14 @@ function setupIPC() {
       systemPrompt?: string;
     }
   ) => {
-    console.log(`[IPC] AI call to ${options.provider}${options.model ? ` (${options.model})` : ''}`);
-    const result = await aiService.call(options);
-    return result;
+    try {
+      const validated = validate(aiCallSchema, options);
+      console.log(`[IPC] AI call to ${validated.provider}${validated.model ? ` (${validated.model})` : ''}`);
+      const result = await aiService.call(validated);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Quick prompt (convenience)
@@ -521,9 +685,16 @@ function setupIPC() {
     prompt: string,
     model?: string
   ) => {
-    console.log(`[IPC] Quick prompt to ${provider}`);
-    const result = await aiService.quickPrompt(provider, prompt, model);
-    return result;
+    try {
+      const validatedProvider = validate(aiProviderSchema, provider);
+      const validatedPrompt = validate(z.string().max(50000), prompt);
+      const validatedModel = model ? validate(z.string().max(100), model) : undefined;
+      console.log(`[IPC] Quick prompt to ${validatedProvider}`);
+      const result = await aiService.quickPrompt(validatedProvider, validatedPrompt, validatedModel);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Calculate cost
@@ -534,14 +705,59 @@ function setupIPC() {
     inputTokens: number,
     outputTokens: number
   ) => {
-    const cost = aiService.calculateCost(provider, model, inputTokens, outputTokens);
-    return { success: true, data: cost };
+    try {
+      const validatedProvider = validate(aiProviderSchema, provider);
+      const validatedModel = validate(z.string().max(100), model);
+      const validatedInput = validate(z.number().int().min(0).max(1000000), inputTokens);
+      const validatedOutput = validate(z.number().int().min(0).max(1000000), outputTokens);
+      const cost = aiService.calculateCost(validatedProvider, validatedModel, validatedInput, validatedOutput);
+      return { success: true, data: cost };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Set Ollama URL
   ipcMain.handle('ai:setOllamaUrl', async (_event, url: string) => {
-    aiService.setOllamaUrl(url);
-    return { success: true };
+    try {
+      const validated = validate(z.string().url(), url);
+      aiService.setOllamaUrl(validated);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Set API key for a provider
+  ipcMain.handle('ai:setApiKey', async (_event, provider: AIProviderType, key: string) => {
+    try {
+      const validated = validate(setApiKeySchema, { provider, key });
+      aiService.setApiKey(validated.provider, validated.key);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
+  });
+
+  // Get API key for a provider
+  ipcMain.handle('ai:getApiKey', async (_event, provider: AIProviderType) => {
+    try {
+      const validated = validate(aiProviderSchema, provider);
+      const key = aiService.getApiKey(validated);
+      return { success: true, data: key };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
+  });
+
+  // Get all API keys
+  ipcMain.handle('ai:getApiKeys', async () => {
+    try {
+      const keys = aiService.getApiKeys();
+      return { success: true, data: keys };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
   });
 
   // ========================================
@@ -558,14 +774,27 @@ function setupIPC() {
     workingDir: string,
     projectId?: string
   ) => {
-    crossSessionAwareness.registerSession(sessionId, sessionName, workingDir, projectId);
-    return { success: true };
+    try {
+      const validatedId = validate(sessionIdSchema, sessionId);
+      const validatedName = validate(sessionNameSchema, sessionName);
+      const validatedDir = validate(workingDirSchema, workingDir);
+      const validatedProject = projectId ? validate(projectIdSchema, projectId) : undefined;
+      crossSessionAwareness.registerSession(validatedId, validatedName, validatedDir, validatedProject);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Unregister a session
   ipcMain.handle('crosssession:unregister', async (_event, sessionId: string) => {
-    crossSessionAwareness.unregisterSession(sessionId);
-    return { success: true };
+    try {
+      const validated = validate(sessionIdSchema, sessionId);
+      crossSessionAwareness.unregisterSession(validated);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Update session activity
@@ -574,8 +803,14 @@ function setupIPC() {
     sessionId: string,
     updates: { currentTask?: string; status?: string; tags?: string[] }
   ) => {
-    crossSessionAwareness.updateActivity(sessionId, updates as any);
-    return { success: true };
+    try {
+      const validatedId = validate(sessionIdSchema, sessionId);
+      const validatedUpdates = validate(updateActivitySchema, updates);
+      crossSessionAwareness.updateActivity(validatedId, validatedUpdates as any);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Record file modification
@@ -584,8 +819,14 @@ function setupIPC() {
     sessionId: string,
     filePath: string
   ) => {
-    crossSessionAwareness.recordFileModification(sessionId, filePath);
-    return { success: true };
+    try {
+      const validatedId = validate(sessionIdSchema, sessionId);
+      const validatedPath = validate(filePathSchema, filePath);
+      crossSessionAwareness.recordFileModification(validatedId, validatedPath);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Record error
@@ -594,8 +835,14 @@ function setupIPC() {
     sessionId: string,
     error: string
   ) => {
-    crossSessionAwareness.recordError(sessionId, error);
-    return { success: true };
+    try {
+      const validatedId = validate(sessionIdSchema, sessionId);
+      const validatedError = validate(errorMessageSchema, error);
+      crossSessionAwareness.recordError(validatedId, validatedError);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Record error resolved
@@ -605,26 +852,48 @@ function setupIPC() {
     error: string,
     solution: string
   ) => {
-    crossSessionAwareness.recordErrorResolved(sessionId, error, solution);
-    return { success: true };
+    try {
+      const validatedId = validate(sessionIdSchema, sessionId);
+      const validatedError = validate(errorMessageSchema, error);
+      const validatedSolution = validate(solutionSchema, solution);
+      crossSessionAwareness.recordErrorResolved(validatedId, validatedError, validatedSolution);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Get cross-session context
   ipcMain.handle('crosssession:getContext', async (_event, sessionId: string) => {
-    const context = crossSessionAwareness.getCrossSessionContext(sessionId);
-    return { success: true, data: context };
+    try {
+      const validated = validate(sessionIdSchema, sessionId);
+      const context = crossSessionAwareness.getCrossSessionContext(validated);
+      return { success: true, data: context };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Get suggestions
   ipcMain.handle('crosssession:getSuggestions', async (_event, sessionId: string) => {
-    const suggestions = crossSessionAwareness.getSuggestions(sessionId);
-    return { success: true, data: suggestions };
+    try {
+      const validated = validate(sessionIdSchema, sessionId);
+      const suggestions = crossSessionAwareness.getSuggestions(validated);
+      return { success: true, data: suggestions };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Dismiss suggestion
   ipcMain.handle('crosssession:dismissSuggestion', async (_event, suggestionId: string) => {
-    crossSessionAwareness.dismissSuggestion(suggestionId);
-    return { success: true };
+    try {
+      const validated = validate(sessionIdSchema, suggestionId);
+      crossSessionAwareness.dismissSuggestion(validated);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Get activity feed
@@ -641,8 +910,13 @@ function setupIPC() {
 
   // Get session by ID
   ipcMain.handle('crosssession:getSession', async (_event, sessionId: string) => {
-    const session = crossSessionAwareness.getSession(sessionId);
-    return { success: true, data: session };
+    try {
+      const validated = validate(sessionIdSchema, sessionId);
+      const session = crossSessionAwareness.getSession(validated);
+      return { success: true, data: session };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════
@@ -667,7 +941,9 @@ function setupIPC() {
   // Get workflow runs for a repo
   ipcMain.handle('deploy:listWorkflowRuns', async (_event, repo: string, limit?: number) => {
     try {
-      const runs = await deploymentService.listWorkflowRuns(repo, limit);
+      const validatedRepo = validate(repoNameSchema, repo);
+      const validatedLimit = limit ? validate(z.number().int().min(1).max(100), limit) : undefined;
+      const runs = await deploymentService.listWorkflowRuns(validatedRepo, validatedLimit);
       return { success: true, data: runs };
     } catch (err) {
       return { success: false, error: String(err) };
@@ -677,7 +953,9 @@ function setupIPC() {
   // Get workflow logs
   ipcMain.handle('deploy:getWorkflowLogs', async (_event, repo: string, runId: number) => {
     try {
-      const logs = await deploymentService.getWorkflowRunLogs(repo, runId);
+      const validatedRepo = validate(repoNameSchema, repo);
+      const validatedId = validate(workflowIdSchema, runId);
+      const logs = await deploymentService.getWorkflowRunLogs(validatedRepo, validatedId);
       return { success: true, data: logs };
     } catch (err) {
       return { success: false, error: String(err) };
@@ -687,7 +965,9 @@ function setupIPC() {
   // Rerun a workflow
   ipcMain.handle('deploy:rerunWorkflow', async (_event, repo: string, runId: number) => {
     try {
-      const success = await deploymentService.rerunWorkflow(repo, runId);
+      const validatedRepo = validate(repoNameSchema, repo);
+      const validatedId = validate(workflowIdSchema, runId);
+      const success = await deploymentService.rerunWorkflow(validatedRepo, validatedId);
       return { success, data: success };
     } catch (err) {
       return { success: false, error: String(err) };
@@ -697,7 +977,9 @@ function setupIPC() {
   // List releases
   ipcMain.handle('deploy:listReleases', async (_event, repo: string, limit?: number) => {
     try {
-      const releases = await deploymentService.listReleases(repo, limit);
+      const validatedRepo = validate(repoNameSchema, repo);
+      const validatedLimit = limit ? validate(z.number().int().min(1).max(100), limit) : undefined;
+      const releases = await deploymentService.listReleases(validatedRepo, validatedLimit);
       return { success: true, data: releases };
     } catch (err) {
       return { success: false, error: String(err) };
@@ -707,7 +989,13 @@ function setupIPC() {
   // Create a release
   ipcMain.handle('deploy:createRelease', async (_event, repo: string, tagName: string, title: string, notes: string, draft?: boolean, prerelease?: boolean) => {
     try {
-      const release = await deploymentService.createRelease(repo, tagName, title, notes, draft, prerelease);
+      const validatedRepo = validate(repoNameSchema, repo);
+      const validatedTag = validate(tagNameSchema, tagName);
+      const validatedTitle = validate(z.string().min(1).max(200), title);
+      const validatedNotes = validate(z.string().max(50000), notes);
+      const validatedDraft = draft !== undefined ? validate(z.boolean(), draft) : undefined;
+      const validatedPre = prerelease !== undefined ? validate(z.boolean(), prerelease) : undefined;
+      const release = await deploymentService.createRelease(validatedRepo, validatedTag, validatedTitle, validatedNotes, validatedDraft, validatedPre);
       return { success: !!release, data: release };
     } catch (err) {
       return { success: false, error: String(err) };
@@ -717,7 +1005,9 @@ function setupIPC() {
   // List pull requests
   ipcMain.handle('deploy:listPRs', async (_event, repo: string, state?: 'open' | 'closed' | 'all') => {
     try {
-      const prs = await deploymentService.listPullRequests(repo, state);
+      const validatedRepo = validate(repoNameSchema, repo);
+      const validatedState = state ? validate(prStateSchema, state) : undefined;
+      const prs = await deploymentService.listPullRequests(validatedRepo, validatedState);
       return { success: true, data: prs };
     } catch (err) {
       return { success: false, error: String(err) };
@@ -727,7 +1017,10 @@ function setupIPC() {
   // Merge a pull request
   ipcMain.handle('deploy:mergePR', async (_event, repo: string, prNumber: number, method?: 'merge' | 'squash' | 'rebase') => {
     try {
-      const success = await deploymentService.mergePullRequest(repo, prNumber, method);
+      const validatedRepo = validate(repoNameSchema, repo);
+      const validatedPR = validate(prNumberSchema, prNumber);
+      const validatedMethod = method ? validate(mergeMethodSchema, method) : undefined;
+      const success = await deploymentService.mergePullRequest(validatedRepo, validatedPR, validatedMethod);
       return { success, data: success };
     } catch (err) {
       return { success: false, error: String(err) };
@@ -737,7 +1030,10 @@ function setupIPC() {
   // Trigger a workflow
   ipcMain.handle('deploy:triggerWorkflow', async (_event, repo: string, workflow: string, branch?: string) => {
     try {
-      const success = await deploymentService.triggerWorkflow(repo, workflow, branch);
+      const validatedRepo = validate(repoNameSchema, repo);
+      const validatedWorkflow = validate(z.string().min(1).max(100), workflow);
+      const validatedBranch = branch ? validate(z.string().min(1).max(100), branch) : undefined;
+      const success = await deploymentService.triggerWorkflow(validatedRepo, validatedWorkflow, validatedBranch);
       return { success, data: success };
     } catch (err) {
       return { success: false, error: String(err) };
@@ -769,13 +1065,134 @@ function setupIPC() {
     return { success: true, data: deploymentService.getDeploymentPatterns() };
   });
 
+  // =====================
+  // LICENSE MANAGEMENT (Lemon Squeezy)
+  // =====================
+  const licenseService = getLicenseService();
+
+  // Activate a license key
+  ipcMain.handle('license:activate', async (_event, licenseKey: string) => {
+    try {
+      const validated = validate(licenseKeySchema, licenseKey);
+      console.log('[IPC] Activating license');
+      return licenseService.activateLicense(validated);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Validate current license
+  ipcMain.handle('license:validate', async () => {
+    console.log('[IPC] Validating license');
+    return licenseService.validateLicense();
+  });
+
+  // Deactivate license
+  ipcMain.handle('license:deactivate', async () => {
+    console.log('[IPC] Deactivating license');
+    return licenseService.deactivateLicense();
+  });
+
+  // Get current license info
+  ipcMain.handle('license:get', async () => {
+    return { success: true, license: licenseService.getLicense() };
+  });
+
+  // Check if user can create more sessions
+  ipcMain.handle('license:canCreateSession', async (_event, currentCount: number) => {
+    try {
+      const validated = validate(z.number().int().min(0).max(20), currentCount);
+      return { success: true, allowed: licenseService.canCreateSession(validated) };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get session limit for current tier
+  ipcMain.handle('license:getSessionLimit', async () => {
+    return { success: true, limit: licenseService.getSessionLimit() };
+  });
+
+  // =====================
+  // TEMPLATE MANAGEMENT
+  // =====================
+  const templateService = getTemplateService();
+
+  // List all templates (built-in + user-created)
+  ipcMain.handle('templates:list', async () => {
+    console.log('[IPC] Listing templates');
+    try {
+      const templates = templateService.listTemplates();
+      return { success: true, data: templates };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // Get a specific template by ID
+  ipcMain.handle('templates:get', async (_event, id: string) => {
+    try {
+      const validated = validate(templateIdSchema, id);
+      console.log('[IPC] Getting template:', validated);
+      const template = templateService.getTemplate(validated);
+      if (!template) {
+        return { success: false, error: 'Template not found' };
+      }
+      return { success: true, data: template };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  // Save a new template or update existing
+  ipcMain.handle('templates:save', async (_event, template: any) => {
+    try {
+      // Basic validation of template object - allowing passthrough for additional fields
+      const validated = validate(z.object({
+        id: templateIdSchema.optional(),
+        name: z.string().min(1).max(100),
+        category: templateCategorySchema,
+        description: z.string().max(500).optional(),
+        icon: z.string().optional(),
+        config: z.any().optional(),
+      }).passthrough(), template);
+      console.log('[IPC] Saving template:', validated.name);
+      return templateService.saveTemplate(validated as any);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Delete a user-created template
+  ipcMain.handle('templates:delete', async (_event, id: string) => {
+    try {
+      const validated = validate(templateIdSchema, id);
+      console.log('[IPC] Deleting template:', validated);
+      return templateService.deleteTemplate(validated);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get templates by category
+  ipcMain.handle('templates:getByCategory', async (_event, category: string) => {
+    try {
+      const validated = validate(templateCategorySchema, category);
+      console.log('[IPC] Getting templates by category:', validated);
+      const templates = templateService.getTemplatesByCategory(validated as any);
+      return { success: true, data: templates };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
   // Forward deployment events to LEO
   deploymentService.on('deployment-event', (event) => {
     // Record deployment outcomes for LEO learning
-    const leoAI = getLeoAI();
-    if (leoAI.getStatus().enabled) {
-      // Record as an interaction for LEO AI learning
-      leoAI.recordInteraction(
+    const aiCore = getAICore();
+    if (aiCore.getStatus().enabled) {
+      // Record as an interaction for AI System learning
+      aiCore.recordInteraction(
         'deployment-system',
         `Deployment event: ${event.type} for ${event.repo}`,
         JSON.stringify({
@@ -793,16 +1210,50 @@ function setupIPC() {
     }
   });
 
-  console.log('[IPC] Handlers registered (including LEO + LEO AI + SessionMonitor + ContextInjector + AIService + CrossSessionAwareness + Deployment)');
+  // Register API server IPC handlers
+  registerApiHandlers();
+
+  // Register Cursor IDE IPC handlers
+  registerCursorHandlers();
+
+  console.log('[IPC] Handlers registered (including LEO + AI System + SessionMonitor + ContextInjector + AIService + CrossSessionAwareness + Deployment + License + Templates + API + Cursor)');
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   console.log('========================================');
   console.log('  Flowrider 2.0 - Starting Up');
   console.log('========================================');
 
   setupIPC();
   createWindow();
+
+  // Initialize auto-update service
+  if (mainWindow) {
+    const autoUpdateService = getAutoUpdateService();
+    autoUpdateService.setMainWindow(mainWindow);
+    autoUpdateService.checkForUpdatesOnLaunch();
+  }
+
+  // Start API server with configured settings
+  try {
+    const apiConfigService = getApiConfigService();
+    const apiConfig = apiConfigService.getConfig();
+
+    // Only start if enabled in config
+    if (apiConfig.enabled) {
+      const apiServer = getApiServer({ port: apiConfig.port });
+      setApiServer(apiServer); // Make server available to IPC handlers
+      await apiServer.start();
+      console.log(`[Main] API server started on port ${apiConfig.port}`);
+    } else {
+      console.log('[Main] API server is disabled in configuration');
+      // Still set the server instance for IPC handlers even if not started
+      const apiServer = getApiServer({ port: apiConfig.port });
+      setApiServer(apiServer);
+    }
+  } catch (error) {
+    console.error('[Main] Failed to start API server:', error);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -817,9 +1268,24 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
   console.log('[Main] App quitting, cleaning up...');
   sessionMonitor.shutdown();
-  shutdownLeoAI();
+  shutdownAICore();
   shutdownCrossSessionAwareness();
+  shutdownTemplateService();
+
+  // Stop API server
+  try {
+    await stopApiServer();
+  } catch (error) {
+    console.error('[Main] Error stopping API server:', error);
+  }
+
+  // Shutdown API config service
+  try {
+    shutdownApiConfigService();
+  } catch (error) {
+    console.error('[Main] Error shutting down API config service:', error);
+  }
 });
