@@ -341,6 +341,21 @@ export class AICore {
   }
 
   /**
+   * Get AI-powered suggestions (async - makes actual Ollama calls)
+   * Falls back to heuristic suggestions if AI is unavailable
+   */
+  async getAISuggestions(request?: SuggestionRequest): Promise<Suggestion[]> {
+    return this.suggestionEngine.getAISuggestions(request);
+  }
+
+  /**
+   * Enable or disable AI-powered suggestions
+   */
+  setAISuggestionsEnabled(enabled: boolean): void {
+    this.suggestionEngine.setAIEnabled(enabled);
+  }
+
+  /**
    * Record that a suggestion was acted upon (for learning)
    */
   recordSuggestionAction(suggestionId: string, accepted: boolean): void {

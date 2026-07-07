@@ -63,6 +63,7 @@ export class FleetManager {
   private startTime: number;
   private onFlowriderDiscovered?: (fr: LeoFlowriderInfo) => void;
   private onFlowriderLost?: (id: string) => void;
+  private getActiveSessionCount?: () => number;
 
   constructor() {
     this.instanceId = `fr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -175,13 +176,16 @@ export class FleetManager {
     const freeMem = os.freemem();
     const memoryUsage = ((totalMem - freeMem) / totalMem) * 100;
 
+    // Get active session count from callback if available
+    const activeSessions = this.getActiveSessionCount ? this.getActiveSessionCount() : 0;
+
     return {
       id: this.instanceId,
       name: this.instanceName,
       host: this.getLocalIP(),
       port: this.apiPort,
-      status: 'active',
-      activeSessions: 0, // This would come from the store
+      status: activeSessions > 15 ? 'busy' : activeSessions > 0 ? 'active' : 'idle',
+      activeSessions,
       totalSessions: 20,
       lastPing: Date.now(),
       metrics: {
@@ -282,9 +286,11 @@ export class FleetManager {
   setHandlers(handlers: {
     onFlowriderDiscovered?: (fr: LeoFlowriderInfo) => void;
     onFlowriderLost?: (id: string) => void;
+    getActiveSessionCount?: () => number;
   }) {
     this.onFlowriderDiscovered = handlers.onFlowriderDiscovered;
     this.onFlowriderLost = handlers.onFlowriderLost;
+    this.getActiveSessionCount = handlers.getActiveSessionCount;
   }
 
   // ========================================

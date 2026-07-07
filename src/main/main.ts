@@ -135,6 +135,23 @@ function setupIPC() {
   tmuxManager = new TmuxManager();
   leoManager = new FleetManager();
 
+  // Configure FleetManager with session count callback
+  leoManager.setHandlers({
+    getActiveSessionCount: () => {
+      // Get session count synchronously from tmux
+      try {
+        const result = tmuxManager.listSessionsSync();
+        if (result.success && result.data) {
+          // Count sessions with names starting with 'face-' (Flowrider sessions)
+          return result.data.filter(s => s.name.startsWith('face-')).length;
+        }
+      } catch {
+        // Fall back to 0 if error
+      }
+      return 0;
+    }
+  });
+
   // Create SessionMonitor with access to tmuxManager.getOutput
   sessionMonitor = new SessionMonitor(
     (sessionName: string, lines: number) => tmuxManager.getOutput(sessionName, lines)
@@ -456,6 +473,26 @@ function setupIPC() {
     request?: { sessionId?: string; projectId?: string; workingDir?: string; language?: string; currentTask?: string; recentErrors?: string[]; aiProvider?: string; limit?: number }
   ) => {
     return { success: true, data: aiCore.getSuggestions(request) };
+  });
+
+  // Get AI-powered suggestions (uses Ollama for real AI responses)
+  ipcMain.handle('leoai:getAISuggestions', async (
+    _event,
+    request?: { sessionId?: string; projectId?: string; workingDir?: string; language?: string; currentTask?: string; recentErrors?: string[]; aiProvider?: string; limit?: number }
+  ) => {
+    try {
+      const suggestions = await aiCore.getAISuggestions(request);
+      return { success: true, data: suggestions };
+    } catch (error) {
+      console.error('[IPC] getAISuggestions failed:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Enable/disable AI-powered suggestions
+  ipcMain.handle('leoai:setAISuggestionsEnabled', async (_event, enabled: boolean) => {
+    aiCore.setAISuggestionsEnabled(enabled);
+    return { success: true };
   });
 
   // Get session start suggestions

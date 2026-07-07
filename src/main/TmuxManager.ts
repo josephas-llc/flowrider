@@ -154,6 +154,13 @@ export class TmuxManager {
   }
 
   async listSessions(): Promise<TmuxResult<TmuxSession[]>> {
+    return this.listSessionsSync();
+  }
+
+  /**
+   * Synchronous version of listSessions for use in callbacks
+   */
+  listSessionsSync(): TmuxResult<TmuxSession[]> {
     try {
       const output = this.execTmux(
         ['list-sessions', '-F', '#{session_name}:#{session_created}:#{session_attached}'],

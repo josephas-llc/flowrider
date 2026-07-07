@@ -14,6 +14,7 @@
  */
 
 import { Memory, Interaction, Pattern, Insight } from './Memory';
+import { getAIService, AIProviderType } from '../AIService';
 import * as crypto from 'crypto';
 
 // ============================================
@@ -97,11 +98,14 @@ export class SuggestionEngine {
   private memory: Memory;
   private dismissedSuggestions: Set<string> = new Set();
   private suggestionCache: Map<string, { suggestions: Suggestion[]; timestamp: number }> = new Map();
+  private aiSuggestionCache: Map<string, { suggestions: Suggestion[]; timestamp: number }> = new Map();
   private cacheTTL: number = 60000; // 1 minute cache
+  private aiCacheTTL: number = 300000; // 5 minute cache for AI suggestions (more expensive)
+  private aiEnabled: boolean = true;
 
   constructor(memory: Memory) {
     this.memory = memory;
-    console.log('[SuggestionEngine] Initialized');
+    console.log('[SuggestionEngine] Initialized with AI-powered suggestions');
   }
 
   // ============================================
@@ -739,6 +743,231 @@ export class SuggestionEngine {
 
   private generateId(prefix: string): string {
     return `${prefix}-${crypto.randomUUID().substring(0, 8)}`;
+  }
+
+  // ============================================
+  // AI-Powered Suggestions
+  // ============================================
+
+  /**
+   * Enable or disable AI-powered suggestions
+   */
+  setAIEnabled(enabled: boolean): void {
+    this.aiEnabled = enabled;
+    console.log(`[SuggestionEngine] AI suggestions ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Get AI-powered suggestions (async - makes actual AI calls)
+   * Falls back to heuristic suggestions if AI is unavailable
+   */
+  async getAISuggestions(request: SuggestionRequest = {}): Promise<Suggestion[]> {
+    if (!this.aiEnabled) {
+      return this.getSuggestions(request);
+    }
+
+    const cacheKey = `ai-${this.getCacheKey(request)}`;
+    const cached = this.aiSuggestionCache.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < this.aiCacheTTL) {
+      return this.filterDismissed(cached.suggestions);
+    }
+
+    // Start with heuristic suggestions
+    const heuristicSuggestions = this.getSuggestions(request);
+
+    // Try to get AI-enhanced suggestions
+    try {
+      const aiSuggestions = await this.generateAISuggestions(request);
+      const combined = [...aiSuggestions, ...heuristicSuggestions];
+
+      // Deduplicate by title similarity
+      const unique = this.deduplicateSuggestions(combined);
+      const ranked = this.rankSuggestions(unique, request);
+
+      this.aiSuggestionCache.set(cacheKey, { suggestions: ranked, timestamp: Date.now() });
+      return this.filterDismissed(ranked).slice(0, request.limit || 10);
+    } catch (err) {
+      console.warn('[SuggestionEngine] AI suggestions failed, using heuristics:', err);
+      return heuristicSuggestions;
+    }
+  }
+
+  /**
+   * Generate suggestions using actual AI calls
+   */
+  private async generateAISuggestions(request: SuggestionRequest): Promise<Suggestion[]> {
+    const suggestions: Suggestion[] = [];
+    const aiService = getAIService();
+
+    // Check if Ollama is available (free, local AI)
+    const ollamaHealth = await aiService.checkOllamaHealth();
+
+    if (!ollamaHealth.available) {
+      console.log('[SuggestionEngine] Ollama not available, skipping AI suggestions');
+      return suggestions;
+    }
+
+    // Build context for AI
+    const context = this.buildAIContext(request);
+
+    if (!context) {
+      return suggestions;
+    }
+
+    // Make AI call with cost-efficient prompt
+    const result = await aiService.call({
+      provider: 'ollama',
+      model: ollamaHealth.models?.[0] || 'llama3',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a helpful coding assistant. Analyze the context and provide 1-3 actionable suggestions for the developer. Each suggestion should be practical and specific. Respond in JSON format only:
+{
+  "suggestions": [
+    {"title": "short title", "description": "1-2 sentence description", "priority": "low|medium|high", "type": "workflow|code_pattern|productivity"}
+  ]
+}`
+        },
+        {
+          role: 'user',
+          content: context
+        }
+      ],
+      maxTokens: 300,
+      temperature: 0.7
+    });
+
+    if (!result.success || !result.content) {
+      return suggestions;
+    }
+
+    // Parse AI response
+    try {
+      // Extract JSON from response (handle markdown code blocks)
+      let jsonStr = result.content;
+      const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1];
+      }
+
+      const parsed = JSON.parse(jsonStr);
+
+      if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
+        for (const s of parsed.suggestions) {
+          suggestions.push({
+            id: this.generateId('ai'),
+            type: this.mapAIType(s.type) as SuggestionType,
+            title: `✨ ${s.title}`,
+            description: s.description,
+            priority: this.mapPriority(s.priority) as SuggestionPriority,
+            confidence: 0.75,
+            relevance: 0.8,
+            actionable: false,
+            dismissable: true,
+            source: { type: 'heuristic' },
+            context: {
+              projectId: request.projectId,
+              language: request.language,
+              tags: ['ai-generated']
+            },
+            createdAt: Date.now(),
+            expiresAt: Date.now() + this.aiCacheTTL,
+          });
+        }
+      }
+    } catch (parseErr) {
+      console.warn('[SuggestionEngine] Failed to parse AI response:', parseErr);
+    }
+
+    return suggestions;
+  }
+
+  /**
+   * Build context string for AI from request and history
+   */
+  private buildAIContext(request: SuggestionRequest): string | null {
+    const parts: string[] = [];
+
+    if (request.workingDir) {
+      parts.push(`Working directory: ${request.workingDir}`);
+    }
+
+    if (request.language) {
+      parts.push(`Language: ${request.language}`);
+    }
+
+    if (request.currentTask) {
+      parts.push(`Current task: ${request.currentTask}`);
+    }
+
+    if (request.recentErrors && request.recentErrors.length > 0) {
+      parts.push(`Recent errors:\n${request.recentErrors.slice(0, 3).join('\n')}`);
+    }
+
+    // Add recent interaction summary
+    const interactions = this.getRelevantInteractions(request, 5);
+    if (interactions.length > 0) {
+      const summary = interactions
+        .slice(0, 3)
+        .map(i => `- ${i.prompt.substring(0, 100)}...`)
+        .join('\n');
+      parts.push(`Recent prompts:\n${summary}`);
+    }
+
+    // Add pattern insights
+    const patterns = this.memory.getHighConfidencePatterns(0.7);
+    if (patterns.length > 0) {
+      const patternSummary = patterns
+        .slice(0, 3)
+        .map(p => `- ${p.name}: ${p.description || 'common pattern'}`)
+        .join('\n');
+      parts.push(`Known patterns:\n${patternSummary}`);
+    }
+
+    if (parts.length === 0) {
+      return null;
+    }
+
+    return `Developer context:\n${parts.join('\n\n')}\n\nProvide helpful suggestions for this developer.`;
+  }
+
+  /**
+   * Map AI suggestion type to our type
+   */
+  private mapAIType(type: string): string {
+    const mapping: Record<string, SuggestionType> = {
+      'workflow': 'workflow',
+      'code_pattern': 'code_pattern',
+      'productivity': 'productivity',
+      'error': 'error_prevention',
+      'template': 'template',
+      'provider': 'ai_provider',
+    };
+    return mapping[type?.toLowerCase()] || 'workflow';
+  }
+
+  /**
+   * Map priority string to our priority type
+   */
+  private mapPriority(priority: string): string {
+    const p = priority?.toLowerCase();
+    if (p === 'high' || p === 'critical') return 'high';
+    if (p === 'medium') return 'medium';
+    return 'low';
+  }
+
+  /**
+   * Remove duplicate suggestions by similar titles
+   */
+  private deduplicateSuggestions(suggestions: Suggestion[]): Suggestion[] {
+    const seen = new Set<string>();
+    return suggestions.filter(s => {
+      const key = s.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 30);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 }
 

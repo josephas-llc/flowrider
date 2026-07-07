@@ -136,6 +136,18 @@ contextBridge.exposeInMainWorld('flowrider', {
       aiProvider?: string;
       limit?: number;
     }) => ipcRenderer.invoke('leoai:getSuggestions', request),
+    getAISuggestions: (request?: {
+      sessionId?: string;
+      projectId?: string;
+      workingDir?: string;
+      language?: string;
+      currentTask?: string;
+      recentErrors?: string[];
+      aiProvider?: string;
+      limit?: number;
+    }) => ipcRenderer.invoke('leoai:getAISuggestions', request),
+    setAISuggestionsEnabled: (enabled: boolean) =>
+      ipcRenderer.invoke('leoai:setAISuggestionsEnabled', enabled),
     getSessionStartSuggestions: (workingDir: string, projectId?: string, language?: string) =>
       ipcRenderer.invoke('leoai:getSessionStartSuggestions', workingDir, projectId, language),
     getErrorSuggestions: (errors: string[], language?: string) =>

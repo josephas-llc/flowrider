@@ -177,6 +177,20 @@ export const SessionPanel: React.FC = () => {
           workingDir,
           gitHubRepo,
         });
+
+        // Register with cross-session awareness for real-time tracking
+        try {
+          await window.flowrider.crossSession.register(
+            selectedSession?.id || `face-${selectedFace}`,
+            name,
+            workingDir,
+            selectedSession?.projectId
+          );
+          console.log('[SessionPanel] Registered session with CrossSessionAwareness:', name);
+        } catch (err) {
+          console.error('[SessionPanel] Failed to register with CrossSessionAwareness:', err);
+        }
+
         setSessionName('');
       } else {
         setError((result as any).error || 'Failed to create session');
@@ -212,6 +226,14 @@ export const SessionPanel: React.FC = () => {
     try {
       const result = await window.flowrider.tmux.kill(selectedSession.tmuxSession);
       if ((result as any).success) {
+        // Unregister from cross-session awareness
+        try {
+          await window.flowrider.crossSession.unregister(selectedSession.id);
+          console.log('[SessionPanel] Unregistered session from CrossSessionAwareness:', selectedSession.name);
+        } catch (err) {
+          console.error('[SessionPanel] Failed to unregister from CrossSessionAwareness:', err);
+        }
+
         updateSession(selectedFace!, {
           tmuxSession: undefined,
           status: 'empty',
