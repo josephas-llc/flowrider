@@ -7,7 +7,7 @@ import { SessionSearch } from './components/SessionSearch';
 import { TerminalView } from './components/TerminalView';
 import { Dashboard } from './components/Dashboard';
 import { DemoMode } from './components/DemoMode';
-import { AIStatusType } from './components/AIStatus';
+import { AIStatusType as AIStatus } from './components/AIStatus';
 import { CrossSessionPanel } from './components/CrossSessionPanel';
 import { DeployPanel } from './components/DeployPanel';
 import { ProjectsPanel } from './components/ProjectsPanel';

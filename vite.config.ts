@@ -29,4 +29,8 @@ export default defineConfig({
   server: {
     port: 5174,
   },
+  optimizeDeps: {
+    include: ['three', '@react-three/fiber', '@react-three/drei', 'react', 'react-dom', 'zustand'],
+    force: true, // Force re-optimization
+  },
 });

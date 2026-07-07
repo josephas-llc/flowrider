@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Energy Tracking & ESG Reporting** - Track energy consumption per AI provider
+  - `wattsPerMToken` estimates for all supported AI providers
+  - Baseline comparison vs Claude Opus (most energy-intensive)
+  - Dashboard displays energy used (mWh/Wh/kWh) and energy saved
+  - Percentage reduction calculation for sustainability reporting
+  - Green-highlighted metrics for ESG appeal
 - iCloud backup script for LEO AI data (`scripts/backup-to-icloud.sh`)
 - Daily automated backup cron job (2am)
 - Safe debloat commands in AGENTS.md (no data loss by default)

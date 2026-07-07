@@ -12,6 +12,7 @@ export interface AIProviderConfig {
   name: string;
   description: string;
   costPerMToken: number; // Cost per million tokens (0 for local)
+  wattsPerMToken: number; // Estimated watt-hours per million tokens (energy usage)
   isLocal: boolean;
   apiUrl?: string;
   models: string[];
@@ -23,6 +24,7 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     name: 'Claude (Anthropic)',
     description: 'Advanced reasoning, coding, and analysis',
     costPerMToken: 15, // Opus pricing approx
+    wattsPerMToken: 0.5, // Large model, datacenter GPU inference
     isLocal: false,
     apiUrl: 'https://api.anthropic.com',
     models: ['claude-opus-4', 'claude-sonnet-4', 'claude-haiku'],
@@ -32,6 +34,7 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     name: 'OpenAI',
     description: 'GPT-4o and GPT models',
     costPerMToken: 10,
+    wattsPerMToken: 0.4, // Large model, datacenter GPU inference
     isLocal: false,
     apiUrl: 'https://api.openai.com',
     models: ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
@@ -41,6 +44,7 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     name: 'Gemini (Google)',
     description: 'Multimodal AI with long context',
     costPerMToken: 7,
+    wattsPerMToken: 0.3, // Google's efficient TPU infrastructure
     isLocal: false,
     apiUrl: 'https://generativelanguage.googleapis.com',
     models: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
@@ -50,6 +54,7 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     name: 'Grok (xAI)',
     description: 'Real-time knowledge, witty responses',
     costPerMToken: 5,
+    wattsPerMToken: 0.35, // xAI infrastructure
     isLocal: false,
     apiUrl: 'https://api.x.ai',
     models: ['grok-2', 'grok-2-mini'],
@@ -59,6 +64,7 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     name: 'Ollama (Local)',
     description: 'Run Llama, Mistral, etc. locally - FREE',
     costPerMToken: 0,
+    wattsPerMToken: 0.01, // Local laptop/desktop power only
     isLocal: true,
     apiUrl: 'http://localhost:11434',
     models: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'deepseek-coder'],
@@ -68,6 +74,7 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     name: 'Custom Local LLM',
     description: 'Any local model via API - FREE',
     costPerMToken: 0,
+    wattsPerMToken: 0.01, // Local power only
     isLocal: true,
     models: ['custom'],
   },
@@ -141,6 +148,15 @@ export interface CostMetrics {
   dailyCosts: Array<{ date: string; cost: number; tokens: number }>;
 }
 
+export interface EnergyMetrics {
+  totalEnergy: number; // Actual Wh consumed based on AI provider used
+  baselineEnergy: number; // Wh if we always used most expensive model (Claude Opus)
+  energySaved: number; // baselineEnergy - totalEnergy
+  energyByProject: Record<string, number>;
+  energyBySession: Record<string, number>;
+  dailyEnergy: Array<{ date: string; energy: number; tokens: number }>;
+}
+
 export interface LeoFlowrider {
   id: string;
   name: string;
@@ -194,6 +210,9 @@ interface FlowriderState {
 
   // Cost tracking
   costMetrics: CostMetrics;
+
+  // Energy tracking (ESG/sustainability metrics)
+  energyMetrics: EnergyMetrics;
 
   // LEO Mode
   leo: LeoState;
@@ -316,6 +335,18 @@ const initializeCostMetrics = (): CostMetrics => ({
   dailyCosts: [],
 });
 
+const initializeEnergyMetrics = (): EnergyMetrics => ({
+  totalEnergy: 0,
+  baselineEnergy: 0,
+  energySaved: 0,
+  energyByProject: {},
+  energyBySession: {},
+  dailyEnergy: [],
+});
+
+// Baseline watts per M tokens (using largest model - Claude Opus)
+const BASELINE_WATTS_PER_MTOKEN = 0.5;
+
 const initializeLeoState = (): LeoState => ({
   enabled: false,
   flowriders: [],
@@ -351,6 +382,7 @@ export const useStore = create<FlowriderState>()(
       projects: [],
       selectedProject: null,
       costMetrics: initializeCostMetrics(),
+      energyMetrics: initializeEnergyMetrics(),
       leo: initializeLeoState(),
       dashboard: initializeDashboard(),
       dashboardView: 'overview',
@@ -377,6 +409,7 @@ export const useStore = create<FlowriderState>()(
         set((state) => ({
           sessions: initializeSessions(),
           costMetrics: initializeCostMetrics(),
+          energyMetrics: initializeEnergyMetrics(),
           leo: initializeLeoState(),
           dashboard: initializeDashboard(),
           selectedFace: null,
@@ -413,6 +446,12 @@ export const useStore = create<FlowriderState>()(
           const session = state.sessions[faceIndex];
           const projectId = session?.projectId;
 
+          // Calculate energy usage based on session's AI provider
+          const totalTokens = inputTokens + outputTokens;
+          const provider = AI_PROVIDERS.find(p => p.id === session?.aiProvider) || AI_PROVIDERS[0];
+          const actualEnergy = (totalTokens / 1_000_000) * provider.wattsPerMToken; // Wh
+          const baselineEnergy = (totalTokens / 1_000_000) * BASELINE_WATTS_PER_MTOKEN; // Wh if using largest model
+
           // Update session
           const newSessions = state.sessions.map((s) =>
             s.faceIndex === faceIndex
@@ -441,6 +480,19 @@ export const useStore = create<FlowriderState>()(
               (newCostMetrics.costByProject[projectId] || 0) + cost;
           }
 
+          // Update energy metrics
+          const newEnergyMetrics = { ...state.energyMetrics };
+          newEnergyMetrics.totalEnergy += actualEnergy;
+          newEnergyMetrics.baselineEnergy += baselineEnergy;
+          newEnergyMetrics.energySaved = newEnergyMetrics.baselineEnergy - newEnergyMetrics.totalEnergy;
+          newEnergyMetrics.energyBySession[`face-${faceIndex}`] =
+            (newEnergyMetrics.energyBySession[`face-${faceIndex}`] || 0) + actualEnergy;
+
+          if (projectId) {
+            newEnergyMetrics.energyByProject[projectId] =
+              (newEnergyMetrics.energyByProject[projectId] || 0) + actualEnergy;
+          }
+
           // Update project totals
           const newProjects = projectId
             ? state.projects.map((p) =>
@@ -465,6 +517,7 @@ export const useStore = create<FlowriderState>()(
           return {
             sessions: newSessions,
             costMetrics: newCostMetrics,
+            energyMetrics: newEnergyMetrics,
             projects: newProjects,
             dashboard: newDashboard,
           };
@@ -741,6 +794,7 @@ export const useStore = create<FlowriderState>()(
         sessions: state.sessions,
         projects: state.projects,
         costMetrics: state.costMetrics,
+        energyMetrics: state.energyMetrics,
         leo: state.leo,
       }),
     }

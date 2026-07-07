@@ -29,6 +29,7 @@ export const Dashboard: React.FC = () => {
     dashboardView,
     setDashboardView,
     costMetrics,
+    energyMetrics,
     projects,
     sessions,
     leo,
@@ -59,6 +60,7 @@ export const Dashboard: React.FC = () => {
           <OverviewView
             dashboard={dashboard}
             costMetrics={costMetrics}
+            energyMetrics={energyMetrics}
             activeSessions={activeSessions.length}
             projectCount={projects.length}
           />
@@ -115,16 +117,30 @@ export const Dashboard: React.FC = () => {
 interface OverviewProps {
   dashboard: ReturnType<typeof useStore>['dashboard'];
   costMetrics: ReturnType<typeof useStore>['costMetrics'];
+  energyMetrics: ReturnType<typeof useStore>['energyMetrics'];
   activeSessions: number;
   projectCount: number;
 }
 
+const formatEnergy = (wh: number): string => {
+  if (wh < 0.001) return '<0.001 Wh';
+  if (wh < 1) return `${(wh * 1000).toFixed(1)} mWh`;
+  if (wh < 1000) return `${wh.toFixed(2)} Wh`;
+  return `${(wh / 1000).toFixed(2)} kWh`;
+};
+
 const OverviewView: React.FC<OverviewProps> = ({
   dashboard,
   costMetrics,
+  energyMetrics,
   activeSessions,
   projectCount,
-}) => (
+}) => {
+  const energySavedPercent = energyMetrics.baselineEnergy > 0
+    ? ((energyMetrics.energySaved / energyMetrics.baselineEnergy) * 100).toFixed(0)
+    : '0';
+
+  return (
   <div className="overview-grid">
     <div className="metric-card primary">
       <div className="metric-icon">🎯</div>
@@ -174,8 +190,27 @@ const OverviewView: React.FC<OverviewProps> = ({
       <div className="metric-value">{dashboard.uptimePercent}%</div>
       <div className="metric-label">Uptime</div>
     </div>
+
+    {/* Energy Metrics Section - ESG Appeal */}
+    <div className="metric-card energy">
+      <div className="metric-icon">🔋</div>
+      <div className="metric-value">{formatEnergy(energyMetrics.totalEnergy)}</div>
+      <div className="metric-label">Energy Used</div>
+    </div>
+
+    <div className="metric-card energy-saved">
+      <div className="metric-icon">🌱</div>
+      <div className="metric-value" style={{ color: '#00ff88' }}>
+        {formatEnergy(energyMetrics.energySaved)}
+      </div>
+      <div className="metric-label">Energy Saved</div>
+      <div className="metric-subtext" style={{ color: '#00ff88' }}>
+        {energySavedPercent}% reduction vs baseline
+      </div>
+    </div>
   </div>
-);
+  );
+};
 
 // ============================================
 // PROJECTS VIEW

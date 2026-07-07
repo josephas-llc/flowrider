@@ -55,6 +55,7 @@ Flowrider is an AI session orchestration platform that enables developers to man
 4. **LEO Meta-Orchestration** - Manage 20 Flowriders = 400 concurrent sessions
 5. **SQLite Persistence** - Session state, history, and context preserved
 6. **Attention System** - Priority scoring to surface sessions needing human input
+7. **Energy Tracking & ESG Reporting** - Real-time energy consumption metrics for sustainability compliance
 
 ### Technology Stack
 
@@ -152,6 +153,17 @@ None identified. No existing tool orchestrates multiple AI coding sessions.
 2. **3D Interface** - Unique UX for session management
 3. **Provider Agnostic** - Works with any AI (Claude, GPT, Ollama, local)
 4. **Network Effects** - Team features create switching costs
+5. **ESG Compliance Ready** - Energy tracking for sustainability reporting (enterprise requirement)
+
+### ESG / Sustainability Advantage
+
+Enterprise customers increasingly require sustainability metrics for procurement decisions:
+- **Energy tracking per AI provider** - Real-time watt-hours consumed
+- **Baseline comparison** - Shows energy savings vs worst-case provider
+- **Export-ready metrics** - Dashboard data for ESG reports
+- **Green AI routing** - Intelligent routing to lower-energy providers when appropriate
+
+This differentiates Flowrider for enterprise sales where ESG compliance is mandatory.
 
 ---
 
