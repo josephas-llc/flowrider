@@ -2,7 +2,10 @@
   "name": "flowrider2",
   "version": "0.1.0",
   "description": "Icosahedron-based orchestration tool for managing multiple AI terminal sessions",
-  "author": "Josephas LLC",
+  "author": {
+    "name": "Josephas LLC",
+    "email": "support@josephas.com"
+  },
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\"",
