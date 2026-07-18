@@ -138,7 +138,7 @@
     "swagger-ui-express": "^5.0.1",
     "three": "^0.185.1",
     "yamljs": "^0.3.0",
-    "zod": "^3.23.0",
+    "zod": "^4.4.3",
     "zustand": "^4.4.0"
   },
   "devDependencies": {
