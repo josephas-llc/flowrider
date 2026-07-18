@@ -99,7 +99,7 @@ export const Dashboard: React.FC = () => {
         )}
 
         {dashboardView === 'leoai' && (
-          <AIView />
+          <LeoAIView />
         )}
 
         {dashboardView === 'api' && (
@@ -479,8 +479,8 @@ const LeoView: React.FC<LeoViewProps> = ({ leo }) => {
       <div className="leo-hero">
         <div className="leo-hero-left">
           <div className="leo-title-section">
-            <h2>LEO Orchestration</h2>
-            <p>Local Execution Orchestrator - Scale to 400 concurrent AI sessions</p>
+            <h2>Flowfaster Intelligence</h2>
+            <p>Fleet Orchestration System - Scale to 400 concurrent AI sessions</p>
             {leoStatus && (
               <div className="leo-instance-info">
                 <span className="instance-name">{leoStatus.instanceName}</span>
@@ -496,7 +496,7 @@ const LeoView: React.FC<LeoViewProps> = ({ leo }) => {
               className={`btn ${leo.enabled ? 'btn-danger' : 'btn-primary'}`}
               onClick={handleToggleLeo}
             >
-              {leo.enabled ? 'Disable LEO' : 'Activate LEO'}
+              {leo.enabled ? 'Disable Fleet' : 'Activate Fleet'}
             </button>
             {leo.enabled && (
               <button

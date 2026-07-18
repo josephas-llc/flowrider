@@ -38,6 +38,10 @@ const ACTIVITY_GLOW_INTENSITY = {
   high: 1.0,
 };
 
+// Attention indicator - slow pulsating effect
+const ATTENTION_PULSE_SPEED = 1.5; // Slow, noticeable pulse
+const ATTENTION_COLOR = '#ff4444'; // Red/orange for attention needed
+
 export const Icosahedron: React.FC<IcosahedronProps> = ({
   sessions,
   selectedFace,
@@ -47,6 +51,7 @@ export const Icosahedron: React.FC<IcosahedronProps> = ({
   const meshRef = useRef<THREE.Mesh>(null);
   const edgesRef = useRef<THREE.LineSegments>(null);
   const glowRingsRef = useRef<THREE.Group>(null);
+  const attentionRingsRef = useRef<THREE.Group>(null);
   const [hoveredFace, setHoveredFace] = useState<number | null>(null);
 
   // Track mouse down position to distinguish click from drag
@@ -154,6 +159,29 @@ export const Icosahedron: React.FC<IcosahedronProps> = ({
           if (material) {
             const baseOpacity = 0.2 + glowIntensity * 0.3;
             material.opacity = baseOpacity + Math.sin(time * pulseSpeed * 0.7 + index * 0.3) * 0.2;
+          }
+        }
+      });
+    }
+
+    // Sync attention rings rotation
+    if (attentionRingsRef.current && meshRef.current) {
+      attentionRingsRef.current.rotation.copy(meshRef.current.rotation);
+    }
+
+    // Animate attention rings - slow, dramatic pulsing for sessions needing attention
+    if (attentionRingsRef.current) {
+      attentionRingsRef.current.children.forEach((child, index) => {
+        const session = sessions[index];
+        if (session?.needsAttention) {
+          // Slow, dramatic pulse
+          const pulse = 1 + Math.sin(time * ATTENTION_PULSE_SPEED) * 0.3;
+          child.scale.setScalar(pulse);
+
+          // Pulsing opacity - dramatic fade in/out
+          const material = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
+          if (material) {
+            material.opacity = 0.4 + Math.sin(time * ATTENTION_PULSE_SPEED * 0.8) * 0.3;
           }
         }
       });
@@ -279,6 +307,52 @@ export const Icosahedron: React.FC<IcosahedronProps> = ({
         })}
       </group>
 
+      {/* Attention indicator rings - dramatic red pulsing for sessions needing attention */}
+      <group ref={attentionRingsRef}>
+        {faceData.map((face, index) => {
+          const session = sessions[index];
+          const needsAttention = session?.needsAttention;
+
+          if (!needsAttention) return null;
+
+          return (
+            <group key={`attention-${index}`} position={face.centroid}>
+              {/* Outer attention ring */}
+              <mesh>
+                <ringGeometry args={[0.35, 0.45, 32]} />
+                <meshBasicMaterial
+                  color={ATTENTION_COLOR}
+                  transparent
+                  opacity={0.5}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+
+              {/* Inner attention ring */}
+              <mesh>
+                <ringGeometry args={[0.2, 0.3, 32]} />
+                <meshBasicMaterial
+                  color="#ff6644"
+                  transparent
+                  opacity={0.4}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+
+              {/* Center attention dot */}
+              <mesh>
+                <circleGeometry args={[0.1, 16]} />
+                <meshBasicMaterial
+                  color="#ffaa00"
+                  transparent
+                  opacity={0.7}
+                />
+              </mesh>
+            </group>
+          );
+        })}
+      </group>
+
       {/* Glow indicators for active/selected faces */}
       {faceData.map((face) => {
         const session = sessions[face.index];
@@ -391,8 +465,39 @@ const SessionPreview: React.FC<SessionPreviewProps> = ({ session, faceIndex }) =
             {session.workingDir}
           </div>
 
+          {/* Attention indicator - needs human input */}
+          {session.needsAttention && (
+            <div style={{
+              marginTop: 8,
+              padding: '6px 8px',
+              background: 'rgba(255, 68, 68, 0.15)',
+              border: '1px solid #ff4444',
+              borderRadius: 4,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+              <span style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: '#ff4444',
+                animation: 'pulse 1s infinite',
+                boxShadow: '0 0 8px #ff4444',
+              }} />
+              <span style={{
+                fontSize: 10,
+                color: '#ff6644',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+              }}>
+                {session.attentionReason || 'Needs Attention'}
+              </span>
+            </div>
+          )}
+
           {/* Activity indicator */}
-          {session.activityLevel && session.activityLevel !== 'idle' && (
+          {session.activityLevel && session.activityLevel !== 'idle' && !session.needsAttention && (
             <div style={{
               marginTop: 8,
               display: 'flex',

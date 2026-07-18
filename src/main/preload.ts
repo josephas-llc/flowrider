@@ -4,16 +4,25 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('flowrider', {
   // Tmux session management
   tmux: {
-    create: (name: string, faceIndex: number, workingDir: string) =>
-      ipcRenderer.invoke('tmux:create', name, faceIndex, workingDir),
+    create: (name: string, faceIndex: number, workingDir: string, options?: { setupCommand?: string; skipClaude?: boolean; cols?: number; rows?: number }) =>
+      ipcRenderer.invoke('tmux:create', name, faceIndex, workingDir, options),
     list: () => ipcRenderer.invoke('tmux:list'),
     kill: (sessionName: string) => ipcRenderer.invoke('tmux:kill', sessionName),
     sendInput: (sessionName: string, data: string) =>
       ipcRenderer.invoke('tmux:input', sessionName, data),
+    // Alias for sendInput (used by ProjectsPanel)
+    sendKeys: (sessionName: string, data: string) =>
+      ipcRenderer.invoke('tmux:input', sessionName, data),
+    // Send a command with Enter key (non-literal mode for shell commands)
+    sendCommand: (sessionName: string, command: string) =>
+      ipcRenderer.invoke('tmux:command', sessionName, command),
     getOutput: (sessionName: string, lines?: number) =>
       ipcRenderer.invoke('tmux:output', sessionName, lines),
     rename: (oldName: string, newName: string) =>
       ipcRenderer.invoke('tmux:rename', oldName, newName),
+    // Resize tmux session to match terminal dimensions
+    resize: (sessionName: string, cols: number, rows: number) =>
+      ipcRenderer.invoke('tmux:resize', sessionName, cols, rows),
   },
 
   // Git/GitHub integration
@@ -347,12 +356,15 @@ declare global {
   interface Window {
     flowrider: {
       tmux: {
-        create: (name: string, faceIndex: number, workingDir: string) => Promise<unknown>;
+        create: (name: string, faceIndex: number, workingDir: string, options?: { setupCommand?: string; skipClaude?: boolean; cols?: number; rows?: number }) => Promise<unknown>;
         list: () => Promise<unknown>;
         kill: (sessionName: string) => Promise<unknown>;
         sendInput: (sessionName: string, data: string) => Promise<unknown>;
+        sendKeys: (sessionName: string, data: string) => Promise<unknown>;
+        sendCommand: (sessionName: string, command: string) => Promise<unknown>;
         getOutput: (sessionName: string, lines?: number) => Promise<unknown>;
         rename: (oldName: string, newName: string) => Promise<unknown>;
+        resize: (sessionName: string, cols: number, rows: number) => Promise<unknown>;
       };
       git: {
         detectRepo: (workingDir: string) => Promise<unknown>;

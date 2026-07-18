@@ -22,7 +22,7 @@ interface LocalProject {
 type TabType = 'github' | 'local' | 'recent';
 
 export const ProjectsPanel: React.FC = () => {
-  const { sessions, selectedFace, createSession, updateSession } = useStore();
+  const { sessions, selectedFace, updateSession } = useStore();
 
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [repos, setRepos] = useState<Repository[]>([]);
@@ -118,33 +118,83 @@ export const ProjectsPanel: React.FC = () => {
     });
   }, []);
 
+  // Helper to create tmux session name matching TmuxManager.makeSessionName()
+  const makeTmuxSessionName = (name: string, faceIndex: number): string => {
+    const cleanName = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+    return `fr2-${faceIndex}-${cleanName}`;
+  };
+
   // Load a GitHub repo into the current session
   const loadGitHubRepo = async (repo: Repository) => {
+    if (selectedFace === null) {
+      setError('Please select a face first');
+      return;
+    }
+
     setLoadingRepo(repo.fullName);
     setError(null);
 
     try {
       const currentSession = sessions[selectedFace];
 
-      // Use local path if available, otherwise use tmp dir
-      const projectDir = repo.localPath || `/tmp/flowrider-projects/${repo.name}`;
-      const isLocal = !!repo.localPath;
+      // Verify localPath actually exists before using it
+      let isLocal = false;
+      let projectDir = `/tmp/flowrider-projects/${repo.name}`;
+
+      if (repo.localPath && window.flowrider?.fs) {
+        // Re-verify the path exists
+        const verifyResult = await window.flowrider.fs.findLocalRepo(repo.name);
+        if (verifyResult?.found && verifyResult.path) {
+          projectDir = verifyResult.path;
+          isLocal = true;
+        }
+      }
 
       if (window.flowrider?.tmux) {
-        // First, create or get the session
+        let tmuxSessionName: string;
+
+        // First, create the tmux session if needed
         if (currentSession.status === 'empty') {
-          await createSession(
-            selectedFace,
-            repo.name,
-            projectDir,
-            'claude'
-          );
+          // Build setup command for non-local repos (runs before claude starts)
+          let setupCommand: string | undefined;
+          if (!isLocal) {
+            setupCommand = `mkdir -p /tmp/flowrider-projects && cd /tmp/flowrider-projects && ([ -d "${repo.name}" ] && cd "${repo.name}" && git pull || git clone ${repo.url} "${repo.name}" && cd "${repo.name}")`;
+          }
+
+          // For non-local repos, use /tmp as starting dir (always exists)
+          // For local repos, use the verified projectDir
+          const initialDir = isLocal ? projectDir : '/tmp';
+
+          // Create tmux session via IPC with setupCommand if needed
+          const result = await window.flowrider.tmux.create(repo.name, selectedFace, initialDir, { setupCommand }) as { success: boolean; data?: { name: string }; error?: string };
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to create tmux session');
+          }
+          tmuxSessionName = result.data?.name || makeTmuxSessionName(repo.name, selectedFace);
+        } else {
+          // Use existing tmux session name or construct the correct one
+          tmuxSessionName = currentSession.tmuxSession || makeTmuxSessionName(currentSession.name, selectedFace);
+
+          // For existing sessions, we need to send the command
+          // Build the command
+          let cmd: string;
+          if (isLocal) {
+            cmd = `cd "${projectDir}"`;
+          } else {
+            cmd = `mkdir -p /tmp/flowrider-projects && cd /tmp/flowrider-projects && ([ -d "${repo.name}" ] && cd "${repo.name}" && git pull || git clone ${repo.url} "${repo.name}" && cd "${repo.name}")`;
+          }
+          // Use sendCommand for existing sessions (this sends to claude's input which may not work well)
+          // For now, just log a warning - the user should use an empty face
+          console.warn('[ProjectsPanel] Sending command to existing session - may go to Claude input');
+          await window.flowrider.tmux.sendCommand(tmuxSessionName, cmd);
         }
 
-        // Update session with GitHub repo info
-        updateSession(currentSession.id, {
+        // Update session in store with GitHub repo info
+        updateSession(selectedFace, {
           name: repo.name,
           workingDir: projectDir,
+          tmuxSession: tmuxSessionName,
+          status: 'active',
           gitHubRepo: {
             owner: repo.fullName.split('/')[0],
             repo: repo.name,
@@ -153,15 +203,6 @@ export const ProjectsPanel: React.FC = () => {
           },
         });
 
-        // If local, just cd to it. If not local, clone it.
-        let cmd: string;
-        if (isLocal) {
-          cmd = `cd "${projectDir}"`;
-        } else {
-          cmd = `mkdir -p /tmp/flowrider-projects && cd /tmp/flowrider-projects && ([ -d "${repo.name}" ] && cd "${repo.name}" && git pull || git clone ${repo.url} "${repo.name}" && cd "${repo.name}")`;
-        }
-
-        await window.flowrider.tmux.sendKeys(currentSession.tmuxSession || `flowrider-${selectedFace}`, cmd);
         addToRecent({ path: projectDir, name: repo.name });
       }
     } catch (err) {
@@ -184,29 +225,40 @@ export const ProjectsPanel: React.FC = () => {
 
   // Load a local project
   const loadLocalProject = async (project: LocalProject) => {
+    if (selectedFace === null) {
+      setError('Please select a face first');
+      return;
+    }
+
     setLoadingRepo(project.path);
     setError(null);
 
     try {
       const currentSession = sessions[selectedFace];
+      let tmuxSessionName: string;
 
       if (currentSession.status === 'empty') {
-        await createSession(
-          selectedFace,
-          project.name,
-          project.path,
-          'claude'
-        );
+        // Create tmux session via IPC
+        const result = await window.flowrider.tmux.create(project.name, selectedFace, project.path) as { success: boolean; data?: { name: string }; error?: string };
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create tmux session');
+        }
+        tmuxSessionName = result.data?.name || makeTmuxSessionName(project.name, selectedFace);
       } else {
-        updateSession(currentSession.id, {
-          name: project.name,
-          workingDir: project.path,
-        });
+        tmuxSessionName = currentSession.tmuxSession || makeTmuxSessionName(currentSession.name, selectedFace);
       }
 
+      // Update store
+      updateSession(selectedFace, {
+        name: project.name,
+        workingDir: project.path,
+        tmuxSession: tmuxSessionName,
+        status: 'active',
+      });
+
       // Send cd command to tmux
-      if (window.flowrider?.tmux && currentSession.tmuxSession) {
-        await window.flowrider.tmux.sendKeys(currentSession.tmuxSession, `cd "${project.path}"`);
+      if (window.flowrider?.tmux) {
+        await window.flowrider.tmux.sendKeys(tmuxSessionName, `cd "${project.path}"\n`);
       }
 
       addToRecent(project);

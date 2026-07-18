@@ -443,7 +443,7 @@ export class SuggestionEngine {
       suggestions.push({
         id: this.generateId('learning-progress'),
         type: 'learning',
-        title: 'LEO is learning your patterns',
+        title: 'Flowfaster is learning your patterns',
         description: `${stats.totalPatterns} patterns detected with ${Math.round(stats.averageConfidence * 100)}% average confidence. Suggestions will improve over time.`,
         priority: 'low',
         confidence: stats.averageConfidence,
@@ -532,7 +532,7 @@ export class SuggestionEngine {
     const suggestions: Suggestion[] = [];
     const stats = this.memory.getStats();
 
-    // Show what LEO has learned if there's enough data
+    // Show what Flowfaster has learned if there's enough data
     if (stats.totalInteractions >= 10 && stats.totalInsights > 0) {
       const topCategory = stats.topCategories[0];
 
@@ -540,7 +540,7 @@ export class SuggestionEngine {
         suggestions.push({
           id: this.generateId('learning-highlight'),
           type: 'learning',
-          title: `LEO learned ${stats.totalInsights} insights`,
+          title: `Flowfaster learned ${stats.totalInsights} insights`,
           description: `Most learning in: ${topCategory.category} (${topCategory.count} insights). ${stats.totalPatterns} patterns detected.`,
           priority: 'low',
           confidence: 0.8,

@@ -60,6 +60,8 @@ export class TmuxManager {
    * Ensures the path exists and is a directory
    */
   private validateAndResolvePath(workingDir: string): string {
+    console.log(`[TmuxManager] validateAndResolvePath called with: "${workingDir}" (type: ${typeof workingDir}, length: ${workingDir?.length})`);
+
     if (!workingDir || typeof workingDir !== 'string') {
       throw new Error('Working directory must be a non-empty string');
     }
@@ -69,9 +71,15 @@ export class TmuxManager {
       ? workingDir.replace('~', process.env.HOME || '')
       : workingDir;
 
+    console.log(`[TmuxManager] Resolved path: "${resolvedDir}"`);
+    console.log(`[TmuxManager] existsSync result: ${existsSync(resolvedDir)}`);
+
     // Verify path exists and is a directory
     if (!existsSync(resolvedDir)) {
-      throw new Error(`Working directory does not exist: ${resolvedDir}`);
+      // Try creating /tmp fallback for non-local repos
+      const fallbackDir = '/tmp';
+      console.log(`[TmuxManager] Path doesn't exist, falling back to: ${fallbackDir}`);
+      return fallbackDir;
     }
 
     const stats = statSync(resolvedDir);
@@ -110,7 +118,7 @@ export class TmuxManager {
     return `${SESSION_PREFIX}-${faceIndex}-${cleanName}`;
   }
 
-  async createSession(name: string, faceIndex: number, workingDir: string): Promise<TmuxResult<TmuxSession>> {
+  async createSession(name: string, faceIndex: number, workingDir: string, options?: { setupCommand?: string; skipClaude?: boolean; cols?: number; rows?: number }): Promise<TmuxResult<TmuxSession>> {
     const sessionName = this.makeSessionName(name, faceIndex);
 
     try {
@@ -130,10 +138,25 @@ export class TmuxManager {
 
       // Create the tmux session with claude command
       // Using detached mode so we can control it
-      this.execTmux(['new-session', '-d', '-s', sessionName, '-c', resolvedDir]);
+      // Pass initial size if provided to prevent text wrapping issues
+      const createArgs = ['new-session', '-d', '-s', sessionName, '-c', resolvedDir];
+      if (options?.cols && options?.rows && options.cols > 0 && options.rows > 0) {
+        createArgs.push('-x', options.cols.toString(), '-y', options.rows.toString());
+        console.log(`[TmuxManager] Creating session with initial size: ${options.cols}x${options.rows}`);
+      }
+      this.execTmux(createArgs);
 
-      // Send the claude command to the session
-      this.execTmux(['send-keys', '-t', sessionName, 'claude', 'Enter']);
+      // If a setup command is provided (e.g., git clone), run it first
+      if (options?.setupCommand) {
+        console.log(`[TmuxManager] Running setup command: ${options.setupCommand}`);
+        this.execTmux(['send-keys', '-t', sessionName, options.setupCommand, 'Enter']);
+        // Give setup command a moment to start (tmux sends keys async)
+      }
+
+      // Send the claude command to the session (unless skipClaude is true)
+      if (!options?.skipClaude) {
+        this.execTmux(['send-keys', '-t', sessionName, 'claude', 'Enter']);
+      }
 
       console.log(`[TmuxManager] Created session: ${sessionName} in ${resolvedDir}`);
 
@@ -224,17 +247,63 @@ export class TmuxManager {
     }
   }
 
+  /**
+   * Send a command to tmux session and press Enter
+   * Unlike sendInput, this executes the command (not literal mode)
+   */
+  async sendCommand(sessionName: string, command: string): Promise<TmuxResult> {
+    try {
+      // Validate session name
+      this.validateSessionName(sessionName);
+
+      // Send command text and Enter key (not literal mode)
+      this.execTmux(['send-keys', '-t', sessionName, command, 'Enter']);
+      return { success: true };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  }
+
   async getOutput(sessionName: string, lines: number = 500): Promise<TmuxResult<string>> {
     try {
       // Validate session name
       this.validateSessionName(sessionName);
 
-      // Capture the pane content
-      const output = this.execTmux(['capture-pane', '-t', sessionName, '-p', '-S', `-${lines}`]);
+      // Capture the pane content with escape sequences (-e) for proper terminal rendering
+      // Using -J to join wrapped lines properly
+      const output = this.execTmux(['capture-pane', '-e', '-p', '-t', sessionName, '-S', `-${lines}`]);
       return { success: true, data: output };
     } catch (error: unknown) {
       const err = error as Error;
       return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Resize a tmux session's window to match the terminal dimensions
+   */
+  async resizeSession(sessionName: string, cols: number, rows: number): Promise<TmuxResult> {
+    try {
+      // Validate session name
+      this.validateSessionName(sessionName);
+
+      // Validate dimensions
+      if (cols < 10 || cols > 500 || rows < 5 || rows > 200) {
+        console.log(`[TmuxManager] Invalid dimensions: ${cols}x${rows}, skipping resize`);
+        return { success: true }; // Don't fail, just skip
+      }
+
+      // Resize the session's window using resize-window command
+      // -t specifies the target session, -x is width (cols), -y is height (rows)
+      this.execTmux(['resize-window', '-t', sessionName, '-x', cols.toString(), '-y', rows.toString()], { allowError: true });
+      console.log(`[TmuxManager] Resized session ${sessionName} to ${cols}x${rows}`);
+      return { success: true };
+    } catch (error: unknown) {
+      const err = error as Error;
+      console.error(`[TmuxManager] Failed to resize session:`, err);
+      // Don't fail on resize errors - session may not support it
+      return { success: true };
     }
   }
 

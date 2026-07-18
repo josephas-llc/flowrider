@@ -17,7 +17,22 @@ npm run test:e2e     # Run E2E tests (Playwright)
 npm run test:all     # Run all tests
 npm run build        # Build for production
 npm run dist:mac     # Build macOS DMG
+
+# Version management
+npm run release        # Bump patch (0.1.5 -> 0.1.6), commit, tag, push
+npm run release:minor  # Bump minor (0.1.5 -> 0.2.0), commit, tag, push
+npm run release:major  # Bump major (0.1.5 -> 1.0.0), commit, tag, push
 ```
+
+## Version Tracking
+
+- **Current version**: Check `package.json` "version" field
+- **CHANGELOG.md**: Chronological list of all changes
+- **Git tags**: Each release is tagged (v0.1.0, v0.1.1, etc.)
+- **Semantic versioning**: MAJOR.MINOR.PATCH
+  - PATCH: Bug fixes, minor changes
+  - MINOR: New features (backward compatible)
+  - MAJOR: Breaking changes
 
 ## Testing Requirements (ALWAYS DO THIS)
 

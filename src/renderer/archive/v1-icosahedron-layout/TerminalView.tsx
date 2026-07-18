@@ -2,13 +2,11 @@ import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
-import { Unicode11Addon } from '@xterm/addon-unicode11';
-import { SearchAddon } from '@xterm/addon-search';
 import '@xterm/xterm/css/xterm.css';
 import { useStore } from '../store';
 import { TokenAccumulator, parseTokensFromOutput, parseClaudeCodeStatus } from '../utils/tokenParser';
 
-const POLL_INTERVAL = 100; // Fast polling for responsive feel
+const POLL_INTERVAL = 150;
 
 // Patterns that indicate Claude Code is waiting for user input
 const ATTENTION_PATTERNS = [
@@ -62,15 +60,11 @@ export const TerminalView: React.FC = () => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const searchAddonRef = useRef<SearchAddon | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastOutputRef = useRef<string>('');
   const tokenAccumulatorRef = useRef<TokenAccumulator>(new TokenAccumulator());
   const connectedSessionRef = useRef<string | null>(null);
   const lastTokensRef = useRef<{ input: number; output: number }>({ input: 0, output: 0 });
-
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
   const [connectedSession, setConnectedSession] = useState<string | null>(null);
   const [liveTokens, setLiveTokens] = useState<{ input: number; output: number; cost: number }>({
@@ -79,7 +73,7 @@ export const TerminalView: React.FC = () => {
     cost: 0,
   });
 
-  const { sessions, selectedFace, attachedSession, addTokenUsage, setSessionNeedsAttention, setTerminalDimensions } = useStore();
+  const { sessions, selectedFace, attachedSession, addTokenUsage, setSessionNeedsAttention } = useStore();
   const selectedSession = selectedFace !== null ? sessions[selectedFace] : null;
 
   // Initialize terminal
@@ -92,7 +86,6 @@ export const TerminalView: React.FC = () => {
       fontFamily: '"SF Mono", "Fira Code", "JetBrains Mono", monospace',
       fontSize: 14,
       lineHeight: 1.4,
-      allowProposedApi: true,  // Required for Unicode11Addon
       theme: {
         background: '#0a0a0f',
         foreground: '#e0e0e0',
@@ -125,22 +118,8 @@ export const TerminalView: React.FC = () => {
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(new WebLinksAddon());
 
-    // Unicode 11 support for emoji rendering
-    const unicodeAddon = new Unicode11Addon();
-    terminal.loadAddon(unicodeAddon);
-    terminal.unicode.activeVersion = '11';
-
-    // Search functionality (Cmd+F / Ctrl+F)
-    const searchAddon = new SearchAddon();
-    searchAddonRef.current = searchAddon;
-    terminal.loadAddon(searchAddon);
-
     terminal.open(terminalRef.current);
     fitAddon.fit();
-
-    // Update store with initial terminal dimensions
-    setTerminalDimensions(terminal.cols, terminal.rows);
-    console.log(`[Terminal] Initial dimensions: ${terminal.cols}x${terminal.rows}`);
 
     // Handle input - send to tmux (use ref to avoid stale closure)
     terminal.onData((data) => {
@@ -149,12 +128,18 @@ export const TerminalView: React.FC = () => {
       }
     });
 
-    // Welcome message - clean and minimal
+    // Welcome message with clearer instructions
+    terminal.writeln('\x1b[36m╔══════════════════════════════════════════════════════╗\x1b[0m');
+    terminal.writeln('\x1b[36m║\x1b[0m         \x1b[1;35mFLOWRIDER 2.0 TERMINAL\x1b[0m                      \x1b[36m║\x1b[0m');
+    terminal.writeln('\x1b[36m╚══════════════════════════════════════════════════════╝\x1b[0m');
     terminal.writeln('');
-    terminal.writeln('  \x1b[36mflowrider\x1b[0m');
+    terminal.writeln('\x1b[1;33m→ TO START:\x1b[0m');
+    terminal.writeln('  1. Look at the \x1b[36mSession panel\x1b[0m on the right →');
+    terminal.writeln('  2. Enter a \x1b[36mname\x1b[0m (or use default)');
+    terminal.writeln('  3. Browse to select a \x1b[36mworking directory\x1b[0m');
+    terminal.writeln('  4. Click the \x1b[32m\x1b[1mCreate Session\x1b[0m button');
     terminal.writeln('');
-    terminal.writeln('  Click \x1b[36m+ New Session\x1b[0m in the top bar to get started.');
-    terminal.writeln('');
+    terminal.writeln('  Your terminal session will appear here automatically!');
 
     return () => terminal.dispose();
   }, []);
@@ -181,21 +166,14 @@ export const TerminalView: React.FC = () => {
       clearInterval(pollIntervalRef.current);
     }
 
-    // Sync tmux size immediately on connect - CRITICAL for proper display
-    // The tmux session may have been created with different dimensions
+    // Sync tmux size immediately on connect
     if (xtermRef.current && window.flowrider) {
       const terminal = xtermRef.current;
       const cols = terminal.cols;
       const rows = terminal.rows;
       if (cols > 0 && rows > 0) {
-        // Resize tmux to match our terminal, then wait before polling
         window.flowrider.tmux.resize(sessionName, cols, rows)
-          .then(() => {
-            console.log(`[Terminal] Initial tmux sync to ${cols}x${rows}`);
-            // After resize, send a resize signal to the app inside tmux
-            // This tells Claude Code to redraw at the new size
-            return window.flowrider.tmux.sendCommand(sessionName, '');
-          })
+          .then(() => console.log(`[Terminal] Initial tmux sync to ${cols}x${rows}`))
           .catch((err: unknown) => console.error('[Terminal] Failed initial tmux sync:', err));
       }
     }
@@ -208,13 +186,23 @@ export const TerminalView: React.FC = () => {
         if ((result as any).success && (result as any).data) {
           const output = (result as any).data as string;
 
-          // Only redraw if content changed
           if (output !== lastOutputRef.current) {
-            // With escape sequences from capture-pane -e, we need to do a full redraw
-            // This ensures cursor positioning and ANSI codes are applied correctly
-            // Use reset() + write() for cleanest rendering
-            xtermRef.current.reset();
-            xtermRef.current.write(output);
+            // Use incremental updates to preserve scroll history
+            if (lastOutputRef.current === '') {
+              // First load - write full output
+              xtermRef.current.write(output);
+            } else if (output.startsWith(lastOutputRef.current)) {
+              // Output grew - append only new content
+              const newContent = output.slice(lastOutputRef.current.length);
+              if (newContent) {
+                xtermRef.current.write(newContent);
+              }
+            } else {
+              // Output changed significantly (scrollback shifted or new context)
+              // Clear and rewrite, but this should be rare
+              xtermRef.current.clear();
+              xtermRef.current.write(output);
+            }
             lastOutputRef.current = output;
 
             // Parse tokens from output
@@ -281,11 +269,17 @@ export const TerminalView: React.FC = () => {
       stopPolling();
       if (xtermRef.current) {
         xtermRef.current.clear();
+        xtermRef.current.writeln('\x1b[36m╔══════════════════════════════════════════════════════╗\x1b[0m');
+        xtermRef.current.writeln('\x1b[36m║\x1b[0m         \x1b[1;35mFLOWRIDER 2.0 TERMINAL\x1b[0m                      \x1b[36m║\x1b[0m');
+        xtermRef.current.writeln('\x1b[36m╚══════════════════════════════════════════════════════╝\x1b[0m');
         xtermRef.current.writeln('');
-        xtermRef.current.writeln('  \x1b[36mflowrider\x1b[0m');
+        xtermRef.current.writeln('\x1b[1;33m→ TO START:\x1b[0m');
+        xtermRef.current.writeln('  1. Look at the \x1b[36mSession panel\x1b[0m on the right →');
+        xtermRef.current.writeln('  2. Enter a \x1b[36mname\x1b[0m (or use default)');
+        xtermRef.current.writeln('  3. Browse to select a \x1b[36mworking directory\x1b[0m');
+        xtermRef.current.writeln('  4. Click the \x1b[32m\x1b[1mCreate Session\x1b[0m button');
         xtermRef.current.writeln('');
-        xtermRef.current.writeln('  Click \x1b[36m+ New Session\x1b[0m in the top bar to get started.');
-        xtermRef.current.writeln('');
+        xtermRef.current.writeln('  Your terminal session will appear here automatically!');
       }
     }
 
@@ -313,13 +307,8 @@ export const TerminalView: React.FC = () => {
   // Handle resize
   useEffect(() => {
     const handleResize = () => {
-      if (fitAddonRef.current && xtermRef.current) {
+      if (fitAddonRef.current) {
         fitAddonRef.current.fit();
-
-        // Update store with new dimensions
-        const terminal = xtermRef.current;
-        setTerminalDimensions(terminal.cols, terminal.rows);
-        console.log(`[Terminal] Resized to: ${terminal.cols}x${terminal.rows}`);
 
         // After fitting, sync the new size to tmux
         if (connectedSessionRef.current) {
@@ -347,97 +336,77 @@ export const TerminalView: React.FC = () => {
     return `${(n / 1000000).toFixed(2)}M`;
   };
 
-  // Handle search
-  const handleSearch = useCallback((term: string) => {
-    if (searchAddonRef.current && term) {
-      searchAddonRef.current.findNext(term);
-    }
-  }, []);
-
-  const handleSearchPrev = useCallback(() => {
-    if (searchAddonRef.current && searchTerm) {
-      searchAddonRef.current.findPrevious(searchTerm);
-    }
-  }, [searchTerm]);
-
-  const handleSearchNext = useCallback(() => {
-    if (searchAddonRef.current && searchTerm) {
-      searchAddonRef.current.findNext(searchTerm);
-    }
-  }, [searchTerm]);
-
-  const closeSearch = useCallback(() => {
-    setShowSearch(false);
-    setSearchTerm('');
-    if (xtermRef.current) {
-      xtermRef.current.focus();
-    }
-  }, []);
-
-  // Keyboard shortcut for search (Cmd+F / Ctrl+F)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
-        e.preventDefault();
-        setShowSearch(true);
-      }
-      if (e.key === 'Escape' && showSearch) {
-        closeSearch();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showSearch, closeSearch]);
-
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Focus search input when shown
-  useEffect(() => {
-    if (showSearch && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [showSearch]);
-
-  // Pure terminal - no header chrome, just like Claude Code
   return (
-    <div className="terminal-panel terminal-clean">
-      {/* Search bar - floating overlay */}
-      {showSearch && (
-        <div className="terminal-search-bar">
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              handleSearch(e.target.value);
+    <div className="terminal-panel">
+      <div className="terminal-header">
+        <div className="terminal-title">
+          <span>$</span>
+          <span>TERMINAL</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Live cost display - only show when there's actual usage */}
+          {connectedSession && (liveTokens.input > 0 || liveTokens.output > 0) && (
+            <div className="live-cost-display">
+              <div className="cost-item">
+                <span className="cost-label">IN</span>
+                <span className="cost-value cyan">{formatTokens(liveTokens.input)}</span>
+              </div>
+              <div className="cost-item">
+                <span className="cost-label">OUT</span>
+                <span className="cost-value magenta">{formatTokens(liveTokens.output)}</span>
+              </div>
+              <div className="cost-item">
+                <span className="cost-label">COST</span>
+                <span className="cost-value yellow">
+                  ${liveTokens.cost < 0.01 ? '<0.01' : liveTokens.cost.toFixed(4)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {connectedSession && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '4px 12px',
+              background: 'rgba(0, 255, 136, 0.15)',
+              borderRadius: 4,
+              border: '1px solid rgba(0, 255, 136, 0.3)',
+            }}>
+              <span style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: 'var(--accent-green)',
+                boxShadow: '0 0 6px var(--accent-green)',
+              }} />
+              <span style={{
+                fontSize: 12,
+                color: 'var(--accent-green)',
+                fontFamily: 'monospace',
+                fontWeight: 600,
+              }}>
+                {connectedSession}
+              </span>
+            </div>
+          )}
+          <button
+            onClick={() => xtermRef.current?.clear()}
+            style={{
+              padding: '4px 12px',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 4,
+              color: 'var(--text-secondary)',
+              fontSize: 11,
+              cursor: 'pointer',
             }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                if (e.shiftKey) {
-                  handleSearchPrev();
-                } else {
-                  handleSearchNext();
-                }
-              }
-              if (e.key === 'Escape') {
-                closeSearch();
-              }
-            }}
-          />
-          <button onClick={handleSearchPrev} title="Previous (Shift+Enter)">
-            <span>↑</span>
-          </button>
-          <button onClick={handleSearchNext} title="Next (Enter)">
-            <span>↓</span>
-          </button>
-          <button onClick={closeSearch} title="Close (Esc)">
-            <span>×</span>
+          >
+            Clear
           </button>
         </div>
-      )}
+      </div>
       <div className="terminal-body" ref={terminalRef} />
     </div>
   );

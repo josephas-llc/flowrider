@@ -114,6 +114,9 @@ export interface Session {
   // Tier 2: Activity tracking
   hasRecentActivity?: boolean;
   activityLevel?: 'idle' | 'low' | 'medium' | 'high';
+  // Attention indicator - when session needs human input
+  needsAttention?: boolean;
+  attentionReason?: string; // e.g., "Question asked", "Error occurred", "Approval needed"
   // Tier 3: Arbor pattern - hypothesis branches & linking
   linkedSessions?: string[]; // IDs of related sessions
   hypothesisBranch?: {
@@ -228,11 +231,17 @@ interface FlowriderState {
   showLeoPanel: boolean;
   error: string | null;
 
+  // Terminal dimensions - shared between TerminalView and SessionPanel
+  terminalDimensions: { cols: number; rows: number };
+
   // Search/Filter
   searchQuery: string;
   searchFilter: 'all' | 'active' | 'empty' | 'hypothesis';
   setSearchQuery: (query: string) => void;
   setSearchFilter: (filter: 'all' | 'active' | 'empty' | 'hypothesis') => void;
+
+  // Terminal dimension actions
+  setTerminalDimensions: (cols: number, rows: number) => void;
 
   // App Mode
   appMode: 'work' | 'demo';
@@ -252,6 +261,8 @@ interface FlowriderState {
   createHypothesisBranch: (sourceFaceIndex: number, targetFaceIndex: number, branchName: string, hypothesis: string) => void;
   updateHypothesisStatus: (faceIndex: number, status: 'exploring' | 'promising' | 'abandoned' | 'merged') => void;
   markSessionActivity: (faceIndex: number) => void;
+  setSessionNeedsAttention: (faceIndex: number, needsAttention: boolean, reason?: string) => void;
+  clearAllAttention: () => void;
 
   // Project Actions
   createProject: (name: string, description: string, color: string, icon: string) => void;
@@ -391,6 +402,7 @@ export const useStore = create<FlowriderState>()(
       showProjectModal: false,
       showLeoPanel: false,
       error: null,
+      terminalDimensions: { cols: 80, rows: 24 }, // Default terminal size
       searchQuery: '',
       searchFilter: 'all',
       appMode: 'work',
@@ -400,6 +412,10 @@ export const useStore = create<FlowriderState>()(
       setSearchQuery: (query) => set({ searchQuery: query }),
 
       setSearchFilter: (filter) => set({ searchFilter: filter }),
+
+      // ========== TERMINAL DIMENSION ACTIONS ==========
+
+      setTerminalDimensions: (cols, rows) => set({ terminalDimensions: { cols, rows } }),
 
       // ========== APP MODE ACTIONS ==========
 
@@ -605,6 +621,20 @@ export const useStore = create<FlowriderState>()(
               ? { ...s, lastActivity: Date.now(), hasRecentActivity: true, activityLevel: 'high' as const }
               : s
           ),
+        })),
+
+      setSessionNeedsAttention: (faceIndex, needsAttention, reason) =>
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.faceIndex === faceIndex
+              ? { ...s, needsAttention, attentionReason: needsAttention ? reason : undefined }
+              : s
+          ),
+        })),
+
+      clearAllAttention: () =>
+        set((state) => ({
+          sessions: state.sessions.map((s) => ({ ...s, needsAttention: false, attentionReason: undefined })),
         })),
 
       // ========== PROJECT ACTIONS ==========

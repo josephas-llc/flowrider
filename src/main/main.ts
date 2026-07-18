@@ -158,11 +158,11 @@ function setupIPC() {
   );
 
   // Create a new tmux session
-  ipcMain.handle('tmux:create', async (_event, name: string, faceIndex: number, workingDir: string) => {
+  ipcMain.handle('tmux:create', async (_event, name: string, faceIndex: number, workingDir: string, options?: { setupCommand?: string; skipClaude?: boolean }) => {
     try {
       const validated = validate(createSessionSchema, { name, faceIndex, workingDir });
       console.log(`[IPC] Creating session: ${validated.name} for face ${validated.faceIndex}`);
-      const result = await tmuxManager.createSession(validated.name, validated.faceIndex, validated.workingDir);
+      const result = await tmuxManager.createSession(validated.name, validated.faceIndex, validated.workingDir, options);
 
       // Auto-start monitoring the session for AI System
       if ((result as any).success) {
@@ -205,12 +205,36 @@ function setupIPC() {
     }
   });
 
+  // Send a command (with Enter) to a tmux session
+  ipcMain.handle('tmux:command', async (_event, sessionName: string, command: string) => {
+    try {
+      const validated = validate(sendInputSchema, { sessionId: sessionName, input: command });
+      return tmuxManager.sendCommand(validated.sessionId, validated.input);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // Get output from a tmux session
   ipcMain.handle('tmux:output', async (_event, sessionName: string, lines: number) => {
     try {
       const validatedSession = validate(sessionNameSchema, sessionName);
       const validatedLines = validate(outputLinesSchema, lines);
       return tmuxManager.getOutput(validatedSession, validatedLines);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Resize a tmux session to match terminal dimensions
+  ipcMain.handle('tmux:resize', async (_event, sessionName: string, cols: number, rows: number) => {
+    try {
+      const validatedSession = validate(sessionNameSchema, sessionName);
+      // Basic validation for dimensions
+      if (typeof cols !== 'number' || typeof rows !== 'number' || cols < 1 || rows < 1) {
+        return { success: false, error: 'Invalid dimensions' };
+      }
+      return tmuxManager.resizeSession(validatedSession, cols, rows);
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }

@@ -2,7 +2,6 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useStore } from '../store';
 import { ArborPanel } from './ArborPanel';
 import { SessionTemplates } from './SessionTemplates';
-import { GitHubRepoClone } from './GitHubRepoClone';
 import { SuggestionPanel } from './SuggestionPanel';
 import { OpenInCursor } from './OpenInCursor';
 
@@ -53,7 +52,6 @@ export const SessionPanel: React.FC = () => {
     attachedSession,
     isCreatingSession,
     error,
-    terminalDimensions,
     updateSession,
     setAttachedSession,
     setCreating,
@@ -158,11 +156,7 @@ export const SessionPanel: React.FC = () => {
 
     try {
       const name = sessionName || `session-${selectedFace + 1}`;
-      // Pass terminal dimensions to create tmux session at correct initial size
-      const result = await window.flowrider.tmux.create(name, selectedFace, workingDir, {
-        cols: terminalDimensions.cols,
-        rows: terminalDimensions.rows,
-      });
+      const result = await window.flowrider.tmux.create(name, selectedFace, workingDir);
 
       if ((result as any).success) {
         // Also detect GitHub repo
@@ -566,27 +560,6 @@ export const SessionPanel: React.FC = () => {
                   </button>
                 </div>
               </div>
-
-              {/* Clone from GitHub */}
-              <GitHubRepoClone
-                faceIndex={selectedFace}
-                onClone={async (repo, cloneDir) => {
-                  // Set working dir and session name from repo
-                  setWorkingDir(cloneDir);
-                  setSessionName(repo.repo);
-                  // Update session with GitHub info
-                  updateSession(selectedFace, {
-                    name: repo.repo,
-                    workingDir: cloneDir,
-                    gitHubRepo: {
-                      owner: repo.owner,
-                      repo: repo.repo,
-                      branch: 'main',
-                      url: repo.url,
-                    },
-                  });
-                }}
-              />
 
               {/* Session Templates */}
               <SessionTemplates faceIndex={selectedFace} />

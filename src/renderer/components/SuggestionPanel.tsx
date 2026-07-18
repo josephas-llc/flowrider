@@ -213,7 +213,7 @@ export const SuggestionPanel: React.FC<SuggestionPanelProps> = ({
           fontWeight: 500,
         }}>
           <span style={{ fontSize: 16 }}>{'\u{1F4A1}'}</span>
-          <span>LEO Suggestions</span>
+          <span>Flowfaster Suggestions</span>
           <span style={{
             background: 'rgba(0, 188, 212, 0.2)',
             padding: '1px 6px',
