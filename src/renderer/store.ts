@@ -222,7 +222,7 @@ interface FlowriderState {
 
   // Dashboard
   dashboard: DashboardMetrics;
-  dashboardView: 'overview' | 'projects' | 'costs' | 'leo' | 'roi' | 'mcp' | 'messaging' | 'activity' | 'providers';
+  dashboardView: 'overview' | 'projects' | 'costs' | 'leo' | 'roi' | 'mcp' | 'messaging' | 'activity' | 'providers' | 'leoai' | 'api';
 
   // UI State
   isCreatingSession: boolean;
@@ -230,6 +230,8 @@ interface FlowriderState {
   showProjectModal: boolean;
   showLeoPanel: boolean;
   error: string | null;
+  isFirstRun: boolean;
+  setIsFirstRun: (value: boolean) => void;
 
   // Terminal dimensions - shared between TerminalView and SessionPanel
   terminalDimensions: { cols: number; rows: number };
@@ -280,7 +282,7 @@ interface FlowriderState {
   setShowLeoPanel: (show: boolean) => void;
 
   // Dashboard Actions
-  setDashboardView: (view: 'overview' | 'projects' | 'costs' | 'leo') => void;
+  setDashboardView: (view: 'overview' | 'projects' | 'costs' | 'leo' | 'roi' | 'mcp' | 'messaging' | 'activity' | 'providers' | 'leoai' | 'api') => void;
   refreshDashboard: () => void;
 
   // Session Sync
@@ -402,6 +404,7 @@ export const useStore = create<FlowriderState>()(
       showProjectModal: false,
       showLeoPanel: false,
       error: null,
+      isFirstRun: true,
       terminalDimensions: { cols: 80, rows: 24 }, // Default terminal size
       searchQuery: '',
       searchFilter: 'all',
@@ -455,6 +458,8 @@ export const useStore = create<FlowriderState>()(
       setCreating: (creating) => set({ isCreatingSession: creating }),
 
       setError: (error) => set({ error }),
+
+      setIsFirstRun: (value) => set({ isFirstRun: value }),
 
       addTokenUsage: (faceIndex, inputTokens, outputTokens) =>
         set((state) => {
@@ -826,6 +831,7 @@ export const useStore = create<FlowriderState>()(
         costMetrics: state.costMetrics,
         energyMetrics: state.energyMetrics,
         leo: state.leo,
+        isFirstRun: state.isFirstRun,
       }),
     }
   )

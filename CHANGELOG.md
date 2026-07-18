@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Future Features (Backlog)
+- Voice commands via Vosk (offline speech recognition)
+- TTS for session status announcements
+- Wake word detection ("Hey Flowrider")
+
+---
+
+## [0.2.0] - 2025-01-XX "Activation"
+
 ### Added
+- **First-run Welcome Wizard**: 4-step onboarding (Welcome → Sessions → AI → Ready) with confetti celebration
+- **Session Search** (Cmd+/): CommandPalette-style fuzzy search across session names, working dirs, projects, notes
+- **Keyboard Shortcuts Help** (Cmd+?): Modal showing all shortcuts organized by category
 - Version tracking and changelog system
 - Automated changelog generation on releases
 - Attention indicators: pulsating red rings on icosahedron faces when sessions need input
@@ -15,12 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Terminal visual improvements (glowing border, prominent header)
 
 ### Changed
+- **Dashboard Simplified**: Reduced from 9 tabs to 4 main tabs (Overview, AI Models, Projects) + collapsible Advanced section
+- **Terminology**: Renamed "Attached" to "Connected" throughout UI for clarity
 - Disabled auto-rotation on icosahedron for better usability
 
-### Future Features (Backlog)
-- Voice commands via Vosk (offline speech recognition)
-- TTS for session status announcements
-- Wake word detection ("Hey Flowrider")
+### Security
+- **DevTools disabled in production**: Fixed security issue where DevTools could be opened in release builds
 
 ---
 
@@ -77,7 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/josephas-llc/flowrider/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/josephas-llc/flowrider/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/josephas-llc/flowrider/compare/v0.1.5...v0.2.0
 [0.1.5]: https://github.com/josephas-llc/flowrider/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/josephas-llc/flowrider/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/josephas-llc/flowrider/compare/v0.1.2...v0.1.3

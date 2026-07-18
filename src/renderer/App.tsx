@@ -7,6 +7,7 @@ import { SessionSearch } from './components/SessionSearch';
 import { TerminalView } from './components/TerminalView';
 import { Dashboard } from './components/Dashboard';
 import { DemoMode } from './components/DemoMode';
+import { WelcomeWizard } from './components/WelcomeWizard';
 // AIStatus and CrossSessionPanel removed - terminal-first design
 // import { AIStatusType as AIStatus } from './components/AIStatus';
 // import { CrossSessionPanel } from './components/CrossSessionPanel';
@@ -26,9 +27,10 @@ const App: React.FC = () => {
   const [storeReady, setStoreReady] = useState(false);
   const [showIcosahedron, setShowIcosahedron] = useState(false);
   const [showSessionPanel, setShowSessionPanel] = useState(false);
+  const [showSessionSearch, setShowSessionSearch] = useState(false);
 
   const store = useStore();
-  const { sessions, selectedFace, selectFace, setAttachedSession, updateSession, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux, createSession } = store;
+  const { sessions, selectedFace, selectFace, setAttachedSession, updateSession, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux, createSession, isFirstRun } = store;
 
   console.log('[App] Store loaded, sessions:', sessions?.length);
 
@@ -44,7 +46,11 @@ const App: React.FC = () => {
     syncWithTmux();
   }, [syncWithTmux]);
 
-  useKeyboardShortcuts();
+  const toggleSessionSearch = () => {
+    setShowSessionSearch(prev => !prev);
+  };
+
+  useKeyboardShortcuts(toggleSessionSearch);
 
   const [mainView, setMainView] = useState<MainView>('sessions');
 
@@ -71,8 +77,12 @@ const App: React.FC = () => {
   const hasActiveSession = selectedSession && selectedSession.status !== 'empty';
 
   return (
-    <div className="app app-v2">
-      {/* Compact Top Bar */}
+    <>
+      {/* Show welcome wizard on first run */}
+      {isFirstRun && <WelcomeWizard />}
+
+      <div className="app app-v2">
+        {/* Compact Top Bar */}
       <nav className="top-nav-v2">
         <div className="nav-left">
           <div className="nav-brand-v2">
@@ -239,7 +249,13 @@ const App: React.FC = () => {
         Terminal-first design: No floating overlays cluttering the terminal view.
         AIStatus and CrossSessionPanel are available via Dashboard tab if needed.
       */}
-    </div>
+
+      {/* Session Search - CommandPalette-style overlay (Cmd+/) */}
+      {showSessionSearch && (
+        <SessionSearch onClose={() => setShowSessionSearch(false)} />
+      )}
+      </div>
+    </>
   );
 };
 

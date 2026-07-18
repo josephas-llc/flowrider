@@ -1,245 +1,335 @@
-import React from 'react';
-import { useStore, useFilteredSessions } from '../store';
+import React, { useEffect, useRef, useState } from 'react';
+import { useStore } from '../store';
 
-export const SessionSearch: React.FC = () => {
+interface SessionSearchProps {
+  onClose: () => void;
+}
+
+export const SessionSearch: React.FC<SessionSearchProps> = ({ onClose }) => {
   const {
-    searchQuery,
-    searchFilter,
-    setSearchQuery,
-    setSearchFilter,
+    sessions,
     selectFace,
+    setAttachedSession,
+    updateSession,
   } = useStore();
 
-  const filteredSessions = useFilteredSessions();
-  const hasFilter = searchQuery.trim() !== '' || searchFilter !== 'all';
+  const [query, setQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSessionClick = (faceIndex: number) => {
+  // Focus input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Fuzzy search implementation
+  const fuzzyMatch = (text: string, query: string): boolean => {
+    if (!query) return true;
+    const queryLower = query.toLowerCase();
+    const textLower = text.toLowerCase();
+
+    // Simple fuzzy matching: all query chars must appear in order
+    let queryIndex = 0;
+    for (let i = 0; i < textLower.length && queryIndex < queryLower.length; i++) {
+      if (textLower[i] === queryLower[queryIndex]) {
+        queryIndex++;
+      }
+    }
+    return queryIndex === queryLower.length;
+  };
+
+  // Filter and rank sessions
+  const filteredSessions = sessions
+    .map((session, index) => ({ session, index }))
+    .filter(({ session }) => {
+      if (!query) return session.status !== 'empty'; // Show only active sessions when no query
+
+      // Search through name, working dir, project name, notes
+      return (
+        fuzzyMatch(session.name, query) ||
+        fuzzyMatch(session.workingDir, query) ||
+        (session.notes && fuzzyMatch(session.notes, query)) ||
+        (session.gitHubRepo?.repo && fuzzyMatch(session.gitHubRepo.repo, query))
+      );
+    });
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) => Math.min(prev + 1, filteredSessions.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => Math.max(prev - 1, 0));
+      } else if (e.key === 'Enter' && filteredSessions.length > 0) {
+        e.preventDefault();
+        handleSelect(filteredSessions[selectedIndex].index);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIndex, filteredSessions, onClose]);
+
+  // Reset selected index when results change
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
+
+  const handleSelect = (faceIndex: number) => {
+    const session = sessions[faceIndex];
     selectFace(faceIndex);
-    // Optionally clear search after selection
-    // setSearchQuery('');
+
+    // If session is active, attach to it
+    if (session?.tmuxSession && session.status !== 'empty') {
+      setAttachedSession(session.id);
+      updateSession(faceIndex, { status: 'attached' });
+    }
+
+    onClose();
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
   };
 
   return (
-    <div className="session-search">
-      {/* Search Input */}
-      <div className="search-input-wrapper">
-        <span className="search-icon">⌕</span>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search sessions..."
-          className="search-input"
-        />
-        {searchQuery && (
-          <button
-            className="clear-btn"
-            onClick={() => setSearchQuery('')}
-            title="Clear search"
-          >
-            ×
-          </button>
-        )}
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="filter-tabs">
-        {(['all', 'active', 'empty', 'hypothesis'] as const).map((filter) => (
-          <button
-            key={filter}
-            className={`filter-tab ${searchFilter === filter ? 'active' : ''}`}
-            onClick={() => setSearchFilter(filter)}
-          >
-            {filter === 'all' && 'All'}
-            {filter === 'active' && 'Active'}
-            {filter === 'empty' && 'Empty'}
-            {filter === 'hypothesis' && 'Branches'}
-          </button>
-        ))}
-      </div>
-
-      {/* Results */}
-      {hasFilter && (
-        <div className="search-results">
-          <div className="results-header">
-            <span>{filteredSessions.length} session{filteredSessions.length !== 1 ? 's' : ''}</span>
-          </div>
-          <div className="results-list">
-            {filteredSessions.map((session) => (
-              <div
-                key={session.id}
-                className={`result-item ${session.status}`}
-                onClick={() => handleSessionClick(session.faceIndex)}
-              >
-                <span className="result-face">
-                  #{String(session.faceIndex + 1).padStart(2, '0')}
-                </span>
-                <div className="result-info">
-                  <span className="result-name">{session.name}</span>
-                  {session.status !== 'empty' && (
-                    <span className="result-dir">{session.workingDir}</span>
-                  )}
-                </div>
-                <span className={`result-status ${session.status}`}>
-                  {session.status === 'empty' ? '○' :
-                   session.status === 'attached' ? '◉' : '●'}
-                </span>
-              </div>
-            ))}
-            {filteredSessions.length === 0 && (
-              <div className="no-results">
-                No sessions match your search
-              </div>
-            )}
-          </div>
+    <div className="session-search-overlay" onClick={handleBackdropClick}>
+      <div className="session-search-palette">
+        {/* Search Input */}
+        <div className="search-input-wrapper">
+          <span className="search-icon">⌕</span>
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search sessions by name, directory, or project..."
+            className="search-input"
+          />
+          <span className="search-hint">Cmd+/</span>
         </div>
-      )}
+
+        {/* Results */}
+        <div className="search-results">
+          {filteredSessions.length === 0 ? (
+            <div className="no-results">
+              {query ? 'No sessions match your search' : 'No active sessions'}
+            </div>
+          ) : (
+            <div className="results-list">
+              {filteredSessions.map(({ session, index }, i) => (
+                <div
+                  key={session.id}
+                  className={`result-item ${session.status} ${i === selectedIndex ? 'selected' : ''}`}
+                  onClick={() => handleSelect(index)}
+                  onMouseEnter={() => setSelectedIndex(i)}
+                >
+                  <div className="result-left">
+                    <span className="result-face">
+                      #{String(index + 1).padStart(2, '0')}
+                    </span>
+                    <div className="result-info">
+                      <span className="result-name">{session.name}</span>
+                      {session.workingDir && (
+                        <span className="result-dir">{session.workingDir}</span>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`result-status ${session.status}`}>
+                    {session.status === 'empty' ? '○' :
+                     session.status === 'attached' ? '◉' : '●'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer hint */}
+        <div className="search-footer">
+          <span>↑↓ Navigate</span>
+          <span>Enter Select</span>
+          <span>Esc Close</span>
+        </div>
+      </div>
 
       <style>{`
-        .session-search {
-          padding: 12px;
-          border-bottom: 1px solid var(--border-color);
-          background: var(--bg-secondary);
+        .session-search-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.7);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          padding-top: 120px;
+          z-index: 9999;
+          animation: fadeIn 0.15s ease-out;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideDown {
+          from {
+            transform: translateY(-20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        .session-search-palette {
+          background: #0d0d14;
+          border: 1px solid rgba(0, 255, 255, 0.2);
+          border-radius: 12px;
+          width: 600px;
+          max-width: 90vw;
+          box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 255, 255, 0.1);
+          overflow: hidden;
+          animation: slideDown 0.2s ease-out;
         }
 
         .search-input-wrapper {
           display: flex;
           align-items: center;
-          background: var(--bg-tertiary);
-          border: 1px solid var(--border-color);
-          border-radius: 6px;
-          padding: 0 12px;
+          padding: 16px 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          gap: 12px;
         }
 
         .search-icon {
-          color: var(--text-secondary);
-          font-size: 14px;
-          margin-right: 8px;
+          color: #00ffff;
+          font-size: 18px;
+          flex-shrink: 0;
         }
 
         .search-input {
           flex: 1;
           background: transparent;
           border: none;
-          color: var(--text-primary);
-          font-size: 13px;
-          padding: 10px 0;
+          color: #fff;
+          font-size: 16px;
           outline: none;
+          min-width: 0;
         }
 
         .search-input::placeholder {
-          color: var(--text-secondary);
+          color: #666;
         }
 
-        .clear-btn {
-          background: none;
-          border: none;
-          color: var(--text-secondary);
-          font-size: 18px;
-          cursor: pointer;
-          padding: 0 4px;
-          line-height: 1;
-        }
-
-        .clear-btn:hover {
-          color: var(--text-primary);
-        }
-
-        .filter-tabs {
-          display: flex;
-          gap: 4px;
-          margin-top: 10px;
-        }
-
-        .filter-tab {
-          flex: 1;
-          padding: 6px 8px;
-          background: var(--bg-tertiary);
-          border: 1px solid var(--border-color);
+        .search-hint {
+          color: #666;
+          font-size: 12px;
+          font-family: monospace;
+          background: rgba(255, 255, 255, 0.05);
+          padding: 4px 8px;
           border-radius: 4px;
-          color: var(--text-secondary);
-          font-size: 11px;
-          cursor: pointer;
-          transition: all 0.15s ease;
-        }
-
-        .filter-tab:hover {
-          background: var(--bg-primary);
-          color: var(--text-primary);
-        }
-
-        .filter-tab.active {
-          background: rgba(0, 255, 255, 0.1);
-          border-color: rgba(0, 255, 255, 0.3);
-          color: #00ffff;
+          flex-shrink: 0;
         }
 
         .search-results {
-          margin-top: 12px;
-          max-height: 200px;
+          max-height: 400px;
           overflow-y: auto;
         }
 
-        .results-header {
-          font-size: 10px;
-          color: var(--text-secondary);
-          margin-bottom: 8px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
+        .search-results::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .search-results::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .search-results::-webkit-scrollbar-thumb {
+          background: rgba(0, 255, 255, 0.2);
+          border-radius: 3px;
         }
 
         .results-list {
           display: flex;
           flex-direction: column;
-          gap: 4px;
         }
 
         .result-item {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 8px 10px;
-          background: var(--bg-tertiary);
-          border: 1px solid var(--border-color);
-          border-radius: 4px;
+          justify-content: space-between;
+          padding: 12px 20px;
           cursor: pointer;
           transition: all 0.15s ease;
+          border-left: 3px solid transparent;
         }
 
-        .result-item:hover {
-          background: var(--bg-primary);
-          border-color: rgba(0, 255, 255, 0.3);
+        .result-item:hover,
+        .result-item.selected {
+          background: rgba(0, 255, 255, 0.08);
+          border-left-color: #00ffff;
+        }
+
+        .result-item.selected {
+          background: rgba(0, 255, 255, 0.12);
         }
 
         .result-item.attached {
-          border-color: rgba(0, 255, 255, 0.4);
+          background: rgba(0, 255, 255, 0.05);
         }
 
-        .result-face {
-          font-family: monospace;
-          font-size: 11px;
-          color: #00ffff;
-          min-width: 28px;
-        }
-
-        .result-info {
+        .result-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
           flex: 1;
           min-width: 0;
         }
 
+        .result-face {
+          font-family: monospace;
+          font-size: 13px;
+          color: #00ffff;
+          font-weight: 600;
+          min-width: 32px;
+          flex-shrink: 0;
+        }
+
+        .result-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+          flex: 1;
+        }
+
         .result-name {
-          display: block;
-          font-size: 12px;
-          color: var(--text-primary);
+          font-size: 14px;
+          color: #fff;
+          font-weight: 500;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
         .result-dir {
-          display: block;
-          font-size: 10px;
-          color: var(--text-secondary);
+          font-size: 12px;
+          color: #888;
           font-family: monospace;
           white-space: nowrap;
           overflow: hidden;
@@ -247,11 +337,13 @@ export const SessionSearch: React.FC = () => {
         }
 
         .result-status {
-          font-size: 10px;
+          font-size: 12px;
+          flex-shrink: 0;
+          margin-left: 12px;
         }
 
         .result-status.empty {
-          color: #666;
+          color: #555;
         }
 
         .result-status.active {
@@ -264,9 +356,25 @@ export const SessionSearch: React.FC = () => {
 
         .no-results {
           text-align: center;
-          padding: 20px;
-          color: var(--text-secondary);
-          font-size: 12px;
+          padding: 40px 20px;
+          color: #666;
+          font-size: 14px;
+        }
+
+        .search-footer {
+          display: flex;
+          gap: 16px;
+          padding: 12px 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          background: rgba(0, 0, 0, 0.2);
+          font-size: 11px;
+          color: #666;
+        }
+
+        .search-footer span {
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
       `}</style>
     </div>

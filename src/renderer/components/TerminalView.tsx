@@ -273,7 +273,7 @@ export const TerminalView: React.FC = () => {
     if (connectedSession) {
       if (xtermRef.current) {
         xtermRef.current.clear();
-        xtermRef.current.writeln(`\x1b[32mConnecting to: ${connectedSession}\x1b[0m`);
+        xtermRef.current.writeln(`\x1b[32mConnected to: ${connectedSession}\x1b[0m`);
         xtermRef.current.writeln('');
       }
       startPolling(connectedSession);

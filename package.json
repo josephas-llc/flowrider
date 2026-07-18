@@ -1,6 +1,6 @@
 {
   "name": "flowrider2",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "Icosahedron-based orchestration tool for managing multiple AI terminal sessions",
   "author": {
     "name": "Josephas LLC",

@@ -608,11 +608,11 @@ export const SessionPanel: React.FC = () => {
             <>
               {isAttached ? (
                 <button className="btn btn-secondary" onClick={handleDetach}>
-                  Detach
+                  Disconnect
                 </button>
               ) : (
                 <button className="btn btn-primary" onClick={handleAttach}>
-                  Attach
+                  Connect
                 </button>
               )}
               <button className="btn btn-danger" onClick={handleKill}>

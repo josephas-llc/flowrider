@@ -14,10 +14,11 @@ import { useStore } from '../store';
  * - Cmd/Ctrl+K: Kill selected session
  * - Escape: Deselect face / close modals
  * - Cmd/Ctrl+F: Focus search
+ * - Cmd/Ctrl+/: Toggle session search
  * - Cmd/Ctrl+B: Branch from current session (Tier 3)
  * - Cmd/Ctrl+L: Link sessions (Tier 3)
  */
-export function useKeyboardShortcuts() {
+export function useKeyboardShortcuts(onToggleSearch?: () => void) {
   const {
     sessions,
     selectedFace,
@@ -126,7 +127,16 @@ export function useKeyboardShortcuts() {
       return;
     }
 
-  }, [sessions, selectedFace, attachedSession, selectFace, setAttachedSession, updateSession]);
+    // Cmd+/ - Toggle session search
+    if (isMod && e.key === '/') {
+      e.preventDefault();
+      if (onToggleSearch) {
+        onToggleSearch();
+      }
+      return;
+    }
+
+  }, [sessions, selectedFace, attachedSession, selectFace, setAttachedSession, updateSession, onToggleSearch]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);

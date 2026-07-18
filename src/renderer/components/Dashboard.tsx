@@ -35,7 +35,33 @@ export const Dashboard: React.FC = () => {
     leo,
   } = useStore();
 
+  const [advancedExpanded, setAdvancedExpanded] = useState(false);
   const activeSessions = sessions.filter(s => s.status !== 'empty');
+
+  // Main tabs that are always visible
+  const mainTabs = ['overview', 'providers', 'projects'] as const;
+
+  // Advanced tabs that are collapsed by default
+  const advancedTabs = ['mcp', 'messaging', 'activity', 'leo', 'leoai', 'api', 'roi'] as const;
+
+  // Check if current view is an advanced tab
+  const isAdvancedTabActive = advancedTabs.includes(dashboardView as any);
+
+  const getTabLabel = (tab: string): string => {
+    const labels: Record<string, string> = {
+      overview: 'Overview',
+      providers: 'AI Models',
+      projects: 'Projects',
+      mcp: 'MCP',
+      messaging: 'Messaging',
+      activity: 'Activity',
+      leo: 'LEO',
+      leoai: 'AI System',
+      api: 'API',
+      roi: 'ROI',
+    };
+    return labels[tab] || tab;
+  };
 
   return (
     <div className="dashboard">
@@ -43,15 +69,43 @@ export const Dashboard: React.FC = () => {
       <div className="dashboard-header">
         <h2>Dashboard</h2>
         <div className="dashboard-tabs">
-          {(['overview', 'providers', 'roi', 'mcp', 'messaging', 'activity', 'leo', 'leoai', 'api'] as const).map((tab) => (
+          {/* Main tabs */}
+          {mainTabs.map((tab) => (
             <button
               key={tab}
               className={`tab ${dashboardView === tab ? 'active' : ''}`}
               onClick={() => setDashboardView(tab as any)}
             >
-              {tab === 'roi' ? 'ROI' : tab === 'mcp' ? 'MCP' : tab === 'providers' ? 'AI Models' : tab === 'leoai' ? 'AI System' : tab === 'api' ? 'API' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {getTabLabel(tab)}
             </button>
           ))}
+
+          {/* Advanced collapsible section */}
+          <div className="advanced-tab-container">
+            <button
+              className={`tab advanced-toggle ${isAdvancedTabActive ? 'active' : ''}`}
+              onClick={() => setAdvancedExpanded(!advancedExpanded)}
+            >
+              Advanced {advancedExpanded ? '▲' : '▼'}
+            </button>
+
+            {advancedExpanded && (
+              <div className="advanced-tabs-dropdown">
+                {advancedTabs.map((tab) => (
+                  <button
+                    key={tab}
+                    className={`advanced-tab-item ${dashboardView === tab ? 'active' : ''}`}
+                    onClick={() => {
+                      setDashboardView(tab as any);
+                      setAdvancedExpanded(false);
+                    }}
+                  >
+                    {getTabLabel(tab)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

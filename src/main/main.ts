@@ -85,8 +85,7 @@ function createWindow() {
   } else {
     console.log('[Main] Loading from file:', rendererPath);
     mainWindow.loadFile(rendererPath);
-    // Open DevTools in production to see errors
-    mainWindow.webContents.openDevTools();
+    // DevTools disabled in production for security
   }
 
   // Log any errors during page load
