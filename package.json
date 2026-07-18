@@ -153,7 +153,7 @@
     "@types/three": "^0.185.0",
     "@vitejs/plugin-react": "^4.2.0",
     "@vitest/coverage-v8": "^4.1.9",
-    "concurrently": "^8.2.2",
+    "concurrently": "^10.0.3",
     "electron": "^34.5.8",
     "electron-builder": "^26.0.0",
     "jsdom": "^29.1.1",
