@@ -4,6 +4,7 @@ import { OrbitControls } from '@react-three/drei';
 import { Icosahedron } from './components/Icosahedron';
 import { SessionPanel } from './components/SessionPanel';
 import { SessionSearch } from './components/SessionSearch';
+import { SessionGrid } from './components/SessionGrid';
 import { TerminalView } from './components/TerminalView';
 import { Dashboard } from './components/Dashboard';
 import { DemoMode } from './components/DemoMode';
@@ -209,11 +210,48 @@ const App: React.FC = () => {
           <ProjectsPanel />
         </div>
       ) : mainView === 'sessions' ? (
-        <div className="terminal-layout-v2">
-          {/* Terminal takes full width by default */}
-          <div className="terminal-main">
-            <TerminalView />
-          </div>
+        <div className="sessions-fullscreen-grid">
+          {/* Full-Width Session Grid - All 20 sessions visible */}
+          <SessionGrid onSessionSelect={handleFaceClick} />
+
+          {/* Expanded Session Overlay - Shows when session is selected (not full screen) */}
+          {hasActiveSession && (
+            <div className="session-expanded-overlay">
+              <div className="session-expanded-card">
+                <div className="expanded-header">
+                  <span className="expanded-title">
+                    Session {selectedFace !== null ? selectedFace + 1 : ''}: {selectedSession?.name || 'Active'}
+                  </span>
+                  <div className="expanded-actions">
+                    <button
+                      className="expanded-action-btn"
+                      onClick={() => setShowSessionPanel(!showSessionPanel)}
+                      title="Session Details"
+                    >
+                      ☰
+                    </button>
+                    <button
+                      className="expanded-action-btn"
+                      onClick={() => setShowIcosahedron(!showIcosahedron)}
+                      title="3D View"
+                    >
+                      ⬡
+                    </button>
+                    <button
+                      className="expanded-action-btn close"
+                      onClick={() => selectFace(null)}
+                      title="Close"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+                <div className="expanded-terminal">
+                  <TerminalView />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Floating Icosahedron - Optional, collapsible */}
           {showIcosahedron && (

@@ -8,6 +8,40 @@ import '@xterm/xterm/css/xterm.css';
 import { useStore } from '../store';
 import { TokenAccumulator, parseTokensFromOutput, parseClaudeCodeStatus } from '../utils/tokenParser';
 
+// Quick action toolbar icons (simple SVG paths)
+const ClearIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" />
+  </svg>
+);
+
+const RestartIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M1 4v6h6M23 20v-6h-6" />
+    <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+  </svg>
+);
+
+const CopyIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+  </svg>
+);
+
+const StopIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="8" />
+    <path d="M21 21l-4.35-4.35" />
+  </svg>
+);
+
 const POLL_INTERVAL = 100; // Fast polling for responsive feel
 
 // Patterns that indicate Claude Code is waiting for user input
@@ -71,6 +105,7 @@ export const TerminalView: React.FC = () => {
 
   const [showSearch, setShowSearch] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   const [connectedSession, setConnectedSession] = useState<string | null>(null);
   const [liveTokens, setLiveTokens] = useState<{ input: number; output: number; cost: number }>({
@@ -424,9 +459,95 @@ export const TerminalView: React.FC = () => {
     }
   }, [showSearch]);
 
+  // Quick action handlers
+  const handleClearTerminal = useCallback(() => {
+    if (xtermRef.current) {
+      xtermRef.current.clear();
+    }
+  }, []);
+
+  const handleCopyOutput = useCallback(async () => {
+    if (lastOutputRef.current) {
+      try {
+        await navigator.clipboard.writeText(lastOutputRef.current);
+        setCopyFeedback(true);
+        setTimeout(() => setCopyFeedback(false), 1500);
+      } catch (err) {
+        console.error('[Terminal] Failed to copy:', err);
+      }
+    }
+  }, []);
+
+  const handleSendInterrupt = useCallback(async () => {
+    if (connectedSessionRef.current && window.flowrider) {
+      try {
+        // Send Ctrl+C (ASCII 3)
+        await window.flowrider.tmux.sendInput(connectedSessionRef.current, '\x03');
+      } catch (err) {
+        console.error('[Terminal] Failed to send interrupt:', err);
+      }
+    }
+  }, []);
+
+  const handleRestartSession = useCallback(async () => {
+    if (connectedSessionRef.current && window.flowrider) {
+      try {
+        // Send Ctrl+C first, then clear
+        await window.flowrider.tmux.sendInput(connectedSessionRef.current, '\x03');
+        if (xtermRef.current) {
+          xtermRef.current.clear();
+        }
+      } catch (err) {
+        console.error('[Terminal] Failed to restart:', err);
+      }
+    }
+  }, []);
+
   // Pure terminal - no header chrome, just like Claude Code
   return (
     <div className="terminal-panel terminal-clean">
+      {/* Quick Actions Toolbar - floating in top-right */}
+      {connectedSession && (
+        <div className="terminal-quick-actions">
+          <button
+            onClick={() => setShowSearch(true)}
+            title="Search (Cmd+F)"
+            className="quick-action-btn"
+          >
+            <SearchIcon />
+          </button>
+          <button
+            onClick={handleCopyOutput}
+            title={copyFeedback ? 'Copied!' : 'Copy Output'}
+            className={`quick-action-btn ${copyFeedback ? 'success' : ''}`}
+          >
+            <CopyIcon />
+            {copyFeedback && <span className="copy-feedback">Copied!</span>}
+          </button>
+          <button
+            onClick={handleClearTerminal}
+            title="Clear Terminal"
+            className="quick-action-btn"
+          >
+            <ClearIcon />
+          </button>
+          <button
+            onClick={handleSendInterrupt}
+            title="Stop/Interrupt (Ctrl+C)"
+            className="quick-action-btn danger"
+          >
+            <StopIcon />
+          </button>
+          <button
+            onClick={handleRestartSession}
+            title="Restart (Ctrl+C + Clear)"
+            className="quick-action-btn"
+          >
+            <RestartIcon />
+          </button>
+        </div>
+      )}
+
       {/* Search bar - floating overlay */}
       {showSearch && (
         <div className="terminal-search-bar">

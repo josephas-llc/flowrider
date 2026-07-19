@@ -3742,11 +3742,366 @@
   padding: 0;
 }
 
+/* Quick Actions Toolbar - Floating toolbar for terminal actions */
+.terminal-quick-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(30, 30, 40, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+
+.terminal-quick-actions:hover {
+  opacity: 1;
+}
+
+.quick-action-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.quick-action-btn:hover {
+  background: rgba(0, 255, 255, 0.15);
+  color: #00ffff;
+}
+
+.quick-action-btn.danger:hover {
+  background: rgba(255, 100, 100, 0.2);
+  color: #ff6b6b;
+}
+
+.quick-action-btn.success {
+  color: #4caf50;
+}
+
+.copy-feedback {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(76, 175, 80, 0.9);
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  animation: fadeInOut 1.5s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+}
+
+/* ============================================
+   Full-Screen Session Grid Layout
+   ============================================ */
+
+/* Main container - full width grid of all 20 sessions */
+.sessions-fullscreen-grid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Session grid takes full width */
+.sessions-fullscreen-grid > .session-grid {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Expanded Session Overlay - appears when clicking a session */
+.session-expanded-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 40px;
+  animation: fadeInOverlay 0.2s ease;
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Expanded Session Card - not full screen, centered */
+.session-expanded-card {
+  width: 100%;
+  max-width: 1200px;
+  height: 100%;
+  max-height: 800px;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 255, 255, 0.1);
+  animation: scaleInCard 0.2s ease;
+}
+
+@keyframes scaleInCard {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Expanded card header */
+.expanded-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.expanded-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00ffff;
+}
+
+.expanded-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.expanded-action-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.expanded-action-btn:hover {
+  background: rgba(0, 255, 255, 0.1);
+  border-color: rgba(0, 255, 255, 0.3);
+  color: #00ffff;
+}
+
+.expanded-action-btn.close {
+  color: #ff6b6b;
+}
+
+.expanded-action-btn.close:hover {
+  background: rgba(255, 107, 107, 0.15);
+  border-color: rgba(255, 107, 107, 0.4);
+}
+
+/* Terminal content in expanded card */
+.expanded-terminal {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Legacy grid-terminal-layout styles (for backwards compatibility) */
+.grid-terminal-layout {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  background: var(--bg-primary);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Session Grid Container - Left side, responsive */
+.session-grid-container {
+  width: 280px;
+  min-width: 200px;
+  max-width: 400px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* Make grid smaller when terminal is shown */
+.grid-terminal-layout:has(.terminal-panel-compact) .session-grid-container {
+  width: 200px;
+}
+
+/* Terminal Panel - Compact, not full screen */
+.terminal-panel-compact {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  min-width: 400px;
+  max-width: calc(100% - 200px);
+}
+
+.terminal-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.terminal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.terminal-panel-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.panel-action-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.panel-action-btn:hover {
+  background: rgba(0, 255, 255, 0.1);
+  border-color: rgba(0, 255, 255, 0.3);
+  color: #00ffff;
+}
+
+.terminal-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Empty State */
+.terminal-empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 40px;
+}
+
+.terminal-empty-state .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: rgba(0, 255, 255, 0.3);
+}
+
+.terminal-empty-state h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.terminal-empty-state p {
+  font-size: 13px;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .session-grid-container {
+    width: 160px;
+    min-width: 160px;
+  }
+
+  .grid-terminal-layout:has(.terminal-panel-compact) .session-grid-container {
+    width: 140px;
+  }
+
+  .terminal-panel-compact {
+    min-width: 300px;
+  }
+}
+
+@media (max-width: 600px) {
+  .grid-terminal-layout {
+    flex-direction: column;
+  }
+
+  .session-grid-container {
+    width: 100%;
+    max-width: 100%;
+    height: 180px;
+    min-height: 120px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .terminal-panel-compact {
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+
 /* Terminal Search Bar - Floating overlay */
 .terminal-search-bar {
   position: absolute;
   top: 8px;
-  right: 8px;
+  right: 180px; /* Offset to not overlap with quick actions toolbar */
   z-index: 100;
   display: flex;
   align-items: center;
