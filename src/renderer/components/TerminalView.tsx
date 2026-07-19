@@ -181,24 +181,49 @@ export const TerminalView: React.FC = () => {
       clearInterval(pollIntervalRef.current);
     }
 
+    // Clear lastOutputRef so we get fresh content after resize
+    lastOutputRef.current = '';
+
     // Sync tmux size immediately on connect - CRITICAL for proper display
     // The tmux session may have been created with different dimensions
-    if (xtermRef.current && window.flowrider) {
-      const terminal = xtermRef.current;
-      const cols = terminal.cols;
-      const rows = terminal.rows;
-      if (cols > 0 && rows > 0) {
-        // Resize tmux to match our terminal, then wait before polling
-        window.flowrider.tmux.resize(sessionName, cols, rows)
-          .then(() => {
-            console.log(`[Terminal] Initial tmux sync to ${cols}x${rows}`);
-            // After resize, send a resize signal to the app inside tmux
-            // This tells Claude Code to redraw at the new size
-            return window.flowrider.tmux.sendCommand(sessionName, '');
-          })
-          .catch((err: unknown) => console.error('[Terminal] Failed initial tmux sync:', err));
+    const syncAndStartPolling = async () => {
+      if (xtermRef.current && window.flowrider) {
+        const terminal = xtermRef.current;
+        const cols = terminal.cols;
+        const rows = terminal.rows;
+        if (cols > 0 && rows > 0) {
+          try {
+            // 1. Resize tmux to match our terminal
+            await window.flowrider.tmux.resize(sessionName, cols, rows);
+            console.log(`[Terminal] Synced tmux size to ${cols}x${rows}`);
+
+            // 2. Wait a beat for apps inside to receive SIGWINCH and redraw
+            await new Promise(resolve => setTimeout(resolve, 150));
+
+            // 3. Send an empty command to trigger any pending redraws
+            await window.flowrider.tmux.sendCommand(sessionName, '');
+
+            // 4. Wait another beat for the redraw to complete
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // 5. Clear lastOutputRef again to ensure we get fresh post-resize content
+            lastOutputRef.current = '';
+
+            console.log(`[Terminal] Ready to poll after resize sync`);
+          } catch (err) {
+            console.error('[Terminal] Failed initial tmux sync:', err);
+          }
+        }
       }
-    }
+
+      // Start the polling loop after sync completes
+      startPollingLoop();
+    };
+
+    const startPollingLoop = () => {
+      pollOutput();
+      pollIntervalRef.current = setInterval(pollOutput, POLL_INTERVAL);
+    };
 
     const pollOutput = async () => {
       if (!window.flowrider || !xtermRef.current) return;
@@ -256,8 +281,8 @@ export const TerminalView: React.FC = () => {
       }
     };
 
-    pollOutput();
-    pollIntervalRef.current = setInterval(pollOutput, POLL_INTERVAL);
+    // Start the async sync process, which will then start polling
+    syncAndStartPolling();
   }, [selectedFace]);
 
   const stopPolling = useCallback(() => {

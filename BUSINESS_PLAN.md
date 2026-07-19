@@ -1,318 +1,514 @@
 # Flowrider Business Plan
+## AI Session Orchestration Platform
 
-**Version:** 1.0
-**Date:** July 2026
-**Company:** Josephas LLC
+**Confidential - July 2026**
 
 ---
 
 ## Executive Summary
 
-Flowrider is an AI session orchestration platform that enables developers to manage 20-400+ concurrent AI coding sessions through a 3D icosahedron interface. While tools like Cursor help one developer write code faster, Flowrider lets one developer run 20 Cursors simultaneously.
+Flowrider is a parallel AI session orchestration platform that enables developers to run 20+ concurrent AI coding sessions from a single command center. Unlike single-session tools like Cursor or Copilot, Flowrider multiplies developer output by enabling simultaneous work across multiple projects, features, and codebases.
 
-**Vision:** Become the meta-layer for AI-assisted software development.
+**Key Value Proposition:** Where Cursor gives you 1 AI assistant, Flowrider gives you 20 - all working in parallel.
 
-**Target Valuation Path:** $0 → $400M Series A within 24 months.
+### Market Timing
 
----
+The AI developer tools market is experiencing unprecedented growth:
+- **Market Size:** $12.8B in 2026, projected $79B by 2031 (37% CAGR)
+- **Developer Adoption:** 85% of developers now use AI tools daily
+- **Recent Valuations:**
+  - Cursor: $50B+ (April 2026) - acquired by SpaceX for ~$60B
+  - Replit: $9B (March 2026)
+  - GitHub Copilot: 20M+ users
 
-## Market Opportunity
+### The Opportunity
 
-### The AI Coding Tools Market (2026)
-
-| Metric | Value | Source |
-|--------|-------|--------|
-| Market Size | $12.8B | [IdeaPlan](https://www.ideaplan.io/blog/ai-coding-assistant-market-share-2026) |
-| Projected (2032) | $30.1B | 27% CAGR |
-| AI-generated code on GitHub | >50% | Industry reports |
-
-### Recent Transactions
-
-| Company | Valuation | Revenue | Event |
-|---------|-----------|---------|-------|
-| Cursor (Anysphere) | **$60B** | $4B ARR | [Acquired by SpaceX](https://techcrunch.com/2026/06/16/spacex-to-acquire-cursor-for-60b-in-stock-days-after-blockbuster-ipo/) |
-| Windsurf (Codeium) | $3B | - | Acquired by Cognition |
-| Tabnine | ~$200M | - | Enterprise focus |
-
-### The Gap We Fill
-
-| Tool | Function | Sessions |
-|------|----------|----------|
-| Cursor/Copilot | AI writes code | 1 |
-| **Flowrider** | Orchestrates AI coders | 20-400 |
-
-**Key Insight:** No tool currently exists to orchestrate multiple AI coding sessions. Power users are running multiple terminal tabs manually.
+Flowrider occupies a unique position: **Meta-Orchestration**. We don't compete with Cursor - we orchestrate multiple Cursor/Claude Code sessions simultaneously.
 
 ---
 
-## Product
+## Product Overview
 
 ### Core Features
 
-1. **3D Icosahedron Interface** - 20 faces = 20 sessions, intuitive spatial navigation
-2. **tmux Session Management** - Native terminal integration with Claude Code
-3. **Multi-AI Provider Support** - Claude, Ollama, OpenAI, local LLMs
-4. **LEO Meta-Orchestration** - Manage 20 Flowriders = 400 concurrent sessions
-5. **SQLite Persistence** - Session state, history, and context preserved
-6. **Attention System** - Priority scoring to surface sessions needing human input
-7. **Energy Tracking & ESG Reporting** - Real-time energy consumption metrics for sustainability compliance
+1. **3D Icosahedron Interface** - 20-face geometric session map
+2. **Multi-Provider AI Support** - Claude, Gemini, Grok, Copilot, Meta AI, Apple Intelligence, Ollama, local LLMs
+3. **tmux-Powered Sessions** - Native terminal performance
+4. **Cost Tracking Dashboard** - Real-time API spend monitoring
+5. **Cross-Session Awareness** - AI agents that understand your full portfolio
+6. **LEO Meta-Orchestration** - Manage 20 Flowriders = 400 concurrent sessions
 
-### Technology Stack
+### Competitive Advantages
 
-- **Frontend:** React + Three.js + React Three Fiber
-- **Backend:** Electron + Node.js
-- **Terminals:** xterm.js + node-pty
-- **Database:** better-sqlite3
-- **State:** Zustand
+| Feature | Cursor | Copilot | Replit | **Flowrider** |
+|---------|--------|---------|--------|---------------|
+| Concurrent Sessions | 1 | 1 | 1 | **20+** |
+| Multi-Provider | No | No | Limited | **Yes** |
+| Cost Tracking | No | No | Basic | **Advanced** |
+| Terminal Native | No | No | No | **Yes** |
+| Orchestration Layer | No | No | No | **Yes** |
+| Local LLM Support | No | No | No | **Yes** |
 
-### Current Status
+---
 
-- v0.1.0 released (macOS DMG)
-- Core orchestration working
-- GitHub: [josephas-llc/flowrider](https://github.com/josephas-llc/flowrider)
+## Market Analysis
+
+### Total Addressable Market (TAM)
+
+**AI Developer Tools Market**
+- 2026: $12.8 billion
+- 2031: $79 billion (projected)
+- CAGR: 37.4%
+
+### Serviceable Addressable Market (SAM)
+
+**Enterprise Developer Productivity Tools**
+- Target: Companies with 10+ engineers
+- 2026 SAM: ~$3.2 billion (25% of TAM)
+
+### Serviceable Obtainable Market (SOM)
+
+**Year 1-3 Target**
+- Target: 50,000 power users, 5,000 enterprise seats
+- 2027 SOM: $50M ARR
+
+### Target Customer Segments
+
+1. **Individual Power Users** - 10x developers managing multiple projects
+2. **Agencies & Consultancies** - Multiple client projects in parallel
+3. **Enterprise DevOps Teams** - Large-scale deployment orchestration
+4. **AI Research Labs** - Multi-model experimentation
+5. **Startup CTOs** - Managing entire tech stack with AI assistance
 
 ---
 
 ## Business Model
 
-### Pricing Tiers
+### Revenue Streams
+
+#### 1. Subscription Tiers
 
 | Tier | Price | Sessions | Features |
 |------|-------|----------|----------|
-| **Free** | $0 | 3 | Core orchestration |
-| **Pro** | $29/mo | 20 | Full icosahedron, all providers |
-| **Team** | $99/mo | 100 | LEO mode, team sharing |
-| **Enterprise** | Custom | Unlimited | On-prem, SSO, support |
+| **Free** | $0/mo | 3 | Basic orchestration, local LLMs only |
+| **Pro** | $49/mo | 20 | All AI providers, cost tracking, templates |
+| **Team** | $199/mo | 100 | 5 seats, shared sessions, analytics |
+| **Enterprise** | Custom | Unlimited | LEO mode, SSO, dedicated support |
 
-### Revenue Projections
+#### 2. API/Token Pass-Through (5% margin)
+- Users can route API calls through Flowrider
+- Aggregated billing, volume discounts passed to users
 
-| Milestone | Users | MRR | ARR |
-|-----------|-------|-----|-----|
-| Month 6 | 500 | $5K | $60K |
-| Month 12 | 2,000 | $30K | $360K |
-| Month 18 | 10,000 | $150K | $1.8M |
-| Month 24 | 50,000 | $750K | $9M |
+#### 3. Marketplace (30% commission)
+- Session templates
+- Custom AI configurations
+- Integration plugins
 
-**Target for Series A:** $5-10M ARR
+### Unit Economics (Pro Tier)
 
----
-
-## Go-to-Market Strategy
-
-### Phase 1: Product-Market Fit (Months 1-6)
-
-**Cursor's Playbook:** Reached $100M ARR with zero marketing spend through product-led growth.
-
-| Action | Timeline | Success Metric |
-|--------|----------|----------------|
-| Hacker News "Show HN" launch | Week 1 | 100+ upvotes, 50 signups |
-| Open source core (keep LEO closed) | Week 2 | 500 GitHub stars |
-| Demo video (60 sec) | Week 1 | 10K views |
-| Landing page + waitlist | Week 1 | 1,000 signups |
-| First 100 paying users | Month 3 | $2-5K MRR |
-
-### Target Early Adopters
-
-1. Power users running multiple Claude Code instances
-2. Indie hackers with 5+ active projects
-3. Consultants managing multiple client codebases
-4. Agency developers juggling client work
-
-### Distribution Channels
-
-| Channel | Cost | Expected Users |
-|---------|------|----------------|
-| Hacker News | Free | 500-2,000 |
-| Twitter/X tech community | Free | 1,000-5,000 |
-| YouTube demos | Free | 2,000-10,000 |
-| Dev.to / Hashnode articles | Free | 500-2,000 |
-| Product Hunt launch | Free | 1,000-3,000 |
-
-**Total Marketing Budget:** $0 (product-led growth)
+- **Monthly Revenue:** $49
+- **Gross Margin:** 85%
+- **CAC:** $150 (target)
+- **LTV:** $1,176 (24-month avg retention)
+- **LTV:CAC Ratio:** 7.8x
 
 ---
 
-## Competitive Landscape
+## Financial Projections
+
+### Revenue Forecast
+
+| Year | ARR | Users | Enterprise Seats | Key Milestones |
+|------|-----|-------|------------------|----------------|
+| **2026** | $500K | 5,000 | 100 | Product launch, seed funding |
+| **2027** | $5M | 40,000 | 1,000 | Series A, team expansion |
+| **2028** | $25M | 150,000 | 5,000 | Series B, international |
+| **2029** | $100M | 500,000 | 20,000 | Enterprise focus |
+| **2030** | $300M | 1,000,000 | 50,000 | IPO/Acquisition ready |
+
+### Key Assumptions
+
+- 15% month-over-month user growth (Years 1-2)
+- 5% free-to-paid conversion rate
+- 90% annual retention (Pro), 95% (Enterprise)
+- $50K average enterprise contract value
+
+### Path to Profitability
+
+- **Break-even:** Q4 2028 at ~$20M ARR
+- **Cash burn rate:** $500K/month (2027)
+- **Total funding required:** $30M through Series B
+
+---
+
+## Valuation Framework
+
+### Comparable Company Analysis
+
+| Company | ARR | Valuation | Multiple |
+|---------|-----|-----------|----------|
+| Cursor (2024) | $100M | $2.5B | 25x |
+| Cursor (Nov 2025) | $1B | $29.3B | 29x |
+| Cursor (Apr 2026) | $4B | $50B+ | 12.5x |
+| Replit (2026) | $525M | $9B | 17x |
+| GitHub (2018 acq) | ~$300M | $7.5B | 25x |
+
+### Flowrider Valuation Scenarios
+
+**Conservative (12x ARR)**
+| Year | ARR | Valuation |
+|------|-----|-----------|
+| 2027 | $5M | $60M |
+| 2028 | $25M | $300M |
+| 2029 | $100M | $1.2B |
+| 2030 | $300M | $3.6B |
+
+**Aggressive (25x ARR - Cursor trajectory)**
+| Year | ARR | Valuation |
+|------|-----|-----------|
+| 2027 | $5M | $125M |
+| 2028 | $25M | $625M |
+| 2029 | $100M | $2.5B |
+| 2030 | $300M | $7.5B |
+
+**Acquisition Premium Scenario (30-40x)**
+- Strategic acquisition by Microsoft/Google/SpaceX
+- 2030 potential exit: **$9-12B**
+
+---
+
+## Competitive Analysis
 
 ### Direct Competitors
 
-None identified. No existing tool orchestrates multiple AI coding sessions.
+**Cursor (Anysphere)** - $50B+ valuation
+- Strengths: VSCode-native, fastest growth ever, SpaceX backing
+- Weaknesses: Single session, no orchestration layer
+- Flowrider Position: Complementary - we orchestrate Cursor sessions
 
-### Adjacent Tools
+**GitHub Copilot** - 20M users
+- Strengths: GitHub integration, Microsoft backing
+- Weaknesses: Inline only, no terminal, single context
+- Flowrider Position: Different paradigm - we're session-based
 
-| Tool | What They Do | Our Advantage |
-|------|--------------|---------------|
-| Cursor | Single AI coding session | We run 20 Cursors |
-| tmux | Terminal multiplexer | We add AI orchestration |
-| VS Code | IDE | We're provider-agnostic |
-| Warp | Modern terminal | We focus on AI sessions |
+**Replit** - $9B valuation
+- Strengths: Browser-based, accessibility, education market
+- Weaknesses: Not terminal-native, web-only
+- Flowrider Position: Power user segment they can't reach
 
-### Defensibility
+### Indirect Competitors
 
-1. **Novel Architecture** - LEO meta-orchestration is genuinely new
-2. **3D Interface** - Unique UX for session management
-3. **Provider Agnostic** - Works with any AI (Claude, GPT, Ollama, local)
-4. **Network Effects** - Team features create switching costs
-5. **ESG Compliance Ready** - Energy tracking for sustainability reporting (enterprise requirement)
+**Claude Code (Anthropic)** - Growing rapidly
+- Flowrider orchestrates Claude Code sessions
+- Partnership opportunity rather than competition
 
-### ESG / Sustainability Advantage
+**Windsurf/Codeium** - Emerging players
+- Similar single-session limitations
+- Flowrider can orchestrate any of them
 
-Enterprise customers increasingly require sustainability metrics for procurement decisions:
-- **Energy tracking per AI provider** - Real-time watt-hours consumed
-- **Baseline comparison** - Shows energy savings vs worst-case provider
-- **Export-ready metrics** - Dashboard data for ESG reports
-- **Green AI routing** - Intelligent routing to lower-energy providers when appropriate
+### Moat & Defensibility
 
-This differentiates Flowrider for enterprise sales where ESG compliance is mandatory.
+1. **Network Effects** - Session templates, shared configurations
+2. **Switching Costs** - Project data, trained workflows, team familiarity
+3. **Data Advantage** - Cross-session patterns only we can learn from
+4. **Brand** - "Flowrider" as a verb for parallel AI coding
+5. **LEO Architecture** - First-mover in meta-orchestration
+6. **Organizational AI** - Custom-trained models that know YOUR codebase
+
+---
+
+## LEO Learning: The Intelligence Layer
+
+### The Long-Term Vision
+
+The orchestration platform is just the entry point. The real value is in **LEO Learning** - a self-improving AI system that turns session data into organizational intelligence.
+
+```
+Year 1:  LEO orchestrates AI agents
+Year 2:  LEO learns from outcomes
+Year 3:  LEO trains custom models
+Year 4:  LEO becomes organizational intelligence
+```
+
+### What LEO Learns
+
+**1. Pattern Detection** (Already Built - `Analyzer.ts`)
+- Error patterns and their successful solutions
+- Code patterns (common snippets, idioms)
+- Workflow patterns (sequences of actions that succeed)
+- Prompt patterns (effective ways of asking for things)
+
+**2. Interaction Tracking**
+```typescript
+interface CodeInteraction {
+  prompt: string;
+  response: string;
+  outcome: 'accepted' | 'modified' | 'rejected';
+  testsPassed?: boolean;
+  buildSucceeded?: boolean;
+  revertedWithin24h?: boolean;
+}
+```
+
+**3. Cross-Session Insights**
+- Patterns that work across multiple projects
+- Team coding style preferences
+- Domain-specific knowledge accumulation
+
+### Training Pipeline
+
+| Phase | Data Required | Cost | Output |
+|-------|---------------|------|--------|
+| **Pattern Extraction** | 10K interactions | $50-100/mo | Pattern database |
+| **LoRA Fine-Tuning** | 50K interactions | $100-400/mo | Org-specific adapter |
+| **Model Distillation** | 100K interactions | $500/mo | LEO-Lite (local, $0) |
+| **Custom Model** | 10M+ interactions | $50K/mo | Full enterprise AI |
+
+### Business Value
+
+**For Individual Users:**
+- AI that remembers your coding style
+- Automatic error detection with proven fixes
+- Personalized workflow suggestions
+
+**For Teams:**
+- Shared team knowledge (style guides auto-generated)
+- New developer onboarding acceleration
+- Cross-project pattern sharing
+
+**For Enterprise:**
+- Proprietary AI asset (your LEO knows YOUR domain)
+- Massive cost reduction (90%+ savings vs cloud APIs)
+- Compliance-friendly (data never leaves your infrastructure)
+
+### ROI Example (Mid-Market: 50-200 developers)
+
+```
+Current State:
+- Claude/Gemini API costs: $25,000/month
+- Developer time lost to context switching: $50,000/month
+
+With LEO Learning (Year 2):
+- LEO-Lite (local inference): $0
+- Pattern extraction: $200/month
+- LoRA training: $800/month
+- Cloud APIs (edge cases only): $2,500/month
+- Total: $3,500/month
+
+Monthly Savings: $71,500
+Annual ROI: 2,040%
+```
+
+### Data Sovereignty & Privacy
+
+```
+✓ Training data on YOUR infrastructure
+✓ Model weights owned by YOU
+✓ No telemetry to Flowrider
+✓ GDPR/SOC2/HIPAA compatible
+✓ Data never shared between organizations
+```
+
+### Competitive Advantage
+
+**Why competitors can't copy this:**
+
+1. **Data moat**: We collect interaction data others don't have access to
+2. **Multi-session context**: Single-session tools can't see cross-project patterns
+3. **Time advantage**: Each user session makes LEO smarter
+4. **Network effects**: More users = better pattern library
+
+**Long-term position:**
+> "By 2030, Flowrider's LEO isn't just a tool - it's an AI team member that knows your organization better than any new hire ever could."
+
+---
+
+## Acquisition Strategy
+
+### Tier 1 Acquirers (Most Likely)
+
+#### SpaceX / SpaceXAI
+**Why:** Just acquired Cursor for $60B. Flowrider extends their developer tools portfolio.
+- SpaceX is building "agentic engineering tools" and "engineering MCP servers"
+- Flowrider's orchestration layer fits their multi-agent vision
+- **Potential Value:** $1-3B (as Cursor add-on)
+
+#### Microsoft
+**Why:** GitHub + Copilot integration, enterprise developer market
+- Own GitHub (28M users), VS Code, Azure
+- Flowrider fills orchestration gap in their stack
+- **Potential Value:** $2-5B (strategic premium)
+
+#### Anthropic
+**Why:** Claude Code usage explosion, need distribution
+- Flowrider is a Claude Code multiplier
+- Partnership or acquisition makes Claude dominant
+- **Potential Value:** $500M-2B (early strategic)
+
+### Tier 2 Acquirers
+
+#### Google (DeepMind/Gemini)
+- Gemini Code Assist needs differentiation from Copilot
+- Flowrider + Gemini = unique enterprise offering
+
+#### Meta
+- CodeLlama distribution play
+- Internal engineering tool standardization
+
+#### Salesforce
+- Developer productivity vertical expansion
+- DevOps/CI integration opportunity
+
+### Acquisition Timing
+
+**Optimal Window:** 2028-2030
+- Post $25M+ ARR (proven revenue)
+- Pre-IPO (before excessive dilution)
+- During AI consolidation wave
+
+**Signal Metrics:**
+- 100K+ active users
+- Fortune 500 enterprise contracts
+- 95%+ retention
+- Clear path to $100M ARR
+
+---
+
+## Strategic Roadmap
+
+### Phase 1: Foundation (2026)
+- [x] Core orchestration platform
+- [x] 20-session management
+- [x] Multi-provider support
+- [ ] Public beta launch
+- [ ] Seed funding ($2-3M)
+
+### Phase 2: Growth (2027)
+- [ ] Team collaboration features
+- [ ] Session marketplace
+- [ ] Enterprise SSO/compliance
+- [ ] Series A ($15M)
+- [ ] 50K user milestone
+
+### Phase 3: Scale (2028)
+- [ ] LEO meta-orchestration GA
+- [ ] API platform launch
+- [ ] International expansion
+- [ ] Series B ($50M)
+- [ ] 200K user milestone
+
+### Phase 4: Exit-Ready (2029-2030)
+- [ ] $100M+ ARR
+- [ ] Fortune 500 penetration
+- [ ] IPO or strategic acquisition
+- [ ] 1M+ user milestone
 
 ---
 
 ## Funding Strategy
 
-### Cursor's Funding History
+### Seed Round (Q3 2026)
+- **Amount:** $2.5M
+- **Valuation:** $12M pre-money
+- **Use of Funds:**
+  - Engineering team (3 hires): 50%
+  - Infrastructure/hosting: 25%
+  - Marketing/growth: 15%
+  - Operations: 10%
 
-| Round | Amount | Valuation | Date |
-|-------|--------|-----------|------|
-| Seed | $8M | ~$40M | 2023 |
-| Series A | $60M | $400M | Aug 2024 |
-| Series B | $105M | $2.5B | Dec 2024 |
-| Series C | - | $9B | May 2025 |
-| Series D | $2.3B | $29.3B | Nov 2025 |
+### Series A (Q2 2027)
+- **Amount:** $15M
+- **Valuation:** $75M pre-money
+- **Milestones Required:**
+  - 10K paying users
+  - $2M ARR
+  - 3+ enterprise pilots
 
-Source: [Contrary Research](https://research.contrary.com/company/cursor), [Value Add VC](https://valueaddvc.com/blog/cursor-ai-valuation-how-a-code-editor-became-a-9b-company)
-
-### Our Target Path
-
-| Round | Target | Valuation | Timeline | Requirements |
-|-------|--------|-----------|----------|--------------|
-| **Pre-seed** | $500K | $5M | Q3 2026 | 1K users, working product |
-| **Seed** | $2-3M | $20-30M | Q1 2027 | 5K users, $10K MRR |
-| **Series A** | $30-60M | $400M | Q1 2028 | 50K users, $5M ARR |
-
-### Target Investors
-
-Based on [top dev tools investors](https://evilmartians.com/chronicles/top-16-developer-tool-investors-and-vcs-going-into-2025):
-
-| Investor | Why | Notable Investments |
-|----------|-----|---------------------|
-| OpenAI Startup Fund | Backed Cursor seed | Cursor, dev tools focus |
-| Andreessen Horowitz (a16z) | Most active in dev tools | Cursor, Anduril |
-| Thrive Capital | Led multiple Cursor rounds | Cursor Series B, C, D |
-| Firestreak Ventures | Fast (2-3 week term sheets) | Anthropic, Hugging Face |
-| Y Combinator | Accelerator + network | Cursor went through OpenAI's |
-
-### Alternative Funding
-
-| Source | Amount | Equity | Notes |
-|--------|--------|--------|-------|
-| SBIR Phase I | $275K | 0% | 6 months R&D |
-| SBIR Phase II | $1.8M | 0% | 24 months |
-| Revenue | - | 0% | Bootstrap if needed |
+### Series B (Q1 2028)
+- **Amount:** $50M
+- **Valuation:** $300M pre-money
+- **Milestones Required:**
+  - 100K users
+  - $15M ARR
+  - 20+ enterprise contracts
 
 ---
 
-## Key Metrics for Investors
+## Risk Analysis
 
-Based on [current VC expectations](https://insights.tryspecter.com/devtools-landscape-2025/):
+### Technical Risks
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| AI provider API changes | High | Medium | Multi-provider abstraction |
+| Performance at scale | Medium | High | Incremental scaling, benchmarks |
+| Security vulnerabilities | Low | Critical | SOC2 compliance, audits |
 
-| Metric | Target | Industry Benchmark |
-|--------|--------|-------------------|
-| Burn Multiple | <1.5x | Median 1.8x (2024) |
-| Monthly Growth | 15-20% | Cursor: 50%+ |
-| DAU/MAU | >30% | Strong engagement |
-| Net Revenue Retention | >120% | Expansion revenue |
-| CAC Payback | <12 months | Efficient growth |
+### Market Risks
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Cursor builds orchestration | Medium | High | Speed to market, differentiation |
+| AI commoditization | High | Medium | Focus on workflow, not models |
+| Economic downturn | Medium | Medium | Enterprise focus, efficiency pitch |
 
----
-
-## Team
-
-### Current
-
-- **Zachary Kramer** - Founder, Josephas LLC
-  - Background: [Your relevant experience]
-  - Other projects: tenfourOS, nightjarOS, alotallamasOS
-
-### Hiring Plan
-
-| Role | Timeline | Priority |
-|------|----------|----------|
-| Full-stack engineer | Post-seed | High |
-| Developer advocate | Post-seed | High |
-| Designer | Series A | Medium |
+### Competitive Risks
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Well-funded competitor | High | Medium | Community, open-source components |
+| Microsoft/Google entry | Medium | High | Acquisition target positioning |
 
 ---
 
-## Risks & Mitigations
+## Team Requirements
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| AI providers build this | Medium | High | Stay provider-agnostic |
-| Market timing too early | Low | Medium | Market is hot now |
-| Technical complexity | Medium | Medium | Focus on stability |
-| Competition emerges | Medium | Medium | Move fast, build moat |
+### Current (Founder)
+- Full-stack engineering
+- Product vision
+- Initial customers
 
----
+### Seed Stage (+3)
+- Senior Backend Engineer (Go/Rust)
+- Senior Frontend Engineer (React/Electron)
+- DevRel / Growth
 
-## 90-Day Action Plan
-
-### Week 1-2: Launch Prep
-
-- [ ] Sign macOS DMG (Apple Developer cert)
-- [ ] Create demo video (60 seconds)
-- [ ] Build landing page (flowrider.dev)
-- [ ] Write README with clear value prop
-- [ ] Prepare HN "Show HN" post
-
-### Week 3-4: Public Launch
-
-- [ ] Post to Hacker News
-- [ ] Share on Twitter/X
-- [ ] Engage with early users
-- [ ] Collect feedback, iterate
-
-### Month 2: Iterate
-
-- [ ] Fix bugs from user feedback
-- [ ] Add most-requested features
-- [ ] Start charging ($29/mo Pro tier)
-- [ ] Hit 100 paying users
-
-### Month 3: Scale
-
-- [ ] Product Hunt launch
-- [ ] First YouTube tutorials
-- [ ] Reach $5K MRR
-- [ ] Begin investor conversations
+### Series A (+8)
+- VP Engineering
+- VP Sales (Enterprise)
+- 3x Engineers
+- 1x Designer
+- 1x Customer Success
 
 ---
 
 ## Appendix
 
-### A. Market Research Sources
+### Key Metrics Dashboard
 
-- [TechCrunch: SpaceX Cursor Acquisition](https://techcrunch.com/2026/06/16/spacex-to-acquire-cursor-for-60b-in-stock-days-after-blockbuster-ipo/)
-- [AI Coding Assistant Market Share 2026](https://www.ideaplan.io/blog/ai-coding-assistant-market-share-2026)
-- [Bloomberg: Cursor $50B Valuation](https://www.bloomberg.com/news/articles/2026-03-12/ai-coding-startup-cursor-in-talks-for-about-50-billion-valuation)
-- [Contrary Research: Cursor](https://research.contrary.com/company/cursor)
-- [Cursor: Fastest Growing SaaS](https://www.spearhead.so/blogs/cursor-by-anysphere-the-fastest-growing-saas-product-ever)
-- [Top 16 Dev Tool Investors 2025](https://evilmartians.com/chronicles/top-16-developer-tool-investors-and-vcs-going-into-2025)
-- [DevTools Landscape 2025](https://insights.tryspecter.com/devtools-landscape-2025/)
+**North Star Metric:** Weekly Active Sessions (WAS)
+- Target: 100K WAS by end of 2027
 
-### B. Technical Documentation
+**Supporting Metrics:**
+- Sessions per user (target: 8+)
+- Cost per session tracked
+- Cross-session actions
+- Time-to-first-session
 
-- [BUILD.md](docs/BUILD.md) - Build instructions
-- [CLAUDE.md](CLAUDE.md) - Development guide
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System design
+### Glossary
 
-### C. Current Release
+- **LEO:** Meta-orchestration layer (20 Flowriders = 400 sessions)
+- **Session:** A single AI-powered terminal context
+- **Face:** One of 20 icosahedron faces representing a session slot
+- **Provider:** AI backend (Claude, Gemini, Grok, Copilot, Meta AI, Ollama, etc.)
 
-- **Version:** 0.1.0
-- **Platforms:** macOS (arm64, x64)
-- **Download:** [GitHub Releases](https://github.com/josephas-llc/flowrider/releases/tag/v0.1.0)
+### Market Research Sources
+
+- [Mordor Intelligence: AI Code Tools Market](https://www.mordorintelligence.com/industry-reports/artificial-intelligence-code-tools-market)
+- [CNBC: Cursor $50B Funding Round](https://www.cnbc.com/2026/04/19/cursor-ai-2-billion-funding-round.html)
+- [TechCrunch: Replit $9B Valuation](https://techcrunch.com/2026/03/11/replit-snags-9b-valuation-6-months-after-hitting-3b/)
+- [SpaceX AI Engineering Initiatives](https://www.techdigest.tv/2026/06/spacex-accelerates-ai-push-with-engineering-hires-reveals-globaldata.html)
+- [Microsoft GitHub Acquisition](https://techcrunch.com/2018/06/04/microsoft-has-acquired-github-for-7-5b-in-microsoft-stock/)
 
 ---
 
-*Document generated: July 2026*
-*Flowrider v0.1.0*
-*Josephas LLC*
+*Document Version: 2.0*
+*Last Updated: July 2026*
+*Contact: Josephas LLC*

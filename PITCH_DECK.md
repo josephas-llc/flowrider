@@ -1,569 +1,389 @@
-# FLOWRIDER PITCH DECK
+# Flowrider Investor Pitch Deck
+## AI Session Orchestration Platform
 
-## The Command Center for AI Engineering Teams
-
-> "20 AI agents. One control tower."
-
----
-
-## Slide 1: The Problem
-
-### AI coding tools are stuck in single-player mode
-
-| Tool | Sessions | Reality |
-|------|----------|---------|
-| Cursor | 1 at a time | Context-switch constantly |
-| Copilot | 1 suggestion | No parallel work |
-| Claude Code | 1 conversation | Start over each task |
-
-**Meanwhile, your backlog has 50 tickets.**
-
-*"It's like having 20 developers but only being allowed to talk to one."*
+**Confidential - July 2026**
 
 ---
 
-## Slide 2: The Solution
+## Slide 1: Title
 
-### Flowrider: Parallel AI orchestration
+# **FLOWRIDER**
+### Run 20 AI Sessions in Parallel
 
-- Run **20 AI coding sessions** simultaneously
-- Each icosahedron face = one task, one context, one AI agent
-- Switch between them instantly
-- They can **talk to each other**
+*The Meta-Orchestration Layer for AI Development*
 
-**One interface. Twenty agents. Your entire sprint.**
+**Seed Round: $2.5M**
 
 ---
 
-## Slide 3: How It Works
+## Slide 2: The Problem
 
-### The Icosahedron Interface
+### Developers Are Bottlenecked
 
-```
-        ◇ ─── ◇
-       /│\   /│\
-      ◇─┼─◇─┼─◇     ← 20 faces = 20 sessions
-       \│/ \ │/
-        ◇ ─── ◇
-```
+**Current Reality:**
+- Cursor, Copilot, Claude Code = **1 session at a time**
+- Developers manage 5-10 projects simultaneously
+- Context switching kills productivity
+- No visibility into AI costs across projects
 
-1. **Click a face** → Open a session
-2. **Assign a task** → "Build the auth API"
-3. **Pick your AI** → Claude, GPT, Gemini, Grok, or FREE local LLMs
-4. **Let it work** → Monitor from the command center
-5. **Repeat x20** → Parallel productivity
+**The Pain:**
+> "I have 8 client projects. Each needs AI help. But I can only work on ONE at a time."
+> — Every agency developer
+
+**Market Signal:** Cursor just sold to SpaceX for $60B. The demand is real.
 
 ---
 
-## Slide 4: Model Agnostic = Cost Control
+## Slide 3: The Solution
 
-### You choose the AI. You control the cost.
-
-| Provider | Best For | Cost/M Tokens |
-|----------|----------|---------------|
-| Claude Opus | Complex reasoning | $15 |
-| GPT-4o | General coding | $10 |
-| Gemini 2.0 | Long context | $7 |
-| Grok 2 | Real-time data | $5 |
-| **Ollama/Local** | **Routine tasks** | **$0** |
-
-### Smart Routing Strategy
+### Flowrider: 20 AI Sessions, One Command Center
 
 ```
 ┌─────────────────────────────────────────────┐
-│           YOUR 20 SESSIONS                  │
-├─────────────────────────────────────────────┤
-│  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐           │
-│  │Local│ │Local│ │Local│ │Local│  80%      │
-│  │ $0  │ │ $0  │ │ $0  │ │ $0  │  FREE     │
-│  └─────┘ └─────┘ └─────┘ └─────┘           │
-│                                             │
-│  ┌─────────┐ ┌─────────┐                   │
-│  │ Claude  │ │  GPT-4  │  20% Cloud        │
-│  │ Complex │ │ Complex │  (when needed)    │
-│  └─────────┘ └─────────┘                   │
-└─────────────────────────────────────────────┘
-
-Result: 10x cost reduction vs. all-cloud approach
+│          FLOWRIDER COMMAND CENTER           │
+├─────┬─────┬─────┬─────┬─────┬─────┬─────────┤
+│  1  │  2  │  3  │  4  │  5  │ ... │   20    │
+│ API │ Web │ iOS │ ML  │ CLI │     │ DevOps  │
+└─────┴─────┴─────┴─────┴─────┴─────┴─────────┘
+         ↓         ↓         ↓
+    Claude    Gemini     Grok     Ollama
 ```
+
+**Key Features:**
+- **20 concurrent AI sessions** (vs. 1 for competitors)
+- **Multi-provider support** (Claude, Gemini, Grok, Copilot, Meta AI, Apple Intelligence, local LLMs)
+- **Cost tracking dashboard** (real-time spend visibility)
+- **Cross-session awareness** (AI understands your full portfolio)
+- **Terminal-native** (power user productivity)
 
 ---
 
-## Slide 5: Enterprise Features
+## Slide 4: Market Opportunity
 
-| Feature | What It Does | Why It Matters |
-|---------|--------------|----------------|
-| **ROI Dashboard** | Track AI cost vs. developer time saved | Justify AI spend to CFO |
-| **MCP Integration** | Connect to any tool (git, DB, browser) | 97M+ SDK downloads |
-| **A2A Protocol** | Sessions share context automatically | Coordinated agents |
-| **Audit Trail** | Full activity logging | EU AI Act compliance |
-| **SSO/SAML** | Enterprise identity management | IT-approved deployment |
+### $79B Market by 2031
 
----
+| Metric | Value |
+|--------|-------|
+| **TAM (2026)** | $12.8 billion |
+| **TAM (2031)** | $79 billion |
+| **CAGR** | 37.4% |
+| **SAM** | $3.2B (enterprise dev tools) |
+| **SOM (Year 3)** | $50M ARR |
 
-## Slide 6: LEO MODE - The 10x Upgrade
-
-### **L**ocal **E**xecutive **O**rchestrator
-
-```
-┌────────────────────────────────────────────────────────┐
-│                                                        │
-│   FLOWRIDER (Today)          LEO MODE (Tomorrow)       │
-│                                                        │
-│      ◇                           ⬡                     │
-│     /|\                        / | \                   │
-│    ◇─◇─◇                    ◇   ◇   ◇                  │
-│     \|/                    /|\ /|\ /|\                 │
-│      ◇                    ◇─◇ ◇─◇ ◇─◇                  │
-│                            \|/ \|/ \|/                 │
-│   20 sessions              ◇   ◇   ◇                   │
-│                                                        │
-│                         20 Flowriders                  │
-│                         = 400 sessions                 │
-│                                                        │
-└────────────────────────────────────────────────────────┘
-```
-
-**One Flowrider = 20 sessions**
-**LEO Mode = 20 Flowriders = 400 sessions**
+**Recent Valuations Prove the Market:**
+- Cursor: $50B+ → Acquired by SpaceX for ~$60B
+- Replit: $9B (March 2026)
+- GitHub: $7.5B (2018 acquisition)
 
 ---
 
-## Slide 7: LEO Architecture
+## Slide 5: Traction
 
-```
-                         ┌─────────────────┐
-                         │      LEO        │
-                         │  (Your Control) │
-                         └────────┬────────┘
-                                  │
-           ┌──────────────────────┼──────────────────────┐
-           │                      │                      │
-      ┌────▼────┐           ┌────▼────┐           ┌────▼────┐
-      │Flowrider│           │Flowrider│           │Flowrider│
-      │    1    │           │    2    │           │   ...   │
-      │(20 sess)│           │(20 sess)│           │(20 sess)│
-      └────┬────┘           └────┬────┘           └────┬────┘
-           │                     │                     │
-      ┌────▼────┐           ┌────▼────┐           ┌────▼────┐
-      │Project A│           │Project B│           │Project N│
-      │tenfourOS│           │ flatland│           │ texian  │
-      └─────────┘           └─────────┘           └─────────┘
-```
+### Early Signals
 
-**One human. 400 AI agents. Entire portfolio.**
+**Product:**
+- ✅ Full MVP complete
+- ✅ 20-session management working
+- ✅ Multi-provider integration (Claude, Gemini, Grok, Copilot, Meta AI, Ollama)
+- ✅ Cost tracking implemented
+- ✅ LEO meta-orchestration designed (400 sessions)
+
+**Technical Validation:**
+- Built with Electron + React + Three.js
+- tmux-powered native terminal performance
+- SQLite persistence for session data
+- TypeScript throughout (type-safe)
+
+**Next Milestone:** Public beta launch
 
 ---
 
-## Slide 8: LEO Use Cases
+## Slide 6: Business Model
 
-### Today (Flowrider)
-- Individual developer productivity
-- One project at a time
-- 20 parallel tasks
+### SaaS + Usage Revenue
 
-### Tomorrow (LEO Mode)
+| Tier | Price | Sessions | Target |
+|------|-------|----------|--------|
+| **Free** | $0/mo | 3 | Individual devs |
+| **Pro** | $49/mo | 20 | Power users |
+| **Team** | $199/mo | 100 (5 seats) | Agencies |
+| **Enterprise** | Custom | Unlimited | F500 |
 
-| Use Case | Scale | Example |
-|----------|-------|---------|
-| **Multi-Repo Development** | 20 Flowriders | Work on your entire GitHub portfolio simultaneously |
-| **Monorepo at Scale** | 400 sessions | Frontend, backend, mobile, infra - all in parallel |
-| **Agency/Consultancy** | Per-client Flowriders | Manage 20 client projects from one seat |
-| **Enterprise Platform Team** | Org-wide orchestration | Provision AI capacity to 50 dev teams |
-| **Open Source Maintainer** | Cross-project coordination | Triage issues across 20 repos at once |
-| **Startup CTO** | Full stack in parallel | API + Web + Mobile + DevOps simultaneously |
+**Additional Revenue:**
+- API pass-through (5% margin)
+- Marketplace (30% commission)
 
----
-
-## Slide 9: LEO Intelligence Layer
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     LEO INTELLIGENCE                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐   │
-│  │   ATTENTION   │  │   AUTONOMY    │  │   RESOURCE    │   │
-│  │    SYSTEM     │  │    LEVELS     │  │   ALLOCATOR   │   │
-│  └───────────────┘  └───────────────┘  └───────────────┘   │
-│                                                             │
-│  • Priority scoring     • Display only     • Load          │
-│  • Escalation rules     • Suggest            balancing     │
-│  • Notifications        • Auto-approve     • Cost          │
-│  • Focus management     • Full autonomy      routing       │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐   │
-│  │    PATTERN    │  │    MEMORY     │  │   LEARNING    │   │
-│  │   DETECTOR    │  │     STORE     │  │    MODULE     │   │
-│  └───────────────┘  └───────────────┘  └───────────────┘   │
-│                                                             │
-│  • Cross-session        • Long-term        • Feedback      │
-│    insights               context            loops         │
-│  • Dependency           • Project          • Improve       │
-│    detection              history            over time     │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+**Unit Economics (Pro):**
+- Gross Margin: 85%
+- CAC: $150 target
+- LTV: $1,176 (24-mo retention)
+- LTV:CAC: **7.8x**
 
 ---
 
-## Slide 10: LEO Autonomy Levels
+## Slide 7: Go-to-Market
 
-### You control how much LEO does on its own
+### Developer-First Growth
 
-| Level | Name | LEO Behavior | Use When |
-|-------|------|--------------|----------|
-| 0 | **Display** | Shows suggestions, you do everything | Learning the system |
-| 1 | **Suggest** | Proposes actions, you approve each one | New projects |
-| 2 | **Auto-Safe** | Executes safe actions, asks for risky ones | Daily work |
-| 3 | **Auto-Review** | Executes most actions, you review results | Trusted workflows |
-| 4 | **Full Auto** | Executes everything within guardrails | Background tasks |
+**Phase 1: Community (2026)**
+- Open-source components for goodwill
+- Twitter/X developer community
+- Hacker News launches
+- YouTube tutorials and demos
 
-### Guardrails Built-In
+**Phase 2: Virality (2027)**
+- "Built with Flowrider" badge
+- Session template marketplace
+- Referral program (1 month free)
 
-- No destructive git operations without approval
-- Cost caps per session/project
-- Escalation to human for edge cases
-- Full audit trail of all actions
-- Configurable per-project policies
+**Phase 3: Enterprise (2028+)**
+- Outbound sales team
+- SOC2 compliance
+- SSO integration
+- Dedicated success managers
 
 ---
 
-## Slide 11: LEO Escalation Protocol
+## Slide 8: Competition
+
+### We Orchestrate the Competition
+
+| Feature | Cursor | Copilot | Replit | **Flowrider** |
+|---------|--------|---------|--------|---------------|
+| Concurrent Sessions | 1 | 1 | 1 | **20+** |
+| Multi-Provider | ❌ | ❌ | Limited | **✅** |
+| Cost Tracking | ❌ | ❌ | Basic | **Advanced** |
+| Terminal Native | ❌ | ❌ | ❌ | **✅** |
+| Orchestration | ❌ | ❌ | ❌ | **✅** |
+| Local LLMs | ❌ | ❌ | ❌ | **✅** |
+
+**Key Insight:** We don't compete with Cursor—we orchestrate Cursor sessions.
+
+---
+
+## Slide 9: Moat & Defensibility
+
+### Five Layers of Protection
+
+1. **Network Effects**
+   - Shared session templates
+   - Community configurations
+   - More users = better templates
+
+2. **Switching Costs**
+   - Project data locked in
+   - Trained workflows
+   - Team familiarity
+
+3. **Data Advantage**
+   - Cross-session patterns only we can learn
+   - Multi-project insights
+
+4. **Brand**
+   - "Flowrider" as a verb for parallel AI coding
+
+5. **First-Mover**
+   - LEO meta-orchestration architecture
+   - 400-session capability
+
+---
+
+## Slide 10: Team
+
+### Building Something Different
+
+**Founder: Josephas LLC**
+- Full-stack engineering background
+- Product vision and initial development
+- Customer-driven iteration
+
+**Hiring with Seed:**
+- Senior Backend Engineer (Go/Rust)
+- Senior Frontend Engineer (React/Electron)
+- DevRel / Growth Lead
+
+**Why Now:**
+- AI coding explosion (Cursor $60B exit)
+- Multi-project reality for developers
+- Terminal renaissance (Warp, Fig, Claude Code)
+
+---
+
+## Slide 11: Financial Projections
+
+### Path to $300M ARR
+
+| Year | ARR | Users | Enterprise | Valuation (12x) |
+|------|-----|-------|------------|-----------------|
+| 2026 | $500K | 5,000 | 100 | $6M |
+| 2027 | $5M | 40,000 | 1,000 | $60M |
+| 2028 | $25M | 150,000 | 5,000 | $300M |
+| 2029 | $100M | 500,000 | 20,000 | $1.2B |
+| 2030 | $300M | 1,000,000 | 50,000 | $3.6B |
+
+**Aggressive Scenario (25x - Cursor trajectory):**
+- 2030 Valuation: **$7.5B**
+
+**Break-even:** Q4 2028 at ~$20M ARR
+
+---
+
+## Slide 12: Exit Paths
+
+### Strategic Value to Giants
+
+**Tier 1 Acquirers:**
+
+| Company | Strategic Fit | Potential Value |
+|---------|--------------|-----------------|
+| **SpaceX/AI** | Just bought Cursor. We extend it. | $1-3B |
+| **Microsoft** | GitHub + Copilot gap filler | $2-5B |
+| **Anthropic** | Claude Code multiplier | $500M-2B |
+
+**Tier 2:**
+- Google (Gemini Code Assist differentiation)
+- Meta (CodeLlama distribution)
+- Salesforce (DevOps vertical)
+
+**Optimal Window:** 2028-2030 (post $25M ARR, pre-IPO)
+
+---
+
+## Slide 13: The Ask
+
+### $2.5M Seed Round
+
+**Valuation:** $12M pre-money
+
+**Use of Funds:**
+
+| Category | Allocation | Purpose |
+|----------|------------|---------|
+| Engineering | 50% | 3 senior hires |
+| Infrastructure | 25% | Hosting, scaling |
+| Growth | 15% | Marketing, DevRel |
+| Operations | 10% | Legal, admin |
+
+**Milestones to Series A:**
+- 10,000 paying users
+- $2M ARR
+- 3+ enterprise pilots
+- Product-market fit proven
+
+---
+
+## Slide 14: Why Now
+
+### Perfect Storm
+
+1. **Cursor Exit Proves Market**
+   - $60B acquisition validates AI dev tools
+   - SpaceX building "agentic engineering"
+
+2. **Multi-Project Reality**
+   - Agencies, consultancies, startup CTOs
+   - Everyone manages multiple codebases
+
+3. **AI Cost Explosion**
+   - No one tracks multi-project AI spend
+   - Flowrider solves this
+
+4. **Terminal Renaissance**
+   - Claude Code, Warp, Fig
+   - Power users want terminal-native
+
+**The market is ready. The need is real. We're building it.**
+
+---
+
+## Slide 15: Let's Build Together
+
+### Contact
+
+**Flowrider - Josephas LLC**
+
+*Run 20 AI sessions in parallel. Because one isn't enough.*
+
+---
+
+# Appendix
+
+## A1: Technical Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                 ESCALATION TIERS                        │
+│                    FLOWRIDER APP                         │
 ├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  TIER 1: Session Level                                  │
-│  ├─ Simple blockers                                     │
-│  ├─ Missing dependencies                                │
-│  └─ Handled by: Individual Flowrider                    │
-│                                                         │
-│  TIER 2: Flowrider Level                               │
-│  ├─ Cross-session conflicts                             │
-│  ├─ Resource contention                                 │
-│  └─ Handled by: Flowrider coordinator                   │
-│                                                         │
-│  TIER 3: LEO Level (Human Required)                    │
-│  ├─ Architectural decisions                             │
-│  ├─ Security implications                               │
-│  ├─ Cost threshold exceeded                             │
-│  └─ Handled by: YOU                                     │
-│                                                         │
+│  React + Three.js (3D Icosahedron Interface)            │
+│  Zustand State Management                                │
+│  xterm.js Terminal Embedding                             │
+├─────────────────────────────────────────────────────────┤
+│  Electron IPC Bridge                                     │
+├─────────────────────────────────────────────────────────┤
+│  Main Process Services:                                  │
+│  - tmux Session Manager                                  │
+│  - Multi-Provider AI Router                              │
+│  - SQLite Persistence                                    │
+│  - Cost Tracking Engine                                  │
 └─────────────────────────────────────────────────────────┘
+          │              │              │
+          ▼              ▼              ▼
+     ┌────────┐    ┌────────┐    ┌────────┐
+     │ Claude │    │ Gemini │    │ Ollama │
+     │  API   │    │  API   │    │ Local  │
+     └────────┘    └────────┘    └────────┘
 ```
 
----
-
-## Slide 12: The Vision
+## A2: LEO Meta-Orchestration
 
 ```
-2024: Developer + AI assistant         (1:1)
-      └─ Copilot, ChatGPT
-
-2025: Developer + AI team              (1:20)    ← FLOWRIDER
-      └─ 20 parallel sessions
-
-2026: Developer + AI department        (1:400)   ← LEO MODE
-      └─ 20 Flowriders, full orchestration
-
-2027: Developer + AI company           (1:∞)     ← LEO NETWORK
-      └─ Distributed LEO instances
+                    ┌─────────────────┐
+                    │       LEO       │
+                    │   (400 total)   │
+                    └────────┬────────┘
+                             │
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+        ▼                    ▼                    ▼
+   ┌─────────┐         ┌─────────┐         ┌─────────┐
+   │Flowrider│         │Flowrider│         │Flowrider│
+   │   (20)  │   ...   │   (20)  │   ...   │   (20)  │
+   └─────────┘         └─────────┘         └─────────┘
+        │                    │                    │
+   20 Sessions          20 Sessions          20 Sessions
 ```
 
-**The future isn't AI replacing developers.**
-**It's developers commanding AI armies.**
+LEO = 20 Flowriders × 20 Sessions = **400 concurrent AI sessions**
 
----
-
-## Slide 13: LEO Roadmap
-
-### Phase 1: Foundation (Now) ✅
-- [x] 20-session Flowrider
-- [x] Multi-provider support (6 providers)
-- [x] Cost tracking & ROI dashboard
-- [x] MCP integration
-- [x] A2A messaging protocol
-- [x] Audit trail
-
-### Phase 2: LEO Core (Q3 2026)
-- [ ] Multi-Flowrider management UI
-- [ ] Cross-project coordination
-- [ ] Attention & notification system
-- [ ] Basic autonomy (Levels 0-2)
-- [ ] Escalation protocol
-
-### Phase 3: LEO Intelligence (Q4 2026)
-- [ ] Pattern detection across sessions
-- [ ] Long-term memory store (SQLite → PostgreSQL)
-- [ ] Learning from user feedback
-- [ ] Advanced autonomy (Levels 3-4)
-- [ ] Resource allocation optimization
-
-### Phase 4: LEO Enterprise (2027)
-- [ ] Team-wide LEO deployment
-- [ ] Role-based access control
-- [ ] Custom guardrails per org
-- [ ] On-premise LEO server
-- [ ] SOC 2 Type II compliance
-
----
-
-## Slide 14: Market Opportunity
-
-### AI Coding Tools Market: $12.8B (2026)
+## A3: Competitive Landscape Map
 
 ```
-┌────────────────────────────────────────────┐
-│                                            │
-│  TAM: $12.8B                               │
-│  ┌────────────────────────────────────┐   │
-│  │                                    │   │
-│  │  SAM: $3.2B (Enterprise/Team)     │   │
-│  │  ┌────────────────────────────┐   │   │
-│  │  │                            │   │   │
-│  │  │  SOM: $320M               │   │   │
-│  │  │  (Early adopters)         │   │   │
-│  │  │                            │   │   │
-│  │  └────────────────────────────┘   │   │
-│  │                                    │   │
-│  └────────────────────────────────────┘   │
-│                                            │
-└────────────────────────────────────────────┘
+                    HIGH ORCHESTRATION
+                          │
+                          │  ★ FLOWRIDER
+                          │
+    LOCAL ────────────────┼──────────────── CLOUD
+                          │
+              Cursor ●    │    ● Copilot
+                          │
+              Replit ●────┤
+                          │
+                    LOW ORCHESTRATION
 ```
 
-### Competitive Landscape
+## A4: Key Metrics Dashboard
 
-| Tool | Sessions | Providers | Local LLMs | LEO-like |
-|------|----------|-----------|------------|----------|
-| Cursor | 1 | 3 | No | No |
-| Copilot | 1 | 1 | No | No |
-| Claude Code | 1 | 1 | No | No |
-| Windsurf | 1 | 2 | No | No |
-| **Flowrider** | **20-400** | **6+** | **Yes** | **Yes** |
+**North Star:** Weekly Active Sessions (WAS)
+- Target: 100K WAS by end of 2027
 
-**Moat:** First-mover in multi-agent orchestration + local-first + LEO vision
-
----
-
-## Slide 15: Business Model
-
-### Pricing Tiers
-
-| Tier | Price | Sessions | LEO | Target |
-|------|-------|----------|-----|--------|
-| **Free** | $0 | 5 | - | Try it out |
-| **Pro** | $49/mo | 20 | - | Solo devs |
-| **Team** | $29/user/mo | 20 | Basic | Small teams |
-| **Enterprise** | Custom | Unlimited | Full | Large orgs |
-
-### LEO Add-ons
-
-| Add-on | Price | Includes |
-|--------|-------|----------|
-| **LEO Starter** | +$99/mo | Up to 5 Flowriders (100 sessions) |
-| **LEO Pro** | +$299/mo | Up to 20 Flowriders (400 sessions) |
-| **LEO Enterprise** | Custom | Unlimited + on-prem option |
-
-### Revenue Projections
-
-| Year | ARR | Key Milestone |
-|------|-----|---------------|
-| Year 1 | $500K | 1K Pro + 50 Team accounts |
-| Year 2 | $3M | LEO launch + 500 Team + 10 Enterprise |
-| Year 3 | $15M | LEO Enterprise traction |
+**Supporting Metrics:**
+- Sessions per user (target: 8+)
+- Cost per session tracked
+- Cross-session actions
+- Time-to-first-session
 
 ---
 
-## Slide 16: Go-to-Market Strategy
-
-### Phase 1: Developer-Led Growth (Now)
-- Open source core on GitHub
-- Build in public (Twitter/X, YouTube)
-- Launch on Product Hunt, Hacker News
-- Dev tool influencer partnerships
-
-### Phase 2: Community (Months 3-6)
-- Discord community (target: 5K members)
-- Plugin/extension marketplace
-- Integration partnerships (VS Code, JetBrains)
-- Technical blog + documentation
-
-### Phase 3: Enterprise (Months 6-12)
-- SOC 2 Type II certification
-- Self-hosted/on-prem option
-- Channel partnerships
-- Enterprise sales team
-
----
-
-## Slide 17: Traction & Proof Points
-
-### Built
-- [x] Working MVP with 3D icosahedron UI
-- [x] 6 AI providers integrated
-- [x] Full dashboard with ROI, MCP, A2A, Activity
-- [x] Demo-ready for investor meetings
-- [x] LEO architecture designed
-
-### Metrics (Add Your Numbers)
-- GitHub stars: ___
-- Waitlist signups: ___
-- Demo requests: ___
-- User testimonials: ___
-
----
-
-## Slide 18: The Team
-
-### [Your Name] - Founder & CEO
-- [Your background]
-- [Relevant experience]
-- Vision: AI-augmented development at scale
-
-### Seeking: Technical Co-Founder
-- Strong backend/systems experience
-- Interest in AI agents, distributed systems
-- Experience with: Electron, tmux, LLM APIs
-- Equity: 20-30% for the right partner
-
-### Advisory (Target)
-- Former Cursor/Copilot engineer
-- Enterprise dev tools GTM expert
-- AI/ML researcher
-
----
-
-## Slide 19: The Ask
-
-### Raising: $1.5M Seed Round
-
-### Use of Funds
-
-```
-┌─────────────────────────────────────────┐
-│                                         │
-│  Engineering (60%)        $900K         │
-│  ├─ 2 Senior Engineers                  │
-│  ├─ LEO development                     │
-│  └─ Infrastructure                      │
-│                                         │
-│  GTM (25%)                $375K         │
-│  ├─ DevRel hire                         │
-│  ├─ Content & community                 │
-│  └─ Launch marketing                    │
-│                                         │
-│  Operations (15%)         $225K         │
-│  ├─ Legal & compliance                  │
-│  ├─ Infrastructure costs                │
-│  └─ Buffer                              │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-### Milestones to Series A
-- Q3 2026: LEO beta launch
-- Q4 2026: 1,000 paid users
-- Q1 2027: $1M ARR
-- Q2 2027: Series A ready ($10-15M)
-
----
-
-## Slide 20: Why Now?
-
-### 5 Tailwinds
-
-1. **AI coding is inevitable**
-   - 90% of devs will use AI tools by 2027
-   - GitHub Copilot has 1.8M paid users already
-
-2. **Multi-agent is the next wave**
-   - Single-agent tools are commoditizing
-   - Orchestration is the unsolved problem
-
-3. **Local LLMs are viable**
-   - Llama 3.2, Mistral, DeepSeek
-   - Free inference changes unit economics
-
-4. **Standards are emerging**
-   - MCP: 97M+ SDK downloads
-   - A2A: 150+ organizations adopting
-   - First-mover advantage on protocols
-
-5. **Enterprise compliance demand**
-   - EU AI Act (August 2026)
-   - Audit trails required by law
-   - On-prem options for regulated industries
-
----
-
-## Slide 21: Contact
-
-### Let's Talk
-
-**[Your Name]**
-- Email: [your@email.com]
-- LinkedIn: [linkedin.com/in/yourname]
-- Twitter/X: [@yourhandle]
-
-**Flowrider**
-- Website: [flowrider.dev]
-- GitHub: [github.com/yourname/flowrider]
-- Demo: [Available on request]
-
----
-
-*"Ready to demo. Ready to build. Ready to scale."*
-
----
-
-## Appendix: Technical Architecture
-
-### Current Stack
-```
-Frontend:     React + TypeScript + Vite
-3D UI:        Three.js + React Three Fiber
-State:        Zustand (persisted)
-Terminal:     xterm.js + tmux
-Desktop:      Electron
-Database:     SQLite (local-first)
-AI:           Multi-provider (6 integrated)
-Protocols:    MCP + A2A
-```
-
-### LEO Architecture (Planned)
-```
-LEO Core:     Rust or Go (performance-critical)
-Coordination: Event-driven (Redis Streams or NATS)
-Storage:      PostgreSQL + SQLite (hybrid)
-Deployment:   Docker + Kubernetes
-Enterprise:   On-prem Helm charts
-```
-
----
-
-## Appendix: Investor Target List
-
-### Tier 1: AI-Focused
-- a]6z (AI fund)
-- Conviction Partners
-- AI Grant
-
-### Tier 2: Dev Tools Specialists
-- Heavybit
-- Unusual Ventures
-- Redpoint
-
-### Tier 3: Seed Generalists
-- First Round Capital
-- Sequoia Scout
-- Y Combinator
-
-### Angels to Target
-- Former GitHub/GitLab execs
-- Cursor/Copilot early engineers
-- Open source maintainers with exits
+*Document Version: 1.0*
+*Prepared: July 2026*
+*Contact: Josephas LLC*

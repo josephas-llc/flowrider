@@ -3577,6 +3577,30 @@
   font-size: 14px;
 }
 
+/* Wizard Trigger Button */
+.wizard-trigger-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(200, 100, 255, 0.15);
+  border: 1px solid rgba(200, 100, 255, 0.4);
+  border-radius: 50%;
+  color: #c864ff;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wizard-trigger-btn:hover {
+  background: rgba(200, 100, 255, 0.25);
+  border-color: #c864ff;
+  color: #fff;
+  transform: scale(1.1);
+}
+
 /* Terminal Layout V2 - Full Width */
 .terminal-layout-v2 {
   flex: 1;
@@ -4033,6 +4057,53 @@
   box-shadow: 0 8px 24px rgba(0, 255, 255, 0.4);
 }
 
+/* Geometric Icons for Wizard */
+.geo-icon {
+  color: var(--accent-cyan);
+  text-shadow:
+    0 0 10px rgba(0, 255, 255, 0.6),
+    0 0 20px rgba(0, 255, 255, 0.3);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.step-icon.geo-icon {
+  font-size: 72px;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 12px rgba(0, 255, 255, 0.4));
+}
+
+.step-icon.geo-icon.success {
+  -webkit-text-fill-color: var(--bg-primary);
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+  -webkit-background-clip: unset;
+  background-clip: unset;
+}
+
+.feature-icon.geo-icon {
+  font-size: 36px;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Geometric Confetti Animation */
+.geo-confetti {
+  color: var(--accent-purple);
+  text-shadow: 0 0 8px rgba(200, 100, 255, 0.5);
+  font-size: 24px;
+}
+
+.confetti-container .geo-confetti:nth-child(1) { color: var(--accent-cyan); }
+.confetti-container .geo-confetti:nth-child(2) { color: var(--accent-purple); }
+.confetti-container .geo-confetti:nth-child(3) { color: var(--accent-green); }
+.confetti-container .geo-confetti:nth-child(4) { color: var(--accent-cyan); }
+.confetti-container .geo-confetti:nth-child(5) { color: var(--accent-purple); }
+.confetti-container .geo-confetti:nth-child(6) { color: var(--accent-green); }
+
 .step-title {
   font-size: 32px;
   font-weight: 700;
@@ -4154,6 +4225,83 @@
   color: var(--accent-cyan);
   font-size: 14px;
   font-weight: 500;
+}
+
+/* Step 2: Describe Your Project */
+.step-describe .describe-form {
+  width: 100%;
+  max-width: 500px;
+}
+
+.step-describe .project-description-input {
+  width: 100%;
+  min-height: 120px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.step-describe .project-description-input:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+}
+
+.step-describe .project-description-input::placeholder {
+  color: var(--text-muted);
+}
+
+.step-describe .describe-tips {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.step-describe .tip-header {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.step-describe .describe-tips ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.step-describe .describe-tips li {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 4px 0;
+  padding-left: 16px;
+  position: relative;
+}
+
+.step-describe .describe-tips li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 4px;
+  height: 4px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+}
+
+.step-describe .skip-hint {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* Step 3: AI Provider Selection */
@@ -4431,4 +4579,155 @@
   .wizard-content {
     padding: 20px;
   }
+}
+
+/* ============================================
+   FILE BROWSER STYLES
+   ============================================ */
+
+.file-browser {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.file-browser-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.file-browser-header .header-icon {
+  color: var(--accent-cyan);
+  font-size: 14px;
+}
+
+.file-browser-header .header-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.file-browser-header .header-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: 'SF Mono', monospace;
+}
+
+.file-tree {
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.file-tree-node {
+  user-select: none;
+}
+
+.file-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.file-tree-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.file-tree-item.selected {
+  background: rgba(0, 255, 255, 0.1);
+  border-left: 2px solid var(--accent-cyan);
+  padding-left: 10px;
+}
+
+.file-tree-item.directory {
+  color: var(--text-primary);
+}
+
+.file-tree-item.file {
+  color: var(--text-secondary);
+}
+
+.tree-chevron {
+  width: 14px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tree-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.file-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+
+.file-tree-item.file .file-icon {
+  color: var(--text-secondary);
+}
+
+.file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'SF Mono', monospace;
+  flex-shrink: 0;
+}
+
+.file-tree-children {
+  /* Indentation handled by inline style */
+}
+
+/* Empty/Loading/Error states */
+.file-browser.empty,
+.file-browser.loading,
+.file-browser.error {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.file-browser-empty-state,
+.file-browser-loading,
+.file-browser-error,
+.file-browser-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.file-browser-empty-state .empty-icon {
+  font-size: 32px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.file-browser-error .error-icon {
+  font-size: 24px;
+  color: var(--accent-yellow);
 }

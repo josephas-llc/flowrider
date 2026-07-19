@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a1a"/>
+      <stop offset="100%" style="stop-color:#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0066aa"/>
+      <stop offset="50%" style="stop-color:#00aaff"/>
+      <stop offset="100%" style="stop-color:#0066aa"/>
+    </linearGradient>
+    <linearGradient id="board" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5e6c8"/>
+      <stop offset="100%" style="stop-color:#d4c4a8"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00ffff"/>
+      <stop offset="50%" style="stop-color:#c864ff"/>
+      <stop offset="100%" style="stop-color:#00ffff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="480" fill="url(#bg)" stroke="url(#glow)" stroke-width="3"/>
+
+  <!-- Wave at bottom -->
+  <path d="M 32 700
+           Q 150 650, 280 720
+           Q 400 780, 512 700
+           Q 624 620, 744 720
+           Q 870 800, 992 700
+           L 992 992 L 32 992 Z"
+        fill="url(#wave)" opacity="0.6"/>
+
+  <!-- Wave foam/curl -->
+  <path d="M 32 720
+           Q 150 680, 280 740
+           Q 400 790, 512 720
+           Q 624 650, 744 740
+           Q 870 810, 992 720"
+        fill="none" stroke="#ffffff" stroke-width="3" opacity="0.4"/>
+
+  <!-- Surfboard (angled, rising on wave) -->
+  <g transform="translate(512, 520) rotate(-15)">
+    <!-- Board body -->
+    <ellipse cx="0" cy="0" rx="220" ry="45" fill="url(#board)" stroke="#8b7355" stroke-width="2"/>
+    <!-- Center stripe -->
+    <line x1="-180" y1="0" x2="180" y2="0" stroke="#00aacc" stroke-width="6" opacity="0.7"/>
+    <!-- Fin shadow -->
+    <path d="M 150 5 L 180 35 L 160 8 Z" fill="#666" opacity="0.5"/>
+  </g>
+
+  <!-- Icosahedron on the surfboard (smaller, centered) -->
+  <g transform="translate(512, 390)">
+    <!-- Outer pentagon -->
+    <polygon points="0,-120 114,-37 70,97 -70,97 -114,-37"
+             fill="none" stroke="#00ffff" stroke-width="3"/>
+
+    <!-- Inner pentagon (rotated) -->
+    <polygon points="0,120 -114,37 -70,-97 70,-97 114,37"
+             fill="none" stroke="#c864ff" stroke-width="3"/>
+
+    <!-- Connecting lines -->
+    <line x1="0" y1="-120" x2="70" y2="-97" stroke="#00ffff" stroke-width="2" opacity="0.7"/>
+    <line x1="0" y1="-120" x2="-70" y2="-97" stroke="#00ffff" stroke-width="2" opacity="0.7"/>
+    <line x1="114" y1="-37" x2="114" y2="37" stroke="#00ffff" stroke-width="2" opacity="0.7"/>
+    <line x1="114" y1="-37" x2="70" y2="-97" stroke="#00ffff" stroke-width="2" opacity="0.7"/>
+    <line x1="70" y1="97" x2="114" y2="37" stroke="#00ffff" stroke-width="2" opacity="0.7"/>
+    <line x1="70" y1="97" x2="0" y2="120" stroke="#c864ff" stroke-width="2" opacity="0.7"/>
+    <line x1="-70" y1="97" x2="0" y2="120" stroke="#c864ff" stroke-width="2" opacity="0.7"/>
+    <line x1="-70" y1="97" x2="-114" y2="37" stroke="#c864ff" stroke-width="2" opacity="0.7"/>
+    <line x1="-114" y1="-37" x2="-114" y2="37" stroke="#c864ff" stroke-width="2" opacity="0.7"/>
+    <line x1="-114" y1="-37" x2="-70" y2="-97" stroke="#c864ff" stroke-width="2" opacity="0.7"/>
+
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="12" fill="#00ffff" opacity="0.9"/>
+  </g>
+
+  <!-- Small spray lines for motion -->
+  <g opacity="0.5" stroke="#ffffff" stroke-width="2" stroke-linecap="round">
+    <line x1="220" y1="580" x2="180" y2="560"/>
+    <line x1="240" y1="620" x2="200" y2="600"/>
+    <line x1="260" y1="560" x2="230" y2="540"/>
+  </g>
+</svg>

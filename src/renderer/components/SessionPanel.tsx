@@ -5,6 +5,9 @@ import { SessionTemplates } from './SessionTemplates';
 import { GitHubRepoClone } from './GitHubRepoClone';
 import { SuggestionPanel } from './SuggestionPanel';
 import { OpenInCursor } from './OpenInCursor';
+import { FileBrowser } from './FileBrowser';
+import { AIModelSelector } from './AIModelSelector';
+import { GitDiffViewer } from './GitDiffViewer';
 
 // Feedback button component
 const FeedbackButton: React.FC<{
@@ -389,10 +392,26 @@ export const SessionPanel: React.FC = () => {
                 <span className="info-value">{selectedSession.workingDir}</span>
               </div>
 
+              {/* AI Model Selector - v0.3.0 Power User Feature */}
+              <AIModelSelector faceIndex={selectedFace} compact={true} />
+
               {/* Open in Cursor IDE button */}
               {selectedSession.workingDir && (
                 <div style={{ marginTop: 12 }}>
                   <OpenInCursor workingDir={selectedSession.workingDir} />
+                </div>
+              )}
+
+              {/* File Browser */}
+              {selectedSession.workingDir && (
+                <div style={{ marginTop: 16 }}>
+                  <FileBrowser
+                    rootPath={selectedSession.workingDir}
+                    onFileSelect={(filePath) => {
+                      console.log('[SessionPanel] File selected:', filePath);
+                    }}
+                    maxHeight="250px"
+                  />
                 </div>
               )}
 
@@ -739,6 +758,11 @@ export const SessionPanel: React.FC = () => {
                   branch: {selectedSession.gitHubRepo.branch}
                 </span>
               </div>
+            </div>
+
+            {/* Git Diff Viewer - v0.3.0 Power User Feature */}
+            <div style={{ marginTop: 16 }}>
+              <GitDiffViewer workingDir={selectedSession.workingDir} />
             </div>
           </div>
         )}

@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('flowrider', {
   // Filesystem utilities
   fs: {
     findLocalRepo: (repoName: string) => ipcRenderer.invoke('fs:findLocalRepo', repoName),
+    readDirectory: (dirPath: string) => ipcRenderer.invoke('fs:readDirectory', dirPath),
+    readFile: (filePath: string, maxBytes?: number) => ipcRenderer.invoke('fs:readFile', filePath, maxBytes),
   },
 
   // Project management (for future)

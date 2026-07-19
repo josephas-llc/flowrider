@@ -6,6 +6,7 @@ export const WelcomeWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedSessionIndex, setSelectedSessionIndex] = useState<number | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>('claude');
+  const [projectDescription, setProjectDescription] = useState('');
 
   const handleSessionSelect = (index: number) => {
     setSelectedSessionIndex(index);
@@ -17,17 +18,18 @@ export const WelcomeWizard: React.FC = () => {
   };
 
   const handleComplete = () => {
-    // Update the selected session with the chosen AI provider
+    // Update the selected session with the chosen AI provider and project description
     if (selectedSessionIndex !== null) {
       updateSession(selectedSessionIndex, {
         aiProvider: selectedProvider,
+        notes: projectDescription || undefined,
       });
     }
     setIsFirstRun(false);
   };
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     } else {
       handleComplete();
@@ -46,7 +48,8 @@ export const WelcomeWizard: React.FC = () => {
 
   const canProceed = () => {
     if (currentStep === 1 && selectedSessionIndex === null) return false;
-    if (currentStep === 2 && !selectedProvider) return false;
+    // Step 2 (describe project) is optional - always can proceed
+    if (currentStep === 3 && !selectedProvider) return false;
     return true;
   };
 
@@ -66,7 +69,7 @@ export const WelcomeWizard: React.FC = () => {
 
         {/* Progress Indicator */}
         <div className="wizard-progress">
-          {[0, 1, 2, 3].map((step) => (
+          {[0, 1, 2, 3, 4].map((step) => (
             <div
               key={step}
               className={`progress-dot ${currentStep >= step ? 'active' : ''} ${
@@ -80,26 +83,26 @@ export const WelcomeWizard: React.FC = () => {
         <div className="wizard-content">
           {currentStep === 0 && (
             <div className="wizard-step step-welcome">
-              <div className="step-icon">🚀</div>
+              <div className="step-icon geo-icon">◇</div>
               <h1 className="step-title">Welcome to Flowrider</h1>
               <p className="step-subtitle">Run 20 AI sessions in parallel</p>
               <div className="welcome-features">
                 <div className="feature-item">
-                  <span className="feature-icon">⚡</span>
+                  <span className="feature-icon geo-icon">⬡</span>
                   <div>
                     <h3>Parallel AI Sessions</h3>
                     <p>Work on 20 different tasks simultaneously</p>
                   </div>
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">🎯</span>
+                  <span className="feature-icon geo-icon">△</span>
                   <div>
                     <h3>Multiple AI Providers</h3>
                     <p>Choose from Claude, GPT-4, Gemini, or local models</p>
                   </div>
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">💰</span>
+                  <span className="feature-icon geo-icon">◈</span>
                   <div>
                     <h3>Cost Tracking</h3>
                     <p>Monitor your AI usage and optimize spending</p>
@@ -111,7 +114,7 @@ export const WelcomeWizard: React.FC = () => {
 
           {currentStep === 1 && (
             <div className="wizard-step step-session">
-              <div className="step-icon">🎲</div>
+              <div className="step-icon geo-icon">⬢</div>
               <h1 className="step-title">Pick Your First Session</h1>
               <p className="step-subtitle">Click any numbered slot (1-20)</p>
               <div className="session-grid">
@@ -140,8 +143,36 @@ export const WelcomeWizard: React.FC = () => {
           )}
 
           {currentStep === 2 && (
+            <div className="wizard-step step-describe">
+              <div className="step-icon geo-icon">▣</div>
+              <h1 className="step-title">Describe Your Project</h1>
+              <p className="step-subtitle">Help Claude understand what you're building</p>
+              <div className="describe-form">
+                <textarea
+                  className="project-description-input"
+                  placeholder="What are you building? What tech stack? Any important context Claude should know?"
+                  value={projectDescription}
+                  onChange={(e) => setProjectDescription(e.target.value)}
+                  rows={5}
+                />
+                <div className="describe-tips">
+                  <p className="tip-header">Good descriptions include:</p>
+                  <ul>
+                    <li>Project type (web app, CLI tool, API, etc.)</li>
+                    <li>Tech stack (React, Node, Python, etc.)</li>
+                    <li>Current goal or task you're working on</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="skip-hint">
+                This step is optional - you can always update it later
+              </div>
+            </div>
+          )}
+
+          {currentStep === 3 && (
             <div className="wizard-step step-ai">
-              <div className="step-icon">🤖</div>
+              <div className="step-icon geo-icon">⬡</div>
               <h1 className="step-title">Choose Your AI</h1>
               <p className="step-subtitle">Claude, GPT-4, or local models</p>
               <div className="ai-providers-grid">
@@ -178,17 +209,17 @@ export const WelcomeWizard: React.FC = () => {
             </div>
           )}
 
-          {currentStep === 3 && (
+          {currentStep === 4 && (
             <div className="wizard-step step-ready">
               <div className="confetti-container">
-                <div className="confetti">🎉</div>
-                <div className="confetti">🎊</div>
-                <div className="confetti">✨</div>
-                <div className="confetti">🌟</div>
-                <div className="confetti">💫</div>
-                <div className="confetti">⭐</div>
+                <div className="confetti geo-confetti">◇</div>
+                <div className="confetti geo-confetti">△</div>
+                <div className="confetti geo-confetti">⬡</div>
+                <div className="confetti geo-confetti">◈</div>
+                <div className="confetti geo-confetti">⬢</div>
+                <div className="confetti geo-confetti">▣</div>
               </div>
-              <div className="step-icon success">✓</div>
+              <div className="step-icon geo-icon success">◇</div>
               <h1 className="step-title">You're Ready!</h1>
               <p className="step-subtitle">Start building in parallel</p>
               <div className="ready-summary">
@@ -228,14 +259,14 @@ export const WelcomeWizard: React.FC = () => {
             Back
           </button>
           <div className="wizard-step-counter">
-            Step {currentStep + 1} of 4
+            Step {currentStep + 1} of 5
           </div>
           <button
             className="wizard-btn wizard-btn-primary"
             onClick={handleNext}
             disabled={!canProceed()}
           >
-            {currentStep === 3 ? 'Get Started' : 'Next'}
+            {currentStep === 4 ? 'Get Started' : 'Next'}
           </button>
         </div>
       </div>

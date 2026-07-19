@@ -8,12 +8,14 @@ import { TerminalView } from './components/TerminalView';
 import { Dashboard } from './components/Dashboard';
 import { DemoMode } from './components/DemoMode';
 import { WelcomeWizard } from './components/WelcomeWizard';
+import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 // AIStatus and CrossSessionPanel removed - terminal-first design
 // import { AIStatusType as AIStatus } from './components/AIStatus';
 // import { CrossSessionPanel } from './components/CrossSessionPanel';
 import { DeployPanel } from './components/DeployPanel';
 import { ProjectsPanel } from './components/ProjectsPanel';
 import { LicensePanel } from './components/LicensePanel';
+import { CinematicDemo } from './components/CinematicDemo';
 import { UpdatePanel } from './components/UpdatePanel';
 import { APIKeysPanel } from './components/APIKeysPanel';
 import { useStore } from './store';
@@ -28,9 +30,13 @@ const App: React.FC = () => {
   const [showIcosahedron, setShowIcosahedron] = useState(false);
   const [showSessionPanel, setShowSessionPanel] = useState(false);
   const [showSessionSearch, setShowSessionSearch] = useState(false);
+  const [showCinematicDemo, setShowCinematicDemo] = useState(false);
 
   const store = useStore();
-  const { sessions, selectedFace, selectFace, setAttachedSession, updateSession, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux, createSession, isFirstRun } = store;
+  const { sessions, selectedFace, selectFace, setAttachedSession, updateSession, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux, createSession, isFirstRun, setIsFirstRun } = store;
+
+  // Command Palette (Cmd+K)
+  const commandPalette = useCommandPalette();
 
   console.log('[App] Store loaded, sessions:', sessions?.length);
 
@@ -148,6 +154,35 @@ const App: React.FC = () => {
             <span className="stat-mini accent">${costMetrics.totalCost < 0.01 ? '<0.01' : costMetrics.totalCost.toFixed(2)}</span>
           </div>
 
+          {/* Cinematic Demo Button */}
+          <button
+            className={`demo-btn ${showCinematicDemo ? 'active' : ''}`}
+            onClick={() => setShowCinematicDemo(!showCinematicDemo)}
+            title="Cinematic Demo for Investors"
+            style={{
+              padding: '6px 12px',
+              background: showCinematicDemo ? 'linear-gradient(135deg, #9b59b6, #3498db)' : 'var(--bg-tertiary)',
+              border: '1px solid rgba(155, 89, 182, 0.3)',
+              borderRadius: 4,
+              color: showCinematicDemo ? '#fff' : '#9b59b6',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            🎬 Demo
+          </button>
+
+          {/* Quick Tour Button */}
+          <button
+            className="wizard-trigger-btn"
+            onClick={() => setIsFirstRun(true)}
+            title="Show Welcome Wizard"
+          >
+            ?
+          </button>
+
           {/* Icosahedron Toggle */}
           <button
             className={`toggle-viz-btn ${showIcosahedron ? 'active' : ''}`}
@@ -253,6 +288,14 @@ const App: React.FC = () => {
       {/* Session Search - CommandPalette-style overlay (Cmd+/) */}
       {showSessionSearch && (
         <SessionSearch onClose={() => setShowSessionSearch(false)} />
+      )}
+
+      {/* Command Palette (Cmd+K) */}
+      <CommandPalette isOpen={commandPalette.isOpen} onClose={commandPalette.close} />
+
+      {/* Cinematic Demo for Investor Presentations */}
+      {showCinematicDemo && (
+        <CinematicDemo onClose={() => setShowCinematicDemo(false)} />
       )}
       </div>
     </>

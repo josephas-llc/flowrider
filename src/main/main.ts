@@ -311,6 +311,73 @@ function setupIPC() {
     return { found: false };
   });
 
+  // Read directory contents for file browser
+  ipcMain.handle('fs:readDirectory', async (_event, dirPath: string) => {
+    const fs = require('fs');
+    const path = require('path');
+
+    try {
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+      const items = entries
+        .filter((entry: { name: string }) => !entry.name.startsWith('.')) // Hide dotfiles by default
+        .map((entry: { name: string; isDirectory: () => boolean; isFile: () => boolean }) => {
+          const fullPath = path.join(dirPath, entry.name);
+          let size = 0;
+          try {
+            if (entry.isFile()) {
+              size = fs.statSync(fullPath).size;
+            }
+          } catch { /* ignore stat errors */ }
+          return {
+            name: entry.name,
+            path: fullPath,
+            isDirectory: entry.isDirectory(),
+            isFile: entry.isFile(),
+            size,
+          };
+        })
+        .sort((a: { isDirectory: boolean; name: string }, b: { isDirectory: boolean; name: string }) => {
+          // Directories first, then alphabetical
+          if (a.isDirectory && !b.isDirectory) return -1;
+          if (!a.isDirectory && b.isDirectory) return 1;
+          return a.name.localeCompare(b.name);
+        });
+
+      return { success: true, data: items };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Read file contents (for preview)
+  ipcMain.handle('fs:readFile', async (_event, filePath: string, maxBytes?: number) => {
+    const fs = require('fs');
+
+    try {
+      const stats = fs.statSync(filePath);
+      const limit = maxBytes || 50000; // Default 50KB limit
+
+      if (stats.size > limit) {
+        // Read only first portion
+        const buffer = Buffer.alloc(limit);
+        const fd = fs.openSync(filePath, 'r');
+        fs.readSync(fd, buffer, 0, limit, 0);
+        fs.closeSync(fd);
+        return {
+          success: true,
+          data: buffer.toString('utf-8'),
+          truncated: true,
+          totalSize: stats.size,
+        };
+      }
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+      return { success: true, data: content, truncated: false, totalSize: stats.size };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  });
+
   // ========================================
   // LEO (Local Execution Orchestrator) IPC
   // ========================================

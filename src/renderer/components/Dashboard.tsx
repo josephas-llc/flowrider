@@ -9,6 +9,8 @@ import { SessionMessaging } from './SessionMessaging';
 import { AIProviders } from './AIProviders';
 import { LeoDodecahedron } from './LeoDodecahedron';
 import { LeoAIView } from './AIView';
+import { LeoLearning } from './LeoLearning';
+import { CrossSessionContext } from './CrossSessionContext';
 import { ApiSettings } from './dashboard/ApiSettings';
 import { ApiKeyManager } from './dashboard/ApiKeyManager';
 import { ApiDocs } from './dashboard/ApiDocs';
@@ -42,7 +44,7 @@ export const Dashboard: React.FC = () => {
   const mainTabs = ['overview', 'providers', 'projects'] as const;
 
   // Advanced tabs that are collapsed by default
-  const advancedTabs = ['mcp', 'messaging', 'activity', 'leo', 'leoai', 'api', 'roi'] as const;
+  const advancedTabs = ['mcp', 'messaging', 'activity', 'leo', 'leoai', 'learning', 'context', 'api', 'roi'] as const;
 
   // Check if current view is an advanced tab
   const isAdvancedTabActive = advancedTabs.includes(dashboardView as any);
@@ -55,8 +57,10 @@ export const Dashboard: React.FC = () => {
       mcp: 'MCP',
       messaging: 'Messaging',
       activity: 'Activity',
-      leo: 'LEO',
+      leo: 'Orchestrator',
       leoai: 'AI System',
+      learning: 'Flowrider Learn',
+      context: 'Cross-Session',
       api: 'API',
       roi: 'ROI',
     };
@@ -156,6 +160,14 @@ export const Dashboard: React.FC = () => {
           <LeoAIView />
         )}
 
+        {dashboardView === 'learning' && (
+          <LeoLearning />
+        )}
+
+        {dashboardView === 'context' && (
+          <CrossSessionContext />
+        )}
+
         {dashboardView === 'api' && (
           <ApiView />
         )}
@@ -190,6 +202,7 @@ const OverviewView: React.FC<OverviewProps> = ({
   activeSessions,
   projectCount,
 }) => {
+  const { setIsFirstRun } = useStore();
   const energySavedPercent = energyMetrics.baselineEnergy > 0
     ? ((energyMetrics.energySaved / energyMetrics.baselineEnergy) * 100).toFixed(0)
     : '0';
@@ -261,6 +274,18 @@ const OverviewView: React.FC<OverviewProps> = ({
       <div className="metric-subtext" style={{ color: '#00ff88' }}>
         {energySavedPercent}% reduction vs baseline
       </div>
+    </div>
+
+    <div className="metric-card wizard-card">
+      <div className="metric-icon">🚀</div>
+      <div className="metric-label">Getting Started</div>
+      <button
+        className="btn btn-secondary"
+        onClick={() => setIsFirstRun(true)}
+        style={{ marginTop: '8px' }}
+      >
+        Show Welcome Wizard
+      </button>
     </div>
   </div>
   );

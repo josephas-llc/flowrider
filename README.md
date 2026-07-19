@@ -73,10 +73,12 @@ Pick your AI for each session:
 
 | Provider | Models | Cost |
 |----------|--------|------|
-| Claude (Anthropic) | Opus, Sonnet, Haiku | $$$ |
-| OpenAI | GPT-4, GPT-4o | $$$ |
-| Gemini (Google) | Pro, Flash | $$ |
-| Grok (xAI) | Grok-2 | $$ |
+| Claude (Anthropic) | Opus 4, Sonnet 4, Haiku | $$$ |
+| Gemini (Google) | Pro, Flash, Ultra | $$ |
+| Grok (xAI) | Grok-2, Grok-3 | $$ |
+| Copilot (GitHub) | GPT-based | $$ |
+| Meta AI | Llama 4, CodeLlama | $ |
+| Apple Intelligence | On-device | **FREE** |
 | Ollama | Llama, Mistral, etc. | **FREE** |
 | Local LLMs | Any GGUF model | **FREE** |
 
@@ -142,7 +144,7 @@ Download the latest `.dmg` from [Releases](https://github.com/josephas-llc/flowr
 
 3. **Name your session** - e.g., "Auth API"
 
-4. **Choose your AI** - Pick Claude, GPT-4, or a free local model
+4. **Choose your AI** - Pick Claude, Gemini, Grok, or a free local model
 
 5. **Start coding** - The AI has full terminal access
 
