@@ -23,6 +23,15 @@ export const AIProviders: React.FC = () => {
       case 'openai': return '🟢';
       case 'gemini': return '🔵';
       case 'grok': return '⚫';
+      case 'mistral': return '🟠'; // Orange for Mistral (France)
+      case 'deepseek': return '🔷'; // Deep blue for DeepSeek
+      case 'kimi': return '🌙'; // Moon for Moonshot AI
+      case 'cohere': return '🍁'; // Maple leaf for Canada
+      // FREE Open-Source International Models
+      case 'qwen': return '🐼'; // Panda for Alibaba (China)
+      case 'yi': return '🀄'; // Mahjong for 01.AI (China)
+      case 'falcon': return '🦅'; // Falcon for TII (UAE)
+      case 'hunyuan': return '🐉'; // Dragon for Tencent (China)
       case 'ollama': return '🦙';
       case 'local': return '💻';
       default: return '🤖';
@@ -30,11 +39,11 @@ export const AIProviders: React.FC = () => {
   };
 
   const totalLocalSessions = sessions.filter(
-    s => s.status !== 'empty' && (s.aiProvider === 'ollama' || s.aiProvider === 'local')
+    s => s.status !== 'empty' && ['ollama', 'local', 'qwen', 'yi', 'falcon', 'hunyuan'].includes(s.aiProvider)
   ).length;
 
   const totalCloudSessions = sessions.filter(
-    s => s.status !== 'empty' && s.aiProvider !== 'ollama' && s.aiProvider !== 'local'
+    s => s.status !== 'empty' && !['ollama', 'local', 'qwen', 'yi', 'falcon', 'hunyuan'].includes(s.aiProvider)
   ).length;
 
   return (

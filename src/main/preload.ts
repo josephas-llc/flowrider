@@ -132,6 +132,10 @@ contextBridge.exposeInMainWorld('flowrider', {
     getStats: () => ipcRenderer.invoke('leoai:stats'),
     getInteractions: (limit?: number) => ipcRenderer.invoke('leoai:getInteractions', limit),
     getPatterns: (minConfidence?: number) => ipcRenderer.invoke('leoai:getPatterns', minConfidence),
+    getAllPatterns: () => ipcRenderer.invoke('leoai:getAllPatterns'),
+    getPatternsByType: (type: 'code' | 'error' | 'workflow' | 'prompt' | 'architecture') =>
+      ipcRenderer.invoke('leoai:getPatternsByType', type),
+    getPatternCounts: () => ipcRenderer.invoke('leoai:getPatternCounts'),
     getInsights: (limit?: number) => ipcRenderer.invoke('leoai:getInsights', limit),
     searchSnippets: (query: string) => ipcRenderer.invoke('leoai:searchSnippets', query),
     getLearningEvents: (since: number) => ipcRenderer.invoke('leoai:getLearningEvents', since),
@@ -181,6 +185,91 @@ contextBridge.exposeInMainWorld('flowrider', {
     getConfig: () => ipcRenderer.invoke('context:getConfig'),
     setConfig: (config: { enabled?: boolean; maxTokens?: number; includePatterns?: boolean; includeSnippets?: boolean; includeWarnings?: boolean }) =>
       ipcRenderer.invoke('context:setConfig', config),
+  },
+
+  // ZOIX Context Memory (Long-term memory and context tracking)
+  zoix: {
+    startSession: (sessionId: string, sessionName: string, projectId?: string) =>
+      ipcRenderer.invoke('zoix:startSession', sessionId, sessionName, projectId),
+    endSession: (sessionId: string, summary?: unknown) =>
+      ipcRenderer.invoke('zoix:endSession', sessionId, summary),
+    getSessionSummary: (sessionId: string) =>
+      ipcRenderer.invoke('zoix:getSessionSummary', sessionId),
+    getDailyDigest: (date?: string) =>
+      ipcRenderer.invoke('zoix:getDailyDigest', date),
+    getRecentDigests: (days?: number) =>
+      ipcRenderer.invoke('zoix:getRecentDigests', days),
+    updateProjectContext: (projectId: string, projectName: string, updates: unknown) =>
+      ipcRenderer.invoke('zoix:updateProjectContext', projectId, projectName, updates),
+    getProjectContext: (projectId: string) =>
+      ipcRenderer.invoke('zoix:getProjectContext', projectId),
+    getRecentProjects: (limit?: number) =>
+      ipcRenderer.invoke('zoix:getRecentProjects', limit),
+    getUnfinishedTasks: (projectId?: string, status?: string) =>
+      ipcRenderer.invoke('zoix:getUnfinishedTasks', projectId, status),
+    saveUnfinishedTask: (task: unknown) =>
+      ipcRenderer.invoke('zoix:saveUnfinishedTask', task),
+    completeTask: (taskId: string) =>
+      ipcRenderer.invoke('zoix:completeTask', taskId),
+    getInferredGoals: (status?: string) =>
+      ipcRenderer.invoke('zoix:getInferredGoals', status),
+    saveInferredGoal: (goal: unknown) =>
+      ipcRenderer.invoke('zoix:saveInferredGoal', goal),
+    updateInferredGoal: (id: string, updates: unknown) =>
+      ipcRenderer.invoke('zoix:updateInferredGoal', id, updates),
+    getWeeklyTheme: (weekStart?: string) =>
+      ipcRenderer.invoke('zoix:getWeeklyTheme', weekStart),
+    getRecentWeeks: (count?: number) =>
+      ipcRenderer.invoke('zoix:getRecentWeeks', count),
+    updateWeeklyTheme: (weekStart: string, updates: unknown) =>
+      ipcRenderer.invoke('zoix:updateWeeklyTheme', weekStart, updates),
+    restoreContext: (sessionId: string, projectId?: string) =>
+      ipcRenderer.invoke('zoix:restoreContext', sessionId, projectId),
+
+    // Resource Recommendations
+    getRecommendedResources: (options?: {
+      topic?: string;
+      language?: string;
+      type?: 'book' | 'documentation' | 'tutorial' | 'article' | 'course' | 'video';
+      includeReasoning?: boolean;
+    }) => ipcRenderer.invoke('zoix:getRecommendedResources', options),
+    getRecommendedBooks: (topic?: string, language?: string) =>
+      ipcRenderer.invoke('zoix:getRecommendedBooks', topic, language),
+    getRelevantDocs: (language?: string, topic?: string) =>
+      ipcRenderer.invoke('zoix:getRelevantDocs', language, topic),
+    recordResourceClick: (recommendationId: string) =>
+      ipcRenderer.invoke('zoix:recordResourceClick', recommendationId),
+
+    // Ontology Builder
+    getOntology: () => ipcRenderer.invoke('zoix:getOntology'),
+    getOntologyBranch: (nodeId: string) => ipcRenderer.invoke('zoix:getOntologyBranch', nodeId),
+    exportOntology: (format?: 'json' | 'graph') => ipcRenderer.invoke('zoix:exportOntology', format),
+    getOntologyGrowth: (period?: 'day' | 'week' | 'month') => ipcRenderer.invoke('zoix:getOntologyGrowth', period),
+    getOntologyGrowthStats: () => ipcRenderer.invoke('zoix:getOntologyGrowthStats'),
+    createOntologySnapshot: () => ipcRenderer.invoke('zoix:createOntologySnapshot'),
+    compareOntologyToStandard: (standard: 'standard-fullstack' | 'standard-frontend' | 'standard-backend' | 'standard-devops') =>
+      ipcRenderer.invoke('zoix:compareOntologyToStandard', standard),
+    addOntologyNode: (name: string, type: string, parentId?: string, options?: unknown) =>
+      ipcRenderer.invoke('zoix:addOntologyNode', name, type, parentId, options),
+    autoOrganizeConcept: (conceptName: string, context?: unknown) =>
+      ipcRenderer.invoke('zoix:autoOrganizeConcept', conceptName, context),
+    getOntologyNode: (id: string) => ipcRenderer.invoke('zoix:getOntologyNode', id),
+    findOntologyNodeByName: (name: string) => ipcRenderer.invoke('zoix:findOntologyNodeByName', name),
+    searchOntology: (query: string) => ipcRenderer.invoke('zoix:searchOntology', query),
+    addOntologyRelation: (fromId: string, toId: string, relationType: string, options?: unknown) =>
+      ipcRenderer.invoke('zoix:addOntologyRelation', fromId, toId, relationType, options),
+
+    // ZOIX Intelligence (insights, skill progression, cross-session recommendations)
+    generateInsights: () => ipcRenderer.invoke('zoix:generateInsights'),
+    getPendingInsights: () => ipcRenderer.invoke('zoix:getPendingInsights'),
+    dismissInsight: (insightId: string) => ipcRenderer.invoke('zoix:dismissInsight', insightId),
+    getIntelligenceSummary: () => ipcRenderer.invoke('zoix:getIntelligenceSummary'),
+    getCrossSessionRecommendations: () => ipcRenderer.invoke('zoix:getCrossSessionRecommendations'),
+    getContextualSuggestions: (context: {
+      projectPath?: string;
+      currentFiles?: string[];
+      recentCommands?: string[];
+    }) => ipcRenderer.invoke('zoix:getContextualSuggestions', context),
   },
 
   // AI Service (Claude Code CLI + Ollama + other providers)
@@ -298,6 +387,22 @@ contextBridge.exposeInMainWorld('flowrider', {
       ipcRenderer.invoke('crosssession:getActiveSessions'),
     getSession: (sessionId: string) =>
       ipcRenderer.invoke('crosssession:getSession', sessionId),
+
+    // Cross-session analysis
+    analyze: () =>
+      ipcRenderer.invoke('crosssession:analyze'),
+    getSimilarities: (sessionId: string) =>
+      ipcRenderer.invoke('crosssession:getSimilarities', sessionId),
+    getInsights: (sessionId?: string) =>
+      ipcRenderer.invoke('crosssession:getInsights', sessionId),
+    dismissInsight: (insightId: string) =>
+      ipcRenderer.invoke('crosssession:dismissInsight', insightId),
+    getSessionSummary: (sessionId: string) =>
+      ipcRenderer.invoke('crosssession:getSessionSummary', sessionId),
+    getStats: () =>
+      ipcRenderer.invoke('crosssession:getStats'),
+    clearInsights: () =>
+      ipcRenderer.invoke('crosssession:clearInsights'),
   },
 
   // License management (Lemon Squeezy)
@@ -346,6 +451,31 @@ contextBridge.exposeInMainWorld('flowrider', {
   cursor: {
     open: (workingDir: string) => ipcRenderer.invoke('cursor:open', workingDir),
     checkInstalled: () => ipcRenderer.invoke('cursor:check'),
+  },
+
+  // PTY Streaming (replaces tmux capture-pane polling for TUI apps)
+  pty: {
+    attach: (sessionName: string, cols: number, rows: number) =>
+      ipcRenderer.invoke('pty:attach', sessionName, cols, rows),
+    detach: (sessionName: string) =>
+      ipcRenderer.invoke('pty:detach', sessionName),
+    write: (sessionName: string, data: string) =>
+      ipcRenderer.invoke('pty:write', sessionName, data),
+    resize: (sessionName: string, cols: number, rows: number) =>
+      ipcRenderer.invoke('pty:resize', sessionName, cols, rows),
+    isAttached: (sessionName: string) =>
+      ipcRenderer.invoke('pty:isAttached', sessionName),
+    // Event listeners for real-time data streaming
+    onData: (callback: (sessionName: string, data: string) => void) => {
+      const listener = (_event: unknown, sessionName: string, data: string) => callback(sessionName, data);
+      ipcRenderer.on('pty:data', listener);
+      return () => ipcRenderer.removeListener('pty:data', listener);
+    },
+    onExit: (callback: (sessionName: string, exitCode: number) => void) => {
+      const listener = (_event: unknown, sessionName: string, exitCode: number) => callback(sessionName, exitCode);
+      ipcRenderer.on('pty:exit', listener);
+      return () => ipcRenderer.removeListener('pty:exit', listener);
+    },
   },
 
   // App info
@@ -442,9 +572,42 @@ declare global {
         getStats: () => Promise<{ success: boolean; data: AIStats }>;
         getInteractions: (limit?: number) => Promise<{ success: boolean; data: Interaction[] }>;
         getPatterns: (minConfidence?: number) => Promise<{ success: boolean; data: Pattern[] }>;
+        getAllPatterns: () => Promise<{ success: boolean; data: Pattern[] }>;
+        getPatternsByType: (type: 'code' | 'error' | 'workflow' | 'prompt' | 'architecture') => Promise<{ success: boolean; data: Pattern[] }>;
+        getPatternCounts: () => Promise<{ success: boolean; data: { code: number; error: number; workflow: number; prompt: number; architecture: number; total: number } }>;
         getInsights: (limit?: number) => Promise<{ success: boolean; data: Insight[] }>;
         searchSnippets: (query: string) => Promise<{ success: boolean; data: CodeSnippet[] }>;
         getLearningEvents: (since: number) => Promise<{ success: boolean; data: LearningEvent[] }>;
+
+        // Suggestions (Intelligence Layer)
+        getSuggestions: (request?: {
+          sessionId?: string;
+          projectId?: string;
+          workingDir?: string;
+          language?: string;
+          currentTask?: string;
+          recentErrors?: string[];
+          aiProvider?: string;
+          limit?: number;
+        }) => Promise<{ success: boolean; data: Suggestion[] }>;
+        getAISuggestions: (request?: {
+          sessionId?: string;
+          projectId?: string;
+          workingDir?: string;
+          language?: string;
+          currentTask?: string;
+          recentErrors?: string[];
+          aiProvider?: string;
+          limit?: number;
+        }) => Promise<{ success: boolean; data: Suggestion[] }>;
+        setAISuggestionsEnabled: (enabled: boolean) => Promise<{ success: boolean }>;
+        getSessionStartSuggestions: (workingDir: string, projectId?: string, language?: string) =>
+          Promise<{ success: boolean; data: Suggestion[] }>;
+        getErrorSuggestions: (errors: string[], language?: string) =>
+          Promise<{ success: boolean; data: Suggestion[] }>;
+        dismissSuggestion: (suggestionId: string) => Promise<{ success: boolean }>;
+        recordSuggestionAction: (suggestionId: string, accepted: boolean) => Promise<{ success: boolean }>;
+        clearDismissedSuggestions: () => Promise<{ success: boolean }>;
       };
       context: {
         getForPrompt: (options: { prompt: string; projectId?: string; language?: string; sessionId?: string }) =>
@@ -508,6 +671,26 @@ declare global {
         getActiveSessions: () => Promise<{ success: boolean; data?: unknown[] }>;
         getSession: (sessionId: string) => Promise<{ success: boolean; data?: unknown }>;
       };
+      zoix: {
+        startSession: (sessionId: string, sessionName: string, projectId?: string) => Promise<{ success: boolean; data?: string; error?: string }>;
+        endSession: (sessionId: string, summary?: unknown) => Promise<{ success: boolean; error?: string }>;
+        getSessionSummary: (sessionId: string) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+        getDailyDigest: (date?: string) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+        getRecentDigests: (days?: number) => Promise<{ success: boolean; data?: unknown[]; error?: string }>;
+        updateProjectContext: (projectId: string, projectName: string, updates: unknown) => Promise<{ success: boolean; error?: string }>;
+        getProjectContext: (projectId: string) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+        getRecentProjects: (limit?: number) => Promise<{ success: boolean; data?: unknown[]; error?: string }>;
+        getUnfinishedTasks: (projectId?: string, status?: string) => Promise<{ success: boolean; data?: unknown[]; error?: string }>;
+        saveUnfinishedTask: (task: unknown) => Promise<{ success: boolean; data?: string; error?: string }>;
+        completeTask: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+        getInferredGoals: (status?: string) => Promise<{ success: boolean; data?: unknown[]; error?: string }>;
+        saveInferredGoal: (goal: unknown) => Promise<{ success: boolean; data?: string; error?: string }>;
+        updateInferredGoal: (id: string, updates: unknown) => Promise<{ success: boolean; error?: string }>;
+        getWeeklyTheme: (weekStart?: string) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+        getRecentWeeks: (count?: number) => Promise<{ success: boolean; data?: unknown[]; error?: string }>;
+        updateWeeklyTheme: (weekStart: string, updates: unknown) => Promise<{ success: boolean; error?: string }>;
+        restoreContext: (sessionId: string, projectId?: string) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+      };
       license: {
         activate: (licenseKey: string) => Promise<{ success: boolean; error?: string; license?: LicenseInfo }>;
         validate: () => Promise<{ success: boolean; error?: string; license?: LicenseInfo }>;
@@ -541,6 +724,15 @@ declare global {
       cursor: {
         open: (workingDir: string) => Promise<{ success: boolean; error?: string }>;
         checkInstalled: () => Promise<{ installed: boolean }>;
+      };
+      pty: {
+        attach: (sessionName: string, cols: number, rows: number) => Promise<{ success: boolean; error?: string }>;
+        detach: (sessionName: string) => Promise<{ success: boolean; error?: string }>;
+        write: (sessionName: string, data: string) => Promise<{ success: boolean; error?: string }>;
+        resize: (sessionName: string, cols: number, rows: number) => Promise<{ success: boolean; error?: string }>;
+        isAttached: (sessionName: string) => Promise<{ success: boolean; attached?: boolean; error?: string }>;
+        onData: (callback: (sessionName: string, data: string) => void) => () => void;
+        onExit: (callback: (sessionName: string, exitCode: number) => void) => () => void;
       };
       platform: string;
       version: string;
@@ -704,6 +896,50 @@ declare global {
     snippetsExtracted: number;
     duration: number;
     errors: string[];
+  }
+
+  // Suggestion types
+  type SuggestionType =
+    | 'ai_provider'
+    | 'template'
+    | 'error_prevention'
+    | 'workflow'
+    | 'productivity'
+    | 'cross_session'
+    | 'code_pattern'
+    | 'project_context'
+    | 'learning'
+    | 'quick_action';
+
+  type SuggestionPriority = 'low' | 'medium' | 'high' | 'critical';
+
+  interface Suggestion {
+    id: string;
+    type: SuggestionType;
+    title: string;
+    description: string;
+    priority: SuggestionPriority;
+    confidence: number;
+    relevance: number;
+    actionable: boolean;
+    action?: {
+      label: string;
+      type: 'apply_provider' | 'apply_template' | 'copy_code' | 'navigate' | 'dismiss' | 'custom';
+      payload?: unknown;
+    };
+    dismissable: boolean;
+    expiresAt?: number;
+    source: {
+      type: 'pattern' | 'insight' | 'interaction' | 'heuristic';
+      id?: string;
+    };
+    context: {
+      projectId?: string;
+      sessionId?: string;
+      language?: string;
+      tags?: string[];
+    };
+    createdAt: number;
   }
 
   // AI Service Types

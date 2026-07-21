@@ -21,6 +21,13 @@ import { UpdatePanel } from './components/UpdatePanel';
 import { APIKeysPanel } from './components/APIKeysPanel';
 import { useStore } from './store';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useControlGroups } from './hooks/useControlGroups';
+import { SessionMinimap } from './components/SessionMinimap';
+import { KeyboardShortcutsHelp, useKeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
+import { ZoixIndicator } from './components/ZoixIndicator';
+import { ZoixInsightsPanel } from './components/ZoixInsightsPanel';
+import { ZoixNotificationContainer } from './components/ZoixNotificationToast';
+import { VoiceControlIndicator } from './components/VoiceControlIndicator';
 
 type MainView = 'sessions' | 'projects' | 'dashboard' | 'deploy' | 'settings';
 
@@ -32,14 +39,22 @@ const App: React.FC = () => {
   const [showSessionPanel, setShowSessionPanel] = useState(false);
   const [showSessionSearch, setShowSessionSearch] = useState(false);
   const [showCinematicDemo, setShowCinematicDemo] = useState(false);
+  const [showZoixPanel, setShowZoixPanel] = useState(false);
+  const [zoixGlowActive, setZoixGlowActive] = useState(false);
 
   const store = useStore();
-  const { sessions, selectedFace, selectFace, setAttachedSession, updateSession, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux, createSession, isFirstRun, setIsFirstRun } = store;
+  const { sessions, selectedFace, selectFace, setAttachedSession, updateSession, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux, syncZoixData, isFirstRun, setIsFirstRun } = store;
 
   // Command Palette (Cmd+K)
   const commandPalette = useCommandPalette();
 
+  // Keyboard Shortcuts Help (? key)
+  const keyboardShortcuts = useKeyboardShortcutsHelp();
+
   console.log('[App] Store loaded, sessions:', sessions?.length);
+
+  // Define activeSessions early so it can be used in effects
+  const activeSessions = sessions.filter(s => s.status !== 'empty').length;
 
   useEffect(() => {
     console.log('[App] Store mounted, marking ready');
@@ -51,13 +66,37 @@ const App: React.FC = () => {
 
   useEffect(() => {
     syncWithTmux();
-  }, [syncWithTmux]);
+    syncZoixData();
+  }, [syncWithTmux, syncZoixData]);
+
+  // ZOIX ambient glow - subtle background pulse when sessions are active
+  useEffect(() => {
+    if (activeSessions === 0) {
+      setZoixGlowActive(false);
+      return;
+    }
+
+    // Pulse every 10-20 seconds when there are active sessions
+    const scheduleNextPulse = () => {
+      const delay = 10000 + Math.random() * 10000; // 10-20 seconds
+      return setTimeout(() => {
+        setZoixGlowActive(true);
+        // Glow for 3 seconds
+        setTimeout(() => setZoixGlowActive(false), 3000);
+        timerId = scheduleNextPulse();
+      }, delay);
+    };
+
+    let timerId = scheduleNextPulse();
+    return () => clearTimeout(timerId);
+  }, [activeSessions > 0]);
 
   const toggleSessionSearch = () => {
     setShowSessionSearch(prev => !prev);
   };
 
   useKeyboardShortcuts(toggleSessionSearch);
+  useControlGroups(); // StarCraft-style Ctrl+1-9 for control groups
 
   const [mainView, setMainView] = useState<MainView>('sessions');
 
@@ -79,7 +118,6 @@ const App: React.FC = () => {
     }
   };
 
-  const activeSessions = sessions.filter(s => s.status !== 'empty').length;
   const selectedSession = selectedFace !== null ? sessions[selectedFace] : null;
   const hasActiveSession = selectedSession && selectedSession.status !== 'empty';
 
@@ -89,6 +127,29 @@ const App: React.FC = () => {
       {isFirstRun && <WelcomeWizard />}
 
       <div className="app app-v2">
+        {/* ZOIX ambient background glow - subtle purple pulse when learning */}
+        {zoixGlowActive && (
+          <div
+            className="zoix-ambient-glow"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: 0,
+              background: 'radial-gradient(ellipse at 50% 50%, rgba(147, 51, 234, 0.06) 0%, rgba(147, 51, 234, 0.02) 40%, transparent 70%)',
+              animation: 'zoixAmbientPulse 3s ease-in-out',
+            }}
+          />
+        )}
+        <style>{`
+          @keyframes zoixAmbientPulse {
+            0% { opacity: 0; }
+            30% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; }
+          }
+        `}</style>
+
         {/* Compact Top Bar */}
       <nav className="top-nav-v2">
         <div className="nav-left">
@@ -118,6 +179,18 @@ const App: React.FC = () => {
           <button className="quick-create-btn" onClick={handleQuickCreate}>
             <span>+</span> New Session
           </button>
+
+          {/* ZOIX Learning Indicator - Front and Center */}
+          <ZoixIndicator onClick={() => setShowZoixPanel(true)} />
+
+          {/* Voice Control */}
+          <VoiceControlIndicator
+            onNavigate={setMainView}
+            onShowSearch={() => setShowSessionSearch(true)}
+            onShowCommandPalette={() => commandPalette.open()}
+            onShowShortcuts={() => keyboardShortcuts.open()}
+            onShowZoix={() => setShowZoixPanel(true)}
+          />
         </div>
 
         <div className="nav-right">
@@ -294,8 +367,6 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Demo Mode Controls */}
-          <DemoMode />
         </div>
       ) : mainView === 'dashboard' ? (
         <div className="main-content-v2">
@@ -331,10 +402,23 @@ const App: React.FC = () => {
       {/* Command Palette (Cmd+K) */}
       <CommandPalette isOpen={commandPalette.isOpen} onClose={commandPalette.close} />
 
+      {/* Keyboard Shortcuts Help (? key) */}
+      <KeyboardShortcutsHelp isOpen={keyboardShortcuts.isOpen} onClose={keyboardShortcuts.close} />
+
       {/* Cinematic Demo for Investor Presentations */}
       {showCinematicDemo && (
         <CinematicDemo onClose={() => setShowCinematicDemo(false)} />
       )}
+
+      {/* ZOIX Insights Panel */}
+      <ZoixInsightsPanel isOpen={showZoixPanel} onClose={() => setShowZoixPanel(false)} />
+
+      {/* ZOIX Notification Toasts - Skill progression, cross-session insights */}
+      <ZoixNotificationContainer />
+
+      {/* Game UX Components - Rendered at ROOT level (outside all containers) */}
+      <DemoMode />
+      <SessionMinimap onSessionSelect={handleFaceClick} />
       </div>
     </>
   );

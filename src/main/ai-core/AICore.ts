@@ -17,6 +17,10 @@ import { Collector, SessionContext, FeedbackSignal } from './Collector';
 import { Analyzer, AnalysisResult } from './Analyzer';
 import { Distiller, DistilledContext, DistillationRequest } from './Distiller';
 import { SuggestionEngine, Suggestion, SuggestionRequest } from './SuggestionEngine';
+import { GoalInference, InferredGoal as ZoixGoal, GoalProgress, GoalLevel, CareerTrajectory } from './GoalInference';
+import { ContextMemory, SessionSummary, DailyDigest, ProjectContext, InferredGoal, UnfinishedTask, WeeklyTheme, ContextRestoration } from './ContextMemory';
+import { OntologyBuilder, OntologyCategory, OntologyTree, OntologyExportJSON, OntologyStats, EvolutionMetrics, GrowthArea } from './OntologyBuilder';
+import { ResourceRecommender, Resource, ResourceRecommendation, LearningGap, ResourceRequest } from './ResourceRecommender';
 
 // ============================================
 // Types
@@ -54,6 +58,10 @@ export class AICore {
   private analyzer: Analyzer;
   private distiller: Distiller;
   private suggestionEngine: SuggestionEngine;
+  private contextMemory: ContextMemory;
+  private goalInference: GoalInference;
+  private ontologyBuilder: OntologyBuilder;
+  private resourceRecommender: ResourceRecommender;
 
   private config: AICoreConfig;
   private enabled: boolean = false;
@@ -73,6 +81,12 @@ export class AICore {
     this.analyzer = new Analyzer(this.memory);
     this.distiller = new Distiller(this.memory, this.analyzer);
     this.suggestionEngine = new SuggestionEngine(this.memory);
+    this.contextMemory = new ContextMemory();
+    this.goalInference = new GoalInference(this.memory);
+    // OntologyBuilder needs direct database access
+    const db = (this.memory as any).db;
+    this.ontologyBuilder = new OntologyBuilder(db);
+    this.resourceRecommender = new ResourceRecommender(this.memory, this.analyzer);
 
     console.log('[AICore] Initialized - The learning begins');
   }
@@ -277,6 +291,27 @@ export class AICore {
   }
 
   /**
+   * Get all patterns
+   */
+  getAllPatterns() {
+    return this.memory.getAllPatterns();
+  }
+
+  /**
+   * Get patterns by type
+   */
+  getPatternsByType(type: 'code' | 'error' | 'workflow' | 'prompt' | 'architecture') {
+    return this.memory.getPatternsByType(type);
+  }
+
+  /**
+   * Get pattern counts
+   */
+  getPatternCounts() {
+    return this.memory.getPatternCounts();
+  }
+
+  /**
    * Get most effective insights
    */
   getInsights(limit: number = 20) {
@@ -370,6 +405,297 @@ export class AICore {
   }
 
   // ============================================
+  // Context Memory Methods (ZOIX)
+  // ============================================
+
+  startSessionTracking(sessionId: string, sessionName: string, projectId?: string): string {
+    return this.contextMemory.startSession(sessionId, sessionName, projectId);
+  }
+
+  endSessionTracking(sessionId: string, summary?: Partial<SessionSummary>): void {
+    this.contextMemory.endSession(sessionId, summary);
+  }
+
+  getSessionSummary(sessionId: string): SessionSummary | null {
+    return this.contextMemory.getSessionSummary(sessionId);
+  }
+
+  getDailyDigest(date?: string): DailyDigest | null {
+    return this.contextMemory.getDailyDigest(date);
+  }
+
+  getRecentDigests(days?: number): DailyDigest[] {
+    return this.contextMemory.getRecentDigests(days);
+  }
+
+  updateProjectContext(projectId: string, projectName: string, updates: Partial<Omit<ProjectContext, 'id' | 'projectId' | 'projectName'>>): void {
+    this.contextMemory.updateProjectContext(projectId, projectName, updates);
+  }
+
+  getProjectContext(projectId: string): ProjectContext | null {
+    return this.contextMemory.getProjectContext(projectId);
+  }
+
+  getRecentProjects(limit?: number): ProjectContext[] {
+    return this.contextMemory.getRecentProjects(limit);
+  }
+
+  saveInferredGoal(goal: Omit<InferredGoal, 'id'>): string {
+    return this.contextMemory.saveInferredGoal(goal);
+  }
+
+  updateInferredGoal(id: string, updates: Partial<InferredGoal>): void {
+    this.contextMemory.updateInferredGoal(id, updates);
+  }
+
+  getInferredGoals(status?: InferredGoal['status']): InferredGoal[] {
+    return this.contextMemory.getInferredGoals(status);
+  }
+
+  saveUnfinishedTask(task: Omit<UnfinishedTask, 'id'>): string {
+    return this.contextMemory.saveUnfinishedTask(task);
+  }
+
+  getUnfinishedTasks(projectId?: string, status?: UnfinishedTask['status']): UnfinishedTask[] {
+    return this.contextMemory.getUnfinishedTasks(projectId, status);
+  }
+
+  completeTask(taskId: string): void {
+    this.contextMemory.completeTask(taskId);
+  }
+
+  updateWeeklyTheme(weekStart: string, updates: Partial<Omit<WeeklyTheme, 'id' | 'weekStart' | 'weekEnd'>>): void {
+    this.contextMemory.updateWeeklyTheme(weekStart, updates);
+  }
+
+  getWeeklyTheme(weekStart?: string): WeeklyTheme | null {
+    return this.contextMemory.getWeeklyTheme(weekStart);
+  }
+
+  getRecentWeeks(count?: number): WeeklyTheme[] {
+    return this.contextMemory.getRecentWeeks(count);
+  }
+
+  restoreContext(sessionId: string, projectId?: string): ContextRestoration {
+    return this.contextMemory.restoreContext(sessionId, projectId);
+  }
+
+  // ============================================
+  // Resource Recommendations (ZOIX)
+  // ============================================
+
+  /**
+   * Get recommended resources based on learning gaps
+   */
+  getRecommendedResources(options?: {
+    topic?: string;
+    language?: string;
+    type?: 'book' | 'documentation' | 'tutorial' | 'article' | 'course' | 'video';
+    includeReasoning?: boolean;
+  }): Array<Resource & { reason?: string }> {
+    return this.resourceRecommender.getRecommendedResources(options);
+  }
+
+  /**
+   * Get book recommendations
+   */
+  getRecommendedBooks(topic?: string, language?: string): Resource[] {
+    return this.resourceRecommender.getRecommendedBooks(topic, language);
+  }
+
+  /**
+   * Get relevant documentation
+   */
+  getRelevantDocs(language?: string, topic?: string): Resource[] {
+    return this.resourceRecommender.getRelevantDocs(language, topic);
+  }
+
+  /**
+   * Get tutorial suggestions
+   */
+  getTutorialSuggestions(topic?: string): Resource[] {
+    return this.resourceRecommender.getTutorialSuggestions(topic);
+  }
+
+  /**
+   * Get article recommendations
+   */
+  getArticleRecommendations(topic?: string): Resource[] {
+    return this.resourceRecommender.getArticleRecommendations(topic);
+  }
+
+  /**
+   * Get course suggestions
+   */
+  getCourseSuggestions(level?: 'beginner' | 'intermediate' | 'advanced'): Resource[] {
+    return this.resourceRecommender.getCourseSuggestions(level);
+  }
+
+  /**
+   * Record that a user clicked on a resource
+   */
+  recordResourceClick(recommendationId: string): void {
+    this.resourceRecommender.recordResourceClick(recommendationId);
+  }
+
+  /**
+   * Get learning gaps analysis
+   */
+  analyzeLearningGaps(): LearningGap[] {
+    return this.resourceRecommender.analyzeLearningGaps();
+  }
+
+  /**
+   * Get recommendation statistics
+   */
+  getRecommendationStats(): {
+    totalShown: number;
+    totalClicked: number;
+    clickThroughRate: number;
+    byType: Record<string, { shown: number; clicked: number; ctr: number }>;
+  } {
+    return this.resourceRecommender.getRecommendationStats();
+  }
+
+  // ============================================
+  // Ontology Builder (Personal Knowledge Structure)
+  // ============================================
+
+  /**
+   * Build/rebuild the entire ontology
+   */
+  buildOntology(): OntologyTree {
+    return this.ontologyBuilder.buildOntology();
+  }
+
+  /**
+   * Get the complete ontology tree
+   */
+  getOntology(): OntologyTree {
+    return this.ontologyBuilder.getOntologyTree();
+  }
+
+  /**
+   * Get a specific category by path
+   */
+  getOntologyBranch(path: string): OntologyCategory | null {
+    return this.ontologyBuilder.getCategory(path);
+  }
+
+  /**
+   * Export ontology in different formats
+   */
+  exportOntology(format: 'json' | 'markdown' | 'graph' = 'json'): OntologyExportJSON | string | any {
+    if (format === 'json') {
+      return this.ontologyBuilder.exportAsJSON();
+    } else if (format === 'markdown') {
+      return this.ontologyBuilder.exportAsMarkdown();
+    } else {
+      return this.ontologyBuilder.exportAsGraph();
+    }
+  }
+
+  /**
+   * Get ontology growth (evolution metrics)
+   */
+  getOntologyGrowth(period?: { start: number; end: number }): EvolutionMetrics {
+    const now = Date.now();
+    const range = period || {
+      start: now - (7 * 24 * 60 * 60 * 1000), // Last week
+      end: now
+    };
+    return this.ontologyBuilder.getEvolution(range);
+  }
+
+  /**
+   * Get growth statistics
+   */
+  getOntologyGrowthStats(): GrowthArea[] {
+    return this.ontologyBuilder.getGrowthAreas();
+  }
+
+  /**
+   * Create a snapshot of current ontology
+   */
+  createOntologySnapshot() {
+    return this.ontologyBuilder.createSnapshot();
+  }
+
+  /**
+   * Get ontology statistics
+   */
+  getOntologyStats(): OntologyStats {
+    return this.ontologyBuilder.getOntologyStats();
+  }
+
+  /**
+   * Compare to standard ontologies (not implemented in new version)
+   */
+  compareOntologyToStandard(_standard: string): any {
+    // Not implemented in the new OntologyBuilder META service
+    return {
+      message: 'Gap analysis is performed automatically during buildOntology()',
+      note: 'Check ontology stats for expertise and learning areas'
+    };
+  }
+
+  /**
+   * Add a node to ontology (not applicable in META service)
+   */
+  addOntologyNode(_name: string, _type: string, _parentId?: string, _options?: any): any {
+    return {
+      message: 'Categories are auto-created from knowledge clusters',
+      note: 'Use buildOntology() to regenerate from current knowledge state'
+    };
+  }
+
+  /**
+   * Auto-organize concept (done automatically in META service)
+   */
+  autoOrganizeConcept(_conceptName: string, _context?: any): any {
+    return {
+      message: 'Concepts are auto-organized by the KnowledgeGraph service',
+      note: 'Categories are created automatically from concept clusters'
+    };
+  }
+
+  /**
+   * Get a specific node
+   */
+  getOntologyNode(id: string): OntologyCategory | null {
+    return this.ontologyBuilder.getCategoryById(id);
+  }
+
+  /**
+   * Find node by name
+   */
+  findOntologyNodeByName(name: string): OntologyCategory | null {
+    return this.ontologyBuilder.getCategory(name);
+  }
+
+  /**
+   * Search ontology (search across all categories)
+   */
+  searchOntology(query: string): OntologyCategory[] {
+    const allCategories = this.ontologyBuilder.getAllCategories();
+    const lowerQuery = query.toLowerCase();
+    return allCategories.filter(cat =>
+      cat.name.toLowerCase().includes(lowerQuery) ||
+      cat.path.toLowerCase().includes(lowerQuery)
+    );
+  }
+
+  /**
+   * Add relation (managed automatically in META service)
+   */
+  addOntologyRelation(_fromId: string, _toId: string, _relationType: string, _options?: any): any {
+    return {
+      message: 'Relationships are auto-detected by analyzing shared concepts',
+      note: 'Cross-references are created automatically during buildOntology()'
+    };
+  }
+
+  // ============================================
   // Cleanup
   // ============================================
 
@@ -379,6 +705,7 @@ export class AICore {
   shutdown(): void {
     this.disable();
     this.memory.close();
+    this.contextMemory.close();
     console.log('[AICore] Shutdown complete');
   }
 }

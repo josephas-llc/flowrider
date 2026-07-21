@@ -1,18 +1,55 @@
-/* Flowrider 2.0 - Dark Sci-Fi Theme */
+/* Flowrider 2.0 - Cyberpunk Theme (Game UX Optimized) */
 
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --bg-tertiary: #1a1a24;
-  --border-color: #2a2a3a;
-  --text-primary: #e0e0e0;
-  --text-secondary: #888;
-  --accent-cyan: #00ffff;
-  --accent-magenta: #ff00ff;
-  --accent-green: #00ff88;
-  --accent-yellow: #ffcc00;
-  --accent-red: #ff4444;
-  --accent-blue: #00d4ff;
+  /* Background Layers (Dark to Light) */
+  --bg-deep: #0B0C10;
+  --bg-primary: #0B0C10;
+  --bg-panel: #1F2833;
+  --bg-secondary: #1F2833;
+  --bg-elevated: #304151;
+  --bg-tertiary: #304151;
+  --border-color: #3d4f61;
+
+  /* Text Hierarchy */
+  --text-primary: #E0E0E0;
+  --text-secondary: #B0B0B0;
+  --text-muted: #666666;
+
+  /* Session Status Colors (Game-inspired) */
+  --status-running: #00FF7F;    /* Spring green - active */
+  --status-idle: #66FCF1;       /* Cyan - idle/waiting */
+  --status-warning: #FFEB0B;    /* Yellow - needs attention */
+  --status-error: #FF2E63;      /* Hot pink - error/failed */
+  --status-thinking: #05D9E8;   /* Electric blue - AI processing */
+
+  /* Interactive Accents */
+  --accent-primary: #66FCF1;    /* Cyan */
+  --accent-secondary: #FF2E63;  /* Hot pink */
+  --accent-ai: #BF00FF;         /* Purple for AI elements */
+  --accent-glow: rgba(102, 252, 241, 0.3);
+
+  /* ZOIX Learning System Colors */
+  --zoix-purple: #9333ea;
+  --zoix-glow: rgba(147, 51, 234, 0.08);
+
+  /* Legacy compatibility aliases */
+  --accent-cyan: #66FCF1;
+  --accent-magenta: #FF2E63;
+  --accent-green: #00FF7F;
+  --accent-yellow: #FFEB0B;
+  --accent-red: #FF2E63;
+  --accent-blue: #05D9E8;
+
+  /* Animation Timing (Game-proven values) */
+  --anim-instant: 80ms;
+  --anim-fast: 150ms;
+  --anim-normal: 200ms;
+  --anim-slow: 300ms;
+
+  /* Easing Functions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 /* Main Layout */
@@ -3835,67 +3872,59 @@
   overflow-y: auto;
 }
 
-/* Expanded Session Overlay - appears when clicking a session */
+/* Full-screen terminal takeover - StarCraft command center style
+   NO constrained modals, NO max-height limits, FULL viewport usage */
 .session-expanded-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: var(--bg-primary);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   z-index: 100;
-  padding: 40px;
-  animation: fadeInOverlay 0.2s ease;
+  padding: 0;
+  animation: slideInTerminal 0.15s var(--ease-out-expo);
 }
 
-@keyframes fadeInOverlay {
+@keyframes slideInTerminal {
   from {
     opacity: 0;
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Expanded Session Card - not full screen, centered */
+/* Session card is now full-screen - NO constraints */
 .session-expanded-card {
   width: 100%;
-  max-width: 1200px;
   height: 100%;
-  max-height: 800px;
-  background: var(--bg-secondary);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 16px;
+  max-width: none;
+  max-height: none;
+  background: var(--bg-primary);
+  border: none;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 255, 255, 0.1);
-  animation: scaleInCard 0.2s ease;
+  box-shadow: none;
 }
 
-@keyframes scaleInCard {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Expanded card header */
+/* Compact header - minimal chrome, maximum terminal space */
 .expanded-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-color);
+  padding: 8px 16px;
+  background: rgba(30, 30, 40, 0.95);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  height: 40px;
+  flex-shrink: 0;
+  backdrop-filter: blur(8px);
 }
 
 .expanded-title {
@@ -3939,11 +3968,13 @@
   border-color: rgba(255, 107, 107, 0.4);
 }
 
-/* Terminal content in expanded card */
+/* Terminal content in expanded card - FULL VIEWPORT USAGE */
 .expanded-terminal {
   flex: 1;
+  min-height: 0; /* Critical for flexbox overflow - without this, content clips */
   overflow: hidden;
   position: relative;
+  background: #0a0a0f;
 }
 
 /* Legacy grid-terminal-layout styles (for backwards compatibility) */
@@ -4197,12 +4228,23 @@
   grid-column: unset;
   border-left: none;
   flex: 1;
-  overflow-y: auto;
+  min-height: 0; /* Critical: allows flex child to shrink below content size */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-/* Adjust demo controls for v2 */
+/* Make session content scrollable in floating panel */
+.floating-session-panel .session-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 80px; /* Extra padding for bottom buttons */
+}
+
+/* Adjust demo controls for v2 - positioned above SessionMinimap */
 .app.app-v2 .demo-controls {
-  bottom: 16px;
+  bottom: 140px;
   right: 16px;
 }
 
@@ -5085,4 +5127,421 @@
 .file-browser-error .error-icon {
   font-size: 24px;
   color: var(--accent-yellow);
+}
+
+/* ============================================
+   GAME UX - Animations & Microinteractions
+   Inspired by: Hades, Diablo 4, StarCraft II
+   ============================================ */
+
+/* Shimmer Effect - Diablo 4 style new loot shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.session-cell.has-new-output::after,
+.session-pill.has-new-output::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(102, 252, 241, 0.15) 25%,
+    rgba(102, 252, 241, 0.3) 50%,
+    rgba(102, 252, 241, 0.15) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Glow Pulse - XCOM style for important elements */
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--accent-glow), 0 0 30px var(--accent-glow);
+  }
+}
+
+.session-cell.attention,
+.session-pill.attention {
+  animation: glowPulse 1.5s ease-in-out infinite;
+}
+
+/* Button Press - Valorant style instant feedback */
+.btn,
+.nav-tab-v2,
+.session-pill,
+.quick-create-btn {
+  transition: all var(--anim-instant) var(--ease-out-expo);
+}
+
+.btn:active,
+.nav-tab-v2:active,
+.session-pill:active,
+.quick-create-btn:active {
+  transform: scale(0.97);
+  transition: transform var(--anim-instant) ease-in-out;
+}
+
+/* Panel Slide - Persona 5 style smooth panels */
+.floating-session-panel,
+.floating-icosahedron,
+.session-expanded-overlay {
+  animation: panelSlideIn var(--anim-normal) var(--ease-out-expo);
+}
+
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Notification Slide - Hades style notifications */
+@keyframes notificationSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes notificationSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.notification-toast {
+  animation: notificationSlideIn var(--anim-normal) var(--ease-spring);
+}
+
+.notification-toast.exiting {
+  animation: notificationSlideOut var(--anim-fast) ease-in;
+}
+
+/* Session Switch - StarCraft II control group style */
+@keyframes sessionSwitch {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.session-cell.selected,
+.session-pill.selected {
+  animation: sessionSwitch var(--anim-fast) var(--ease-spring);
+}
+
+/* Progress Bar Fill - Smooth XCOM-style segmented feel */
+.progress-bar-fill,
+.capacity-fill,
+.fr-session-fill {
+  transition: width var(--anim-slow) var(--ease-out-expo);
+}
+
+/* Attention Ring - EVE Online style important target indicator */
+@keyframes attentionRing {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(255, 46, 99, 0.4),
+      0 0 0 0 rgba(255, 46, 99, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(255, 46, 99, 0.4),
+      0 0 0 8px rgba(255, 46, 99, 0.2);
+  }
+}
+
+.session-cell.critical-attention,
+.session-pill.critical-attention {
+  animation: attentionRing 1s ease-in-out infinite;
+}
+
+/* AI Thinking Indicator - Electric blue pulse */
+@keyframes aiThinking {
+  0%, 100% {
+    border-color: var(--status-thinking);
+    box-shadow: 0 0 10px rgba(5, 217, 232, 0.3);
+  }
+  50% {
+    border-color: rgba(5, 217, 232, 0.5);
+    box-shadow: 0 0 20px rgba(5, 217, 232, 0.5);
+  }
+}
+
+.session-cell.ai-processing,
+.session-pill.ai-processing {
+  animation: aiThinking 1.5s ease-in-out infinite;
+}
+
+/* Hover State - Fast Valorant-style response */
+.session-cell:hover,
+.session-pill:hover,
+.flowrider-card:hover,
+.provider-card:hover {
+  transition: all var(--anim-fast) var(--ease-out-expo);
+}
+
+/* Command Palette Appearance */
+.command-palette-overlay {
+  animation: fadeIn var(--anim-fast) ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.command-palette-content {
+  animation: scaleIn var(--anim-normal) var(--ease-spring);
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY - Reduce Motion Support
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .session-cell.has-new-output::after,
+  .session-pill.has-new-output::after {
+    animation: none;
+    background: rgba(102, 252, 241, 0.1);
+  }
+}
+
+/* Reduce Motion Toggle (manual preference) */
+.reduce-motion .session-cell.has-new-output::after,
+.reduce-motion .session-pill.has-new-output::after {
+  animation: none;
+  background: rgba(102, 252, 241, 0.1);
+}
+
+.reduce-motion * {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.05s !important;
+}
+
+/* ============================================
+   COLORBLIND SUPPORT MODES
+   ============================================ */
+
+/* Protanopia (Red-Blind) */
+.colorblind-protanopia {
+  --status-running: #0096FF;    /* Blue instead of green */
+  --status-error: #0088CC;      /* Blue instead of red/pink */
+  --accent-secondary: #FF9900;  /* Orange instead of pink */
+}
+
+/* Deuteranopia (Green-Blind) */
+.colorblind-deuteranopia {
+  --status-running: #9B59B6;    /* Purple instead of green */
+  --status-error: #E74C3C;      /* Keep red */
+  --accent-secondary: #9B59B6;  /* Purple instead of pink */
+}
+
+/* Tritanopia (Blue-Blind) */
+.colorblind-tritanopia {
+  --status-idle: #FF6B6B;       /* Red/pink instead of cyan */
+  --status-thinking: #FF9900;   /* Orange instead of blue */
+  --accent-primary: #FF6B6B;    /* Red instead of cyan */
+}
+
+/* High Contrast Mode */
+.high-contrast {
+  --bg-deep: #000000;
+  --bg-panel: #0a0a0a;
+  --bg-elevated: #1a1a1a;
+  --text-primary: #FFFFFF;
+  --text-secondary: #CCCCCC;
+  --border-color: #666666;
+}
+
+.high-contrast .session-cell,
+.high-contrast .session-pill,
+.high-contrast .btn {
+  border-width: 2px;
+}
+
+.high-contrast a,
+.high-contrast .clickable {
+  text-decoration: underline;
+}
+
+/* ============================================
+   SESSION MINIMAP (Toggleable Widget)
+   Inspired by: StarCraft II minimap
+   ============================================ */
+
+.session-minimap {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 100px;
+  height: 80px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 3px;
+  z-index: 100;
+  opacity: 0.9;
+  transition: opacity var(--anim-fast) ease;
+}
+
+.session-minimap:hover {
+  opacity: 1;
+}
+
+.session-minimap-dot {
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  transition: all var(--anim-instant) ease;
+}
+
+.session-minimap-dot.active {
+  background: var(--status-running);
+  box-shadow: 0 0 4px var(--status-running);
+}
+
+.session-minimap-dot.attention {
+  background: var(--status-warning);
+  animation: minimapPulse 0.5s ease-in-out infinite;
+}
+
+.session-minimap-dot.selected {
+  border: 1px solid var(--accent-primary);
+}
+
+@keyframes minimapPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Minimap Toggle Button */
+.minimap-toggle {
+  position: fixed;
+  bottom: 100px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99;
+  transition: all var(--anim-fast) ease;
+}
+
+.minimap-toggle:hover {
+  background: var(--bg-elevated);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+/* ============================================
+   CONTROL GROUP INDICATORS (Ctrl+1-9)
+   StarCraft-style hotkey assignments
+   ============================================ */
+
+.control-group-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  background: var(--accent-ai);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.session-cell.in-control-group {
+  position: relative;
+}
+
+/* Temporary feedback when control group is activated */
+@keyframes controlGroupFlash {
+  0% {
+    box-shadow: inset 0 0 0 2px var(--accent-ai);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+}
+
+.session-cell.control-group-activated {
+  animation: controlGroupFlash 0.3s ease-out;
 }

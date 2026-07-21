@@ -14,6 +14,7 @@ import { CrossSessionContext } from './CrossSessionContext';
 import { ApiSettings } from './dashboard/ApiSettings';
 import { ApiKeyManager } from './dashboard/ApiKeyManager';
 import { ApiDocs } from './dashboard/ApiDocs';
+import { ZoixProfilePanel } from './ZoixProfilePanel';
 
 const formatCost = (cost: number): string => {
   return cost < 0.01 ? '<$0.01' : `$${cost.toFixed(2)}`;
@@ -38,6 +39,7 @@ export const Dashboard: React.FC = () => {
   } = useStore();
 
   const [advancedExpanded, setAdvancedExpanded] = useState(false);
+  const [showProfilePanel, setShowProfilePanel] = useState(false);
   const activeSessions = sessions.filter(s => s.status !== 'empty');
 
   // Main tabs that are always visible
@@ -54,6 +56,7 @@ export const Dashboard: React.FC = () => {
       overview: 'Overview',
       providers: 'AI Models',
       projects: 'Projects',
+      profile: 'ZOIX Profile',
       mcp: 'MCP',
       messaging: 'Messaging',
       activity: 'Activity',
@@ -84,6 +87,20 @@ export const Dashboard: React.FC = () => {
             </button>
           ))}
 
+          {/* ZOIX Profile Button */}
+          <button
+            className={`tab zoix-profile-btn`}
+            onClick={() => setShowProfilePanel(true)}
+            style={{
+              background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(59, 130, 246, 0.2))',
+              border: '1px solid #a855f7',
+              color: '#a855f7',
+            }}
+          >
+            <span style={{ marginRight: 6 }}>🎯</span>
+            ZOIX Profile
+          </button>
+
           {/* Advanced collapsible section */}
           <div className="advanced-tab-container">
             <button
@@ -112,6 +129,12 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ZOIX Profile Panel */}
+      <ZoixProfilePanel
+        isOpen={showProfilePanel}
+        onClose={() => setShowProfilePanel(false)}
+      />
 
       <div className="dashboard-content">
         {dashboardView === 'overview' && (

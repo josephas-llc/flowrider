@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware';
 // TYPES
 // ============================================
 
-export type AIProvider = 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local';
+export type AIProvider = 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'mistral' | 'kimi' | 'deepseek' | 'cohere' | 'qwen' | 'yi' | 'falcon' | 'hunyuan' | 'local';
 
 export interface AIProviderConfig {
   id: AIProvider;
@@ -58,6 +58,87 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     isLocal: false,
     apiUrl: 'https://api.x.ai',
     models: ['grok-2', 'grok-2-mini'],
+  },
+  {
+    id: 'mistral',
+    name: 'Mistral AI (France)',
+    description: 'European AI, strong multilingual & coding',
+    costPerMToken: 3,
+    wattsPerMToken: 0.25, // Efficient European datacenter
+    isLocal: false,
+    apiUrl: 'https://api.mistral.ai',
+    models: ['mistral-large-latest', 'mistral-medium', 'mistral-small', 'codestral'],
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek (China)',
+    description: 'Cost-effective reasoning & coding AI',
+    costPerMToken: 0.55, // Very competitive pricing
+    wattsPerMToken: 0.2, // Efficient inference
+    isLocal: false,
+    apiUrl: 'https://api.deepseek.com',
+    models: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'],
+  },
+  {
+    id: 'kimi',
+    name: 'Kimi K3 (Moonshot AI - China)',
+    description: '1M token context, strong at long docs',
+    costPerMToken: 1.5,
+    wattsPerMToken: 0.3, // Standard datacenter
+    isLocal: false,
+    apiUrl: 'https://api.moonshot.cn',
+    models: ['moonshot-v1-128k', 'moonshot-v1-32k', 'moonshot-v1-8k'],
+  },
+  {
+    id: 'cohere',
+    name: 'Cohere (Canada)',
+    description: 'Enterprise RAG & embeddings specialist',
+    costPerMToken: 1,
+    wattsPerMToken: 0.25, // Efficient Canadian datacenter
+    isLocal: false,
+    apiUrl: 'https://api.cohere.ai',
+    models: ['command-r-plus', 'command-r', 'command-light'],
+  },
+  // ===== FREE OPEN-SOURCE INTERNATIONAL MODELS (via Ollama) =====
+  {
+    id: 'qwen',
+    name: 'Qwen3 (Alibaba - China)',
+    description: 'Apache 2.0, 1M context, 201 languages - FREE',
+    costPerMToken: 0, // Open source, run locally
+    wattsPerMToken: 0.01, // Local inference
+    isLocal: true,
+    apiUrl: 'http://localhost:11434', // Via Ollama
+    models: ['qwen3:70b', 'qwen3:32b', 'qwen3:14b', 'qwen3:7b', 'qwen-coder:32b'],
+  },
+  {
+    id: 'yi',
+    name: 'Yi (01.AI - China)',
+    description: 'Apache 2.0, strong bilingual EN/ZH - FREE',
+    costPerMToken: 0,
+    wattsPerMToken: 0.01,
+    isLocal: true,
+    apiUrl: 'http://localhost:11434',
+    models: ['yi:34b', 'yi:9b', 'yi-coder:9b'],
+  },
+  {
+    id: 'falcon',
+    name: 'Falcon 3 (TII - UAE)',
+    description: 'Compact & efficient, strong reasoning - FREE',
+    costPerMToken: 0,
+    wattsPerMToken: 0.01,
+    isLocal: true,
+    apiUrl: 'http://localhost:11434',
+    models: ['falcon3:10b', 'falcon3:7b', 'falcon3:3b', 'falcon3:1b'],
+  },
+  {
+    id: 'hunyuan',
+    name: 'HunYuan 3 (Tencent - China)',
+    description: 'Apache 2.0, 256K context MoE - FREE',
+    costPerMToken: 0,
+    wattsPerMToken: 0.01,
+    isLocal: true,
+    apiUrl: 'http://localhost:11434',
+    models: ['hunyuan:7b', 'hunyuan-lite'],
   },
   {
     id: 'ollama',
@@ -184,6 +265,77 @@ export interface LeoState {
   coordinator: string | null;
 }
 
+export interface Interest {
+  topic: string;
+  weight: number;
+  trajectory: 'new' | 'learning' | 'established' | 'expert';
+  sessions: number;
+  lastWorkedOn: Date;
+  trend?: 'growing' | 'stable' | 'declining';
+}
+
+export interface KnowledgeNode {
+  id: string;
+  concept: string;
+  cluster: string;
+  confidence: number;
+  connections: string[];
+  isGap?: boolean;
+  size?: number;
+}
+
+export interface SkillLevel {
+  technology: string;
+  level: 'novice' | 'intermediate' | 'proficient' | 'expert';
+  trend: 'improving' | 'stable' | 'needs-work';
+  milestones: string[];
+  lastActivity: Date;
+  progress?: number;
+}
+
+export interface ContextItem {
+  type: 'last-work' | 'unfinished' | 'goal';
+  description: string;
+  sessionId?: string;
+  progress: number;
+  timestamp: Date;
+}
+
+export interface RecommendedResource {
+  type: 'book' | 'documentation' | 'tutorial' | 'course';
+  title: string;
+  description: string;
+  url?: string;
+  relevance: number;
+  reason: string;
+}
+
+export interface LearningGoal {
+  id: string;
+  type: 'explicit' | 'inferred';
+  description: string;
+  progress: number;
+  confidence?: number;
+  targetDate?: Date;
+}
+
+export interface UserProfile {
+  interests: Interest[];
+  knowledgeGraph: KnowledgeNode[];
+  skillProgress: SkillLevel[];
+  context: ContextItem[];
+  recommendedResources: RecommendedResource[];
+  learningGoals?: LearningGoal[];
+  lastUpdated: Date;
+  stats?: {
+    knowledgeScore: number;
+    totalConcepts: number;
+    activeDomains: number;
+    learningVelocity: number;
+    growthThisMonth: number;
+  };
+}
+
 export interface DashboardMetrics {
   activeSessions: number;
   totalSessions: number;
@@ -207,6 +359,10 @@ interface FlowriderState {
   selectedFace: number | null;
   attachedSession: string | null;
 
+  // Control Groups (StarCraft-style hotkeys)
+  // Groups 1-9, each containing array of face indices
+  controlGroups: Record<number, number[]>;
+
   // Projects
   projects: Project[];
   selectedProject: string | null;
@@ -220,9 +376,48 @@ interface FlowriderState {
   // LEO Mode
   leo: LeoState;
 
+  // ZOIX Learning System
+  zoixPatterns: number;
+  zoixLearningActive: boolean;
+  zoixRecentLearnings: Array<{
+    id: string;
+    type: 'error' | 'code' | 'workflow' | 'prompt';
+    description: string;
+    sessionId?: number;
+    timestamp: Date;
+    confidence: number;
+  }>;
+  zoixInsights: Array<{
+    id: string;
+    type: 'cross_session' | 'suggestion' | 'cost_saving';
+    title: string;
+    description: string;
+    actionable: boolean;
+    sessions?: number[];
+  }>;
+  zoixStats: {
+    totalInteractions: number;
+    totalPatterns: number;
+    totalInsights: number;
+    totalSnippets: number;
+    averageConfidence: number;
+  } | null;
+
+  // ZOIX Actions
+  setZoixPatterns: (count: number) => void;
+  setZoixStats: (stats: any) => void;
+  setZoixRecentLearnings: (learnings: any[]) => void;
+  setZoixInsights: (insights: any[]) => void;
+  syncZoixData: () => Promise<void>;
+
+  // ZOIX User Profile
+  userProfile: UserProfile | null;
+  setUserProfile: (profile: UserProfile) => void;
+  syncUserProfile: () => Promise<void>;
+
   // Dashboard
   dashboard: DashboardMetrics;
-  dashboardView: 'overview' | 'projects' | 'costs' | 'leo' | 'roi' | 'mcp' | 'messaging' | 'activity' | 'providers' | 'leoai' | 'api';
+  dashboardView: 'overview' | 'projects' | 'costs' | 'leo' | 'roi' | 'mcp' | 'messaging' | 'activity' | 'providers' | 'leoai' | 'api' | 'profile';
 
   // UI State
   isCreatingSession: boolean;
@@ -249,6 +444,7 @@ interface FlowriderState {
   appMode: 'work' | 'demo';
   setAppMode: (mode: 'work' | 'demo') => void;
   resetDemoData: () => void;
+  seedZoixDemoData: () => void;
 
   // Session Actions
   selectFace: (faceIndex: number | null) => void;
@@ -265,6 +461,14 @@ interface FlowriderState {
   markSessionActivity: (faceIndex: number) => void;
   setSessionNeedsAttention: (faceIndex: number, needsAttention: boolean, reason?: string) => void;
   clearAllAttention: () => void;
+
+  // Control Group Actions (StarCraft-style)
+  setControlGroup: (groupNumber: number, faceIndices: number[]) => void;
+  addToControlGroup: (groupNumber: number, faceIndex: number) => void;
+  removeFromControlGroup: (groupNumber: number, faceIndex: number) => void;
+  selectControlGroup: (groupNumber: number) => void;
+  clearControlGroup: (groupNumber: number) => void;
+  getControlGroupForFace: (faceIndex: number) => number | null;
 
   // Project Actions
   createProject: (name: string, description: string, color: string, icon: string) => void;
@@ -392,6 +596,7 @@ export const useStore = create<FlowriderState>()(
       sessions: initializeSessions(),
       selectedFace: null,
       attachedSession: null,
+      controlGroups: {}, // StarCraft-style control groups (1-9)
       projects: [],
       selectedProject: null,
       costMetrics: initializeCostMetrics(),
@@ -409,6 +614,16 @@ export const useStore = create<FlowriderState>()(
       searchQuery: '',
       searchFilter: 'all',
       appMode: 'work',
+
+      // ZOIX Learning System
+      zoixPatterns: 0,
+      zoixLearningActive: false,
+      zoixRecentLearnings: [],
+      zoixInsights: [],
+      zoixStats: null,
+
+      // ZOIX User Profile
+      userProfile: null,
 
       // ========== SEARCH/FILTER ACTIONS ==========
 
@@ -434,7 +649,86 @@ export const useStore = create<FlowriderState>()(
           selectedFace: null,
           attachedSession: null,
           appMode: 'work',
+          // Reset ZOIX demo data
+          zoixPatterns: 0,
+          zoixLearningActive: false,
+          zoixRecentLearnings: [],
+          zoixInsights: [],
         })),
+
+      // Seed ZOIX with impressive demo data for investor presentations
+      seedZoixDemoData: () =>
+        set({
+          zoixPatterns: 847, // Impressive but realistic number
+          zoixLearningActive: true,
+          zoixRecentLearnings: [
+            {
+              id: 'demo-1',
+              type: 'error' as const,
+              description: 'null reference → add optional chaining',
+              sessionId: 4,
+              timestamp: new Date(Date.now() - 2 * 60 * 1000), // 2 min ago
+              confidence: 0.94,
+            },
+            {
+              id: 'demo-2',
+              type: 'code' as const,
+              description: 'React useEffect cleanup pattern',
+              sessionId: 2,
+              timestamp: new Date(Date.now() - 8 * 60 * 1000), // 8 min ago
+              confidence: 0.91,
+            },
+            {
+              id: 'demo-3',
+              type: 'workflow' as const,
+              description: 'git commit → push → PR sequence',
+              sessionId: 1,
+              timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 min ago
+              confidence: 0.97,
+            },
+            {
+              id: 'demo-4',
+              type: 'prompt' as const,
+              description: 'TypeScript interface → Zod schema',
+              sessionId: 7,
+              timestamp: new Date(Date.now() - 22 * 60 * 1000), // 22 min ago
+              confidence: 0.89,
+            },
+            {
+              id: 'demo-5',
+              type: 'code' as const,
+              description: 'async/await error boundary pattern',
+              sessionId: 3,
+              timestamp: new Date(Date.now() - 35 * 60 * 1000), // 35 min ago
+              confidence: 0.93,
+            },
+          ],
+          zoixInsights: [
+            {
+              id: 'insight-1',
+              type: 'cross_session' as const,
+              title: 'Shared Auth Pattern Detected',
+              description: 'Sessions 3 and 7 both implement JWT token refresh. Consider extracting to shared utility.',
+              actionable: true,
+              sessions: [3, 7],
+            },
+            {
+              id: 'insight-2',
+              type: 'cost_saving' as const,
+              title: 'Pattern Cache Savings',
+              description: 'ZOIX cached 127 common patterns this week, saving ~$2.84 in redundant API calls.',
+              actionable: false,
+            },
+            {
+              id: 'insight-3',
+              type: 'suggestion' as const,
+              title: 'Test Coverage Opportunity',
+              description: 'Sessions 1, 4, and 8 all modified the same PaymentService. Consider cross-session test generation.',
+              actionable: true,
+              sessions: [1, 4, 8],
+            },
+          ],
+        }),
 
       // ========== SESSION ACTIONS ==========
 
@@ -642,6 +936,59 @@ export const useStore = create<FlowriderState>()(
           sessions: state.sessions.map((s) => ({ ...s, needsAttention: false, attentionReason: undefined })),
         })),
 
+      // ========== CONTROL GROUP ACTIONS (StarCraft-style) ==========
+
+      setControlGroup: (groupNumber, faceIndices) =>
+        set((state) => ({
+          controlGroups: { ...state.controlGroups, [groupNumber]: faceIndices },
+        })),
+
+      addToControlGroup: (groupNumber, faceIndex) =>
+        set((state) => {
+          const existing = state.controlGroups[groupNumber] || [];
+          if (existing.includes(faceIndex)) return state;
+          return {
+            controlGroups: { ...state.controlGroups, [groupNumber]: [...existing, faceIndex] },
+          };
+        }),
+
+      removeFromControlGroup: (groupNumber, faceIndex) =>
+        set((state) => {
+          const existing = state.controlGroups[groupNumber] || [];
+          return {
+            controlGroups: {
+              ...state.controlGroups,
+              [groupNumber]: existing.filter((idx) => idx !== faceIndex),
+            },
+          };
+        }),
+
+      selectControlGroup: (groupNumber) => {
+        const state = get();
+        const group = state.controlGroups[groupNumber];
+        if (group && group.length > 0) {
+          // Select the first session in the group
+          set({ selectedFace: group[0] });
+        }
+      },
+
+      clearControlGroup: (groupNumber) =>
+        set((state) => {
+          const newGroups = { ...state.controlGroups };
+          delete newGroups[groupNumber];
+          return { controlGroups: newGroups };
+        }),
+
+      getControlGroupForFace: (faceIndex) => {
+        const state = get();
+        for (const [groupNum, indices] of Object.entries(state.controlGroups)) {
+          if (indices.includes(faceIndex)) {
+            return parseInt(groupNum);
+          }
+        }
+        return null;
+      },
+
       // ========== PROJECT ACTIONS ==========
 
       createProject: (name, description, color, icon) =>
@@ -792,9 +1139,16 @@ export const useStore = create<FlowriderState>()(
             const newSessions = state.sessions.map((session) => {
               const tmux = tmuxMap.get(session.faceIndex);
               if (tmux) {
-                // Tmux session exists - mark as active
+                // Tmux session exists - mark as active and restore name from tmux
+                // Parse friendly name from tmux session name: fr2-{index}-{friendly-name}
+                const parts = tmux.name.split('-');
+                const friendlyName = parts.length > 2
+                  ? parts.slice(2).join('-') // Everything after fr2-{index}-
+                  : session.name; // Keep existing name if parsing fails
+
                 return {
                   ...session,
+                  name: session.name === `Session ${session.faceIndex + 1}` ? friendlyName : session.name, // Only restore if default
                   tmuxSession: tmux.name,
                   status: tmux.attached ? 'attached' as const : 'active' as const,
                 };
@@ -820,6 +1174,251 @@ export const useStore = create<FlowriderState>()(
           console.log(`[Store] Synced ${tmuxSessions.length} tmux sessions`);
         } catch (err) {
           console.error('[Store] Failed to sync with tmux:', err);
+        }
+      },
+
+      // ========== ZOIX ACTIONS ==========
+
+      setZoixPatterns: (count) => set({ zoixPatterns: count }),
+
+      setZoixStats: (stats) => set({ zoixStats: stats, zoixPatterns: stats.totalPatterns || 0 }),
+
+      setZoixRecentLearnings: (learnings) => set({ zoixRecentLearnings: learnings }),
+
+      setZoixInsights: (insights) => set({ zoixInsights: insights }),
+
+      syncZoixData: async () => {
+        if (!window.flowrider) return;
+
+        try {
+          // Fetch stats
+          const statsResult = await window.flowrider.leoai.getStats();
+          if (statsResult.success && statsResult.data) {
+            set({
+              zoixStats: statsResult.data,
+              zoixPatterns: statsResult.data.totalPatterns || 0,
+              zoixLearningActive: statsResult.data.totalPatterns > 0,
+            });
+          }
+
+          // Fetch recent patterns (learnings)
+          const patternsResult = await window.flowrider.leoai.getPatterns(0.5);
+          if (patternsResult.success && patternsResult.data) {
+            const learnings = patternsResult.data.slice(0, 5).map((pattern: Pattern) => ({
+              id: pattern.id,
+              type: pattern.type,
+              description: pattern.name,
+              timestamp: new Date(pattern.lastSeen),
+              confidence: pattern.confidence,
+            }));
+            set({ zoixRecentLearnings: learnings });
+          }
+
+          // Fetch insights
+          const insightsResult = await window.flowrider.leoai.getInsights(10);
+          if (insightsResult.success && insightsResult.data) {
+            const insights = insightsResult.data.map((insight: Insight) => ({
+              id: insight.id,
+              type: insight.category === 'error-solution' ? 'cross_session' :
+                    insight.category === 'cost-optimization' ? 'cost_saving' : 'suggestion',
+              title: insight.category.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+              description: insight.content,
+              actionable: insight.effectiveness > 0.7,
+            }));
+            set({ zoixInsights: insights });
+          }
+
+          console.log('[Store] ZOIX data synced successfully');
+        } catch (err) {
+          console.error('[Store] Failed to sync ZOIX data:', err);
+        }
+      },
+
+      // ========== ZOIX USER PROFILE ACTIONS ==========
+
+      setUserProfile: (profile) => set({ userProfile: profile }),
+
+      syncUserProfile: async () => {
+        if (!window.flowrider) return;
+
+        try {
+          // For now, build profile from existing ZOIX data
+          // In future, this could call dedicated backend endpoints
+          const patternsResult = await window.flowrider.leoai.getPatterns(0.5);
+          const insightsResult = await window.flowrider.leoai.getInsights(10);
+          const statsResult = await window.flowrider.leoai.getStats();
+
+          // Build interests from patterns
+          const interests: Interest[] = [];
+          if (patternsResult.success && patternsResult.data) {
+            const topicMap = new Map<string, { count: number, patterns: any[] }>();
+
+            patternsResult.data.forEach((pattern: any) => {
+              const topic = pattern.tags?.[0] || pattern.language || pattern.type;
+              if (!topicMap.has(topic)) {
+                topicMap.set(topic, { count: 0, patterns: [] });
+              }
+              const entry = topicMap.get(topic)!;
+              entry.count += pattern.frequency;
+              entry.patterns.push(pattern);
+            });
+
+            const sortedTopics = Array.from(topicMap.entries())
+              .sort((a, b) => b[1].count - a[1].count)
+              .slice(0, 10);
+
+            const maxCount = sortedTopics[0]?.[1].count || 1;
+
+            sortedTopics.forEach(([topic, data]) => {
+              const avgConfidence = data.patterns.reduce((sum: number, p: any) => sum + p.confidence, 0) / data.patterns.length;
+              const weight = data.count / maxCount;
+
+              let trajectory: Interest['trajectory'] = 'learning';
+              if (avgConfidence > 0.9 && data.count > 20) trajectory = 'expert';
+              else if (avgConfidence > 0.7 && data.count > 10) trajectory = 'established';
+              else if (data.count < 5) trajectory = 'new';
+
+              interests.push({
+                topic,
+                weight,
+                trajectory,
+                sessions: data.patterns.length,
+                lastWorkedOn: new Date(Math.max(...data.patterns.map((p: any) => p.lastSeen))),
+              });
+            });
+          }
+
+          // Build knowledge graph from patterns and tags
+          const knowledgeGraph: KnowledgeNode[] = [];
+          if (patternsResult.success && patternsResult.data) {
+            const nodeMap = new Map<string, KnowledgeNode>();
+
+            patternsResult.data.forEach((pattern: any, idx: number) => {
+              pattern.tags?.forEach((tag: string) => {
+                if (!nodeMap.has(tag)) {
+                  nodeMap.set(tag, {
+                    id: `node-${tag}`,
+                    concept: tag,
+                    cluster: pattern.language || pattern.type || 'general',
+                    confidence: pattern.confidence,
+                    connections: [],
+                  });
+                }
+              });
+            });
+
+            // Build connections between related tags
+            patternsResult.data.forEach((pattern: any) => {
+              if (pattern.tags?.length > 1) {
+                for (let i = 0; i < pattern.tags.length; i++) {
+                  for (let j = i + 1; j < pattern.tags.length; j++) {
+                    const node1 = nodeMap.get(pattern.tags[i]);
+                    const node2 = nodeMap.get(pattern.tags[j]);
+                    if (node1 && node2) {
+                      if (!node1.connections.includes(node2.id)) {
+                        node1.connections.push(node2.id);
+                      }
+                      if (!node2.connections.includes(node1.id)) {
+                        node2.connections.push(node1.id);
+                      }
+                    }
+                  }
+                }
+              }
+            });
+
+            knowledgeGraph.push(...Array.from(nodeMap.values()).slice(0, 30));
+          }
+
+          // Build skill progress from languages
+          const skillProgress: SkillLevel[] = [];
+          if (patternsResult.success && patternsResult.data) {
+            const langMap = new Map<string, any[]>();
+
+            patternsResult.data.forEach((pattern: any) => {
+              if (pattern.language) {
+                if (!langMap.has(pattern.language)) {
+                  langMap.set(pattern.language, []);
+                }
+                langMap.get(pattern.language)!.push(pattern);
+              }
+            });
+
+            langMap.forEach((patterns, lang) => {
+              const totalFreq = patterns.reduce((sum, p) => sum + p.frequency, 0);
+              const avgConf = patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
+
+              let level: SkillLevel['level'] = 'beginner';
+              if (totalFreq > 50 && avgConf > 0.85) level = 'expert';
+              else if (totalFreq > 20 && avgConf > 0.7) level = 'intermediate';
+
+              const milestones = patterns
+                .filter(p => p.confidence > 0.9)
+                .slice(0, 3)
+                .map(p => p.pattern || p.type);
+
+              skillProgress.push({
+                technology: lang,
+                level,
+                trend: avgConf > 0.8 ? 'improving' : avgConf > 0.6 ? 'stable' : 'needs-work',
+                milestones,
+                lastActivity: new Date(Math.max(...patterns.map(p => p.lastSeen))),
+              });
+            });
+          }
+
+          // Build context from recent interactions
+          const context: ContextItem[] = [];
+          if (statsResult.success && statsResult.data) {
+            // Add some context based on stats
+            if (statsResult.data.totalInteractions > 0) {
+              context.push({
+                type: 'last-work',
+                description: `Completed ${statsResult.data.totalInteractions} AI interactions`,
+                progress: 1,
+                timestamp: new Date(Date.now() - 3600000), // 1 hour ago
+              });
+            }
+          }
+
+          // Build recommended resources based on knowledge gaps and learning trajectory
+          const recommendedResources: RecommendedResource[] = [];
+
+          // Recommend based on 'new' or 'learning' interests
+          interests.filter(i => i.trajectory === 'new' || i.trajectory === 'learning').forEach(interest => {
+            recommendedResources.push({
+              type: 'documentation',
+              title: `${interest.topic} Official Documentation`,
+              description: `Comprehensive guide to ${interest.topic}`,
+              relevance: interest.weight,
+              reason: `You're actively learning ${interest.topic}`,
+            });
+          });
+
+          // Recommend based on skill gaps
+          skillProgress.filter(s => s.level === 'beginner' || s.trend === 'needs-work').forEach(skill => {
+            recommendedResources.push({
+              type: 'tutorial',
+              title: `Advanced ${skill.technology} Tutorial`,
+              description: `Level up your ${skill.technology} skills`,
+              relevance: 0.8,
+              reason: `Improve your ${skill.technology} proficiency`,
+            });
+          });
+
+          const profile: UserProfile = {
+            interests,
+            knowledgeGraph,
+            skillProgress,
+            context,
+            recommendedResources: recommendedResources.slice(0, 10),
+            lastUpdated: new Date(),
+          };
+
+          set({ userProfile: profile });
+          console.log('[Store] User profile synced successfully');
+        } catch (err) {
+          console.error('[Store] Failed to sync user profile:', err);
         }
       },
     }),

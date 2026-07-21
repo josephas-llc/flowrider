@@ -6,6 +6,7 @@
  */
 
 import { getAICore } from './ai-core';
+import { getSkillTracker } from './ai-core/SkillTracker';
 
 interface MonitoredSession {
   sessionName: string;
@@ -80,6 +81,70 @@ const FILE_PATTERNS = [
   /(?:Saving|Writing|Creating)\s+(?:file\s+)?['"`]?([^\s'"`\n]+\.[a-z]{2,4})['"`]?/gi,
   /\[(?:Write|Edit|Create)\]\s+['"`]?([^\s'"`\n]+)['"`]?/gi,
 ];
+
+// Extension to skill domain mapping for SkillTracker
+const EXTENSION_TO_DOMAIN: Record<string, string> = {
+  ts: 'typescript',
+  tsx: 'typescript',
+  js: 'javascript',
+  jsx: 'javascript',
+  py: 'python',
+  rs: 'rust',
+  go: 'golang',
+  rb: 'ruby',
+  java: 'java',
+  kt: 'kotlin',
+  swift: 'swift',
+  c: 'c',
+  cpp: 'cpp',
+  h: 'c',
+  hpp: 'cpp',
+  cs: 'csharp',
+  php: 'php',
+  sql: 'sql',
+  sh: 'shell',
+  bash: 'shell',
+  zsh: 'shell',
+  yml: 'devops',
+  yaml: 'devops',
+  dockerfile: 'devops',
+  tf: 'devops',
+  css: 'frontend',
+  scss: 'frontend',
+  html: 'frontend',
+  vue: 'frontend',
+  svelte: 'frontend',
+  json: 'config',
+  md: 'documentation',
+};
+
+/**
+ * Infer skill domain from modified files
+ */
+function inferDomain(filesModified: string[], sessionLanguage?: string): string {
+  // If session has a language set, use it
+  if (sessionLanguage) {
+    return sessionLanguage.toLowerCase();
+  }
+
+  // Count file extensions
+  const domainCounts: Record<string, number> = {};
+  for (const file of filesModified) {
+    const ext = file.split('.').pop()?.toLowerCase() || '';
+    const domain = EXTENSION_TO_DOMAIN[ext];
+    if (domain) {
+      domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+    }
+  }
+
+  // Return most common domain, or 'general' if none found
+  const entries = Object.entries(domainCounts);
+  if (entries.length === 0) {
+    return 'general';
+  }
+  entries.sort((a, b) => b[1] - a[1]);
+  return entries[0][0];
+}
 
 export class SessionMonitor {
   private sessions: Map<string, MonitoredSession> = new Map();
@@ -330,21 +395,40 @@ export class SessionMonitor {
    */
   private recordInteraction(session: MonitoredSession, prompt: string, response: string): void {
     const aiCore = getAICore();
+    const skillTracker = getSkillTracker();
 
     // Extract metadata from the response
     const filesModified = this.extractFilesModified(response);
     const errorsSeen = this.extractErrors(response);
     const outcome = this.inferOutcome(response, errorsSeen);
 
+    // Infer domain from files modified or session language
+    const domain = inferDomain(filesModified, session.language);
+
     console.log(`[SessionMonitor] Recording interaction for ${session.sessionName}:`);
     console.log(`  Prompt: ${prompt.substring(0, 50)}...`);
     console.log(`  Response length: ${response.length}`);
     console.log(`  Files: ${filesModified.length}, Errors: ${errorsSeen.length}`);
+    console.log(`  Domain: ${domain}, Outcome: ${outcome}`);
 
+    // Record to AICore for memory storage
     aiCore.recordInteraction(session.sessionId, prompt, response, {
       filesModified,
       outcome,
     });
+
+    // Record to SkillTracker for skill progression (THE GLUE!)
+    if (outcome === 'success') {
+      skillTracker.recordSuccess(domain, {
+        linesChanged: filesModified.length * 20, // Rough estimate
+      });
+      console.log(`[SessionMonitor] Recorded SUCCESS in ${domain}`);
+    } else if (outcome === 'failure') {
+      const errorType = errorsSeen.length > 0 ? 'runtime_error' : 'unknown';
+      skillTracker.recordError(domain, errorType, {});
+      console.log(`[SessionMonitor] Recorded ERROR in ${domain}: ${errorType}`);
+    }
+    // 'partial' and 'unknown' outcomes don't affect skill tracking
   }
 
   /**

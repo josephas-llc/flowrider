@@ -1,12 +1,14 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
 import { TmuxManager } from './TmuxManager';
+import { PtyManager } from './PtyManager';
 import { FleetManager } from './FleetManager';
 import { SessionMonitor } from './SessionMonitor';
 import { getAICore, shutdownAICore } from './ai-core';
 import { getContextInjector } from './ContextInjector';
 import { getAIService, AIProviderType, AIMessage } from './AIService';
 import { getCrossSessionAwareness, shutdownCrossSessionAwareness } from './CrossSessionAwareness';
+import { getCrossSessionAnalyzer, shutdownCrossSessionAnalyzer } from './CrossSessionAnalyzer';
 import { deploymentService } from './DeploymentService';
 import { getLicenseService } from './LicenseService';
 import { getAutoUpdateService } from './AutoUpdateService';
@@ -14,6 +16,9 @@ import { getTemplateService, shutdownTemplateService } from './TemplateService';
 import { getApiServer, stopApiServer } from './api';
 import { registerApiHandlers, setApiServer } from './ipc/api-handlers';
 import { registerCursorHandlers } from './ipc/cursor-handlers';
+import { registerSkillTrackerHandlers, shutdownSkillTracker } from './ipc/zoix-skill-handlers';
+import { registerOntologyHandlers } from './ipc/ontology-handlers';
+import { registerZoixIntelligenceHandlers } from './ipc/zoix-intelligence-handlers';
 import { getApiConfigService, shutdownApiConfigService } from './api/ApiConfig';
 import { z } from 'zod';
 import {
@@ -48,6 +53,7 @@ import {
 
 let mainWindow: BrowserWindow | null = null;
 let tmuxManager: TmuxManager;
+let ptyManager: PtyManager;
 let leoManager: FleetManager;
 let sessionMonitor: SessionMonitor;
 
@@ -132,6 +138,7 @@ function createWindow() {
 
 function setupIPC() {
   tmuxManager = new TmuxManager();
+  ptyManager = new PtyManager();
   leoManager = new FleetManager();
 
   // Configure FleetManager with session count callback
@@ -246,6 +253,70 @@ function setupIPC() {
       const validatedNew = validate(sessionNameSchema, newName);
       console.log(`[IPC] Renaming session: ${validatedOld} -> ${validatedNew}`);
       return tmuxManager.renameSession(validatedOld, validatedNew);
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // ============================================================
+  // PTY STREAMING - Real-time terminal output (replaces polling)
+  // Uses node-pty to attach to tmux sessions for TUI app support
+  // ============================================================
+
+  // Attach PTY to an existing tmux session for real-time streaming
+  ipcMain.handle('pty:attach', async (_event, sessionName: string, cols: number, rows: number) => {
+    try {
+      const validated = validate(sessionNameSchema, sessionName);
+      console.log(`[IPC] PTY attach: ${validated} (${cols}x${rows})`);
+      const success = ptyManager.attach(validated, cols, rows);
+      return { success };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Detach PTY from a tmux session
+  ipcMain.handle('pty:detach', async (_event, sessionName: string) => {
+    try {
+      const validated = validate(sessionNameSchema, sessionName);
+      console.log(`[IPC] PTY detach: ${validated}`);
+      const success = ptyManager.detach(validated);
+      return { success };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Write input to the attached PTY
+  ipcMain.handle('pty:write', async (_event, sessionName: string, data: string) => {
+    try {
+      const validated = validate(sessionNameSchema, sessionName);
+      const success = ptyManager.write(validated, data);
+      return { success };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Resize the PTY
+  ipcMain.handle('pty:resize', async (_event, sessionName: string, cols: number, rows: number) => {
+    try {
+      const validated = validate(sessionNameSchema, sessionName);
+      if (typeof cols !== 'number' || typeof rows !== 'number' || cols < 1 || rows < 1) {
+        return { success: false, error: 'Invalid dimensions' };
+      }
+      const success = ptyManager.resize(validated, cols, rows);
+      return { success };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Check if attached to a session
+  ipcMain.handle('pty:isAttached', async (_event, sessionName: string) => {
+    try {
+      const validated = validate(sessionNameSchema, sessionName);
+      return { success: true, attached: ptyManager.isAttached(validated) };
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
@@ -529,6 +600,38 @@ function setupIPC() {
     return { success: true, data: aiCore.getPatterns(minConfidence) };
   });
 
+  // Get all patterns
+  ipcMain.handle('leoai:getAllPatterns', async () => {
+    return { success: true, data: aiCore.getAllPatterns() };
+  });
+
+  // Get patterns by type
+  ipcMain.handle('leoai:getPatternsByType', async (_event, type: 'code' | 'error' | 'workflow' | 'prompt' | 'architecture') => {
+    try {
+      const patterns = aiCore.getPatternsByType(type);
+      return { success: true, data: patterns };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get pattern counts by type
+  ipcMain.handle('leoai:getPatternCounts', async () => {
+    try {
+      const counts = aiCore.getPatternCounts();
+      return { success: true, data: {
+        code: counts.byType.code,
+        error: counts.byType.error,
+        workflow: counts.byType.workflow,
+        prompt: counts.byType.prompt,
+        architecture: counts.byType.architecture,
+        total: counts.total,
+      }};
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // Get insights
   ipcMain.handle('leoai:getInsights', async (_event, limit: number = 20) => {
     return { success: true, data: aiCore.getInsights(limit) };
@@ -624,6 +727,276 @@ function setupIPC() {
   ipcMain.handle('leoai:clearDismissedSuggestions', async () => {
     aiCore.clearDismissedSuggestions();
     return { success: true };
+  });
+
+  // ========================================
+  // ZOIX Context Memory IPC
+  // ========================================
+
+  // Start session tracking
+  ipcMain.handle('zoix:startSession', async (
+    _event,
+    sessionId: string,
+    sessionName: string,
+    projectId?: string
+  ) => {
+    try {
+      const id = aiCore.startSessionTracking(sessionId, sessionName, projectId);
+      return { success: true, data: id };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // End session tracking
+  ipcMain.handle('zoix:endSession', async (
+    _event,
+    sessionId: string,
+    summary?: any
+  ) => {
+    try {
+      aiCore.endSessionTracking(sessionId, summary);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get session summary
+  ipcMain.handle('zoix:getSessionSummary', async (_event, sessionId: string) => {
+    try {
+      const summary = aiCore.getSessionSummary(sessionId);
+      return { success: true, data: summary };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get daily digest
+  ipcMain.handle('zoix:getDailyDigest', async (_event, date?: string) => {
+    try {
+      const digest = aiCore.getDailyDigest(date);
+      return { success: true, data: digest };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get recent digests
+  ipcMain.handle('zoix:getRecentDigests', async (_event, days?: number) => {
+    try {
+      const digests = aiCore.getRecentDigests(days);
+      return { success: true, data: digests };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Update project context
+  ipcMain.handle('zoix:updateProjectContext', async (
+    _event,
+    projectId: string,
+    projectName: string,
+    updates: any
+  ) => {
+    try {
+      aiCore.updateProjectContext(projectId, projectName, updates);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get project context
+  ipcMain.handle('zoix:getProjectContext', async (_event, projectId: string) => {
+    try {
+      const context = aiCore.getProjectContext(projectId);
+      return { success: true, data: context };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get recent projects
+  ipcMain.handle('zoix:getRecentProjects', async (_event, limit?: number) => {
+    try {
+      const projects = aiCore.getRecentProjects(limit);
+      return { success: true, data: projects };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get unfinished tasks
+  ipcMain.handle('zoix:getUnfinishedTasks', async (
+    _event,
+    projectId?: string,
+    status?: string
+  ) => {
+    try {
+      const tasks = aiCore.getUnfinishedTasks(projectId, status as any);
+      return { success: true, data: tasks };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Save unfinished task
+  ipcMain.handle('zoix:saveUnfinishedTask', async (_event, task: any) => {
+    try {
+      const id = aiCore.saveUnfinishedTask(task);
+      return { success: true, data: id };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Complete task
+  ipcMain.handle('zoix:completeTask', async (_event, taskId: string) => {
+    try {
+      aiCore.completeTask(taskId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get inferred goals
+  ipcMain.handle('zoix:getInferredGoals', async (_event, status?: string) => {
+    try {
+      const goals = aiCore.getInferredGoals(status as any);
+      return { success: true, data: goals };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Save inferred goal
+  ipcMain.handle('zoix:saveInferredGoal', async (_event, goal: any) => {
+    try {
+      const id = aiCore.saveInferredGoal(goal);
+      return { success: true, data: id };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Update inferred goal
+  ipcMain.handle('zoix:updateInferredGoal', async (
+    _event,
+    id: string,
+    updates: any
+  ) => {
+    try {
+      aiCore.updateInferredGoal(id, updates);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get weekly theme
+  ipcMain.handle('zoix:getWeeklyTheme', async (_event, weekStart?: string) => {
+    try {
+      const theme = aiCore.getWeeklyTheme(weekStart);
+      return { success: true, data: theme };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get recent weeks
+  ipcMain.handle('zoix:getRecentWeeks', async (_event, count?: number) => {
+    try {
+      const weeks = aiCore.getRecentWeeks(count);
+      return { success: true, data: weeks };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Update weekly theme
+  ipcMain.handle('zoix:updateWeeklyTheme', async (
+    _event,
+    weekStart: string,
+    updates: any
+  ) => {
+    try {
+      aiCore.updateWeeklyTheme(weekStart, updates);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Restore context
+  ipcMain.handle('zoix:restoreContext', async (
+    _event,
+    sessionId: string,
+    projectId?: string
+  ) => {
+    try {
+      const context = aiCore.restoreContext(sessionId, projectId);
+      return { success: true, data: context };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Resource Recommendations
+  ipcMain.handle('zoix:getRecommendedResources', async (
+    _event,
+    options?: {
+      topic?: string;
+      language?: string;
+      type?: 'book' | 'documentation' | 'tutorial' | 'article' | 'course' | 'video';
+      includeReasoning?: boolean;
+    }
+  ) => {
+    try {
+      const resources = aiCore.getRecommendedResources(options);
+      return { success: true, data: resources };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('zoix:getRecommendedBooks', async (
+    _event,
+    topic?: string,
+    language?: string
+  ) => {
+    try {
+      const books = aiCore.getRecommendedBooks(topic, language);
+      return { success: true, data: books };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('zoix:getRelevantDocs', async (
+    _event,
+    language?: string,
+    topic?: string
+  ) => {
+    try {
+      const docs = aiCore.getRelevantDocs(language, topic);
+      return { success: true, data: docs };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('zoix:recordResourceClick', async (
+    _event,
+    recommendationId: string
+  ) => {
+    try {
+      aiCore.recordResourceClick(recommendationId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // ========================================
@@ -1046,6 +1419,91 @@ function setupIPC() {
     }
   });
 
+  // ========================================
+  // Cross-Session Analyzer IPC
+  // ========================================
+
+  const crossSessionAnalyzer = getCrossSessionAnalyzer();
+
+  // Analyze all sessions for patterns
+  ipcMain.handle('crosssession:analyze', async () => {
+    try {
+      const result = await crossSessionAnalyzer.analyzeAllSessions();
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get similarities for a specific session
+  ipcMain.handle('crosssession:getSimilarities', async (_event, sessionId: string) => {
+    try {
+      const validated = validate(sessionIdSchema, sessionId);
+      const similarities = await crossSessionAnalyzer.getSessionSimilarities(validated);
+      return { success: true, data: similarities };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get insights for a specific session
+  ipcMain.handle('crosssession:getInsights', async (_event, sessionId?: string) => {
+    try {
+      if (sessionId) {
+        const validated = validate(sessionIdSchema, sessionId);
+        const insights = crossSessionAnalyzer.getSessionInsights(validated);
+        return { success: true, data: insights };
+      } else {
+        const insights = crossSessionAnalyzer.getAllInsights();
+        return { success: true, data: insights };
+      }
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Dismiss an insight
+  ipcMain.handle('crosssession:dismissInsight', async (_event, insightId: string) => {
+    try {
+      const validated = validate(sessionIdSchema, insightId);
+      crossSessionAnalyzer.dismissInsight(validated);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get session pattern summary
+  ipcMain.handle('crosssession:getSessionSummary', async (_event, sessionId: string) => {
+    try {
+      const validated = validate(sessionIdSchema, sessionId);
+      const summary = await crossSessionAnalyzer.getSessionSummary(validated);
+      return { success: true, data: summary };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get analyzer statistics
+  ipcMain.handle('crosssession:getStats', async () => {
+    try {
+      const stats = crossSessionAnalyzer.getStats();
+      return { success: true, data: stats };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Clear all insights
+  ipcMain.handle('crosssession:clearInsights', async () => {
+    try {
+      crossSessionAnalyzer.clearInsights();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // ═══════════════════════════════════════════════════════════════
   // DEPLOYMENT SERVICE (GitHub + CI/CD Integration)
   // ═══════════════════════════════════════════════════════════════
@@ -1337,13 +1795,92 @@ function setupIPC() {
     }
   });
 
+  // ========================================
+  // ZOIX User Profiler IPC
+  // ========================================
+
+  // Import and initialize UserProfiler
+  const { getUserProfiler } = require('./ai-core/UserProfiler.integration');
+  const userProfiler = getUserProfiler();
+
+  // Get current user profile
+  ipcMain.handle('zoix:getUserProfile', async () => {
+    try {
+      console.log('[IPC] Getting user profile');
+      const profile = userProfiler.getProfile();
+      return { success: true, data: profile };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get top interests
+  ipcMain.handle('zoix:getTopInterests', async (_event, limit?: number) => {
+    try {
+      const validated = limit ? validate(z.number().int().min(1).max(50), limit) : undefined;
+      const interests = userProfiler.getTopInterests(validated || 10);
+      return { success: true, data: interests };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get learning trajectory
+  ipcMain.handle('zoix:getLearningTrajectory', async () => {
+    try {
+      const trajectory = userProfiler.getLearningTrajectory();
+      return { success: true, data: trajectory };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get domains (areas of expertise)
+  ipcMain.handle('zoix:getDomains', async () => {
+    try {
+      const domains = userProfiler.getDomains();
+      return { success: true, data: domains };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get user strengths (personal traits/preferences from UserProfiler)
+  ipcMain.handle('zoix:getUserStrengths', async () => {
+    try {
+      const strengths = userProfiler.getStrengths();
+      return { success: true, data: strengths };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get growth areas
+  ipcMain.handle('zoix:getGrowthAreas', async () => {
+    try {
+      const growthAreas = userProfiler.getGrowthAreas();
+      return { success: true, data: growthAreas };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // Register API server IPC handlers
   registerApiHandlers();
 
   // Register Cursor IDE IPC handlers
   registerCursorHandlers();
 
-  console.log('[IPC] Handlers registered (including LEO + AI System + SessionMonitor + ContextInjector + AIService + CrossSessionAwareness + Deployment + License + Templates + API + Cursor)');
+  // Register ZOIX Skill Tracker IPC handlers (uses singleton pattern)
+  registerSkillTrackerHandlers();
+
+  // Register ZOIX Ontology Builder handlers
+  registerOntologyHandlers(aiCore);
+
+  // Register ZOIX Intelligence handlers (insights, cross-session recommendations, skill progression)
+  registerZoixIntelligenceHandlers();
+
+  console.log('[IPC] Handlers registered (including LEO + AI System + SessionMonitor + ContextInjector + AIService + CrossSessionAwareness + Deployment + License + Templates + API + Cursor + ZOIX UserProfiler + ZOIX SkillTracker + ZOIX OntologyBuilder + ZOIX Intelligence)');
 }
 
 app.whenReady().then(async () => {
@@ -1359,6 +1896,9 @@ app.whenReady().then(async () => {
     const autoUpdateService = getAutoUpdateService();
     autoUpdateService.setMainWindow(mainWindow);
     autoUpdateService.checkForUpdatesOnLaunch();
+
+    // Set mainWindow on PtyManager for real-time terminal streaming
+    ptyManager.setMainWindow(mainWindow);
   }
 
   // Start API server with configured settings
@@ -1397,10 +1937,14 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', async () => {
   console.log('[Main] App quitting, cleaning up...');
+  // Detach all PTY sessions before quitting
+  ptyManager.detachAll();
   sessionMonitor.shutdown();
   shutdownAICore();
   shutdownCrossSessionAwareness();
+  shutdownCrossSessionAnalyzer();
   shutdownTemplateService();
+  shutdownSkillTracker();
 
   // Stop API server
   try {

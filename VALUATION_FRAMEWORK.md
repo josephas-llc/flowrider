@@ -389,22 +389,59 @@ RISKS:
 
 ## Flowrider-Specific Value Multipliers
 
+### The ZOIX Premium (Updated July 2026)
+
+ZOIX Layer 1 + Layer 2 represent defensible moats that justify premium valuations:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ZOIX VALUE MULTIPLIER                                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Standard Multi-Agent Tool:     15-20x ARR                      │
+│                                                                  │
+│  + ZOIX Layer 1 (code patterns):     +5-10x premium             │
+│  + ZOIX Layer 2 (personal ontology): +10-15x premium  ← NEW!    │
+│  + LEO Mode (400 agents):            +5-10x premium             │
+│  + LEO Learning (custom AI):         +5-10x premium             │
+│  + LEO Network (federated):          +5-15x premium             │
+│                                                                  │
+│  Full ZOIX + LEO Stack:              40-60x ARR                 │
+│                                                                  │
+│  ZOIX Layer 2 adds:                                              │
+│  - UserProfiler: Personal skill & interest tracking             │
+│  - KnowledgeGraph: Concept relationship mapping                 │
+│  - SkillTracker: Learning progression with milestones           │
+│  - ContextMemory: Long-term context persistence                 │
+│  - GoalInference: Automatic goal detection                      │
+│  - ResourceRecommender: AI-driven learning suggestions          │
+│  - OntologyBuilder: Unified personal model                      │
+│                                                                  │
+│  Why Layer 2 is a moat:                                          │
+│  - User data compounds over time (irreplaceable)                │
+│  - Goals + skills = truly personalized assistance               │
+│  - Knowledge graph makes switching impossible                   │
+│  - Enterprise value: org-wide talent intelligence               │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ### The LEO Premium
 
-LEO Mode and LEO Learning represent defensible moats that justify premium valuations:
+LEO Mode and LEO Learning represent additional defensible moats:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  LEO VALUE MULTIPLIER                                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  Standard Multi-Agent Tool:     15-20x ARR                      │
+│  ZOIX-enabled Flowrider:        25-35x ARR                      │
 │                                                                  │
 │  + LEO Mode (400 agents):       +5-10x premium                  │
 │  + LEO Learning (custom AI):    +5-10x premium                  │
 │  + LEO Network (federated):     +5-15x premium                  │
 │                                                                  │
-│  Full LEO Stack:                30-50x ARR                      │
+│  Full LEO Stack:                40-60x ARR                      │
 │                                                                  │
 │  Why:                                                            │
 │  - Switching costs increase over time (data lock-in)            │

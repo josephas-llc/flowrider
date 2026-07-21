@@ -1,12 +1,41 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store';
+
+// Helper to format relative time (e.g., "2m ago", "1h ago")
+function formatRelativeTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+
+  if (diff < 60000) return 'now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+}
 
 interface SessionGridProps {
   onSessionSelect: (index: number) => void;
 }
 
 export const SessionGrid: React.FC<SessionGridProps> = ({ onSessionSelect }) => {
-  const { sessions, selectedFace, setAttachedSession, updateSession } = useStore();
+  const { sessions, selectedFace, setAttachedSession, updateSession, controlGroups } = useStore();
+  const [, forceUpdate] = useState(0);
+
+  // Force re-render every minute to update relative timestamps
+  useEffect(() => {
+    const interval = setInterval(() => forceUpdate(n => n + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Build a map of faceIndex -> control group number for badge display
+  const faceToControlGroup = useMemo(() => {
+    const map: Record<number, number> = {};
+    for (const [groupNum, faceIndices] of Object.entries(controlGroups)) {
+      for (const faceIdx of faceIndices) {
+        map[faceIdx] = parseInt(groupNum);
+      }
+    }
+    return map;
+  }, [controlGroups]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [columns, setColumns] = useState(5);
 
@@ -66,11 +95,14 @@ export const SessionGrid: React.FC<SessionGridProps> = ({ onSessionSelect }) => 
         const isActive = session.status !== 'empty';
         const isSelected = selectedFace === idx;
         const needsAttention = session.needsAttention;
+        const controlGroup = faceToControlGroup[idx];
+        const hasNewOutput = session.hasNewOutput;
+        const lastActivityTime = session.lastActivity ? formatRelativeTime(session.lastActivity) : null;
 
         return (
           <div
             key={idx}
-            className={`session-cell ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${needsAttention ? 'attention' : ''}`}
+            className={`session-cell ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${needsAttention ? 'attention' : ''} ${hasNewOutput ? 'has-new-output' : ''} ${controlGroup ? 'in-control-group' : ''}`}
             onClick={() => handleSessionClick(idx)}
             style={{
               aspectRatio: '1',
@@ -173,11 +205,72 @@ export const SessionGrid: React.FC<SessionGridProps> = ({ onSessionSelect }) => 
                 }}
               />
             )}
+
+            {/* Control Group Badge (StarCraft-style) */}
+            {controlGroup && (
+              <div
+                className="control-group-badge"
+                style={{
+                  position: 'absolute',
+                  top: '6px',
+                  left: '6px',
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '4px',
+                  background: 'linear-gradient(135deg, #bf00ff, #9b59b6)',
+                  color: '#fff',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 8px rgba(191, 0, 255, 0.5)',
+                  zIndex: 2,
+                }}
+                title={`Control Group ${controlGroup} (Press ${controlGroup} to select)`}
+              >
+                {controlGroup}
+              </div>
+            )}
+
+            {/* Last Activity Timestamp */}
+            {isActive && lastActivityTime && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '6px',
+                  right: '6px',
+                  fontSize: '9px',
+                  color: 'var(--text-muted, #666)',
+                  opacity: 0.8,
+                  zIndex: 1,
+                }}
+              >
+                {lastActivityTime}
+              </div>
+            )}
+
+            {/* Shimmer overlay for new output (Diablo 4 style) */}
+            {hasNewOutput && (
+              <div
+                className="shimmer-overlay"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: '12px',
+                  background: 'linear-gradient(90deg, transparent, rgba(102, 252, 241, 0.15), transparent)',
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmerSweep 2s ease-in-out infinite',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              />
+            )}
           </div>
         );
       })}
 
-      {/* CSS Keyframes for vibrating glow */}
+      {/* CSS Keyframes for vibrating glow and shimmer */}
       <style>{`
         @keyframes vibratingGlow {
           0%, 100% {
@@ -195,6 +288,37 @@ export const SessionGrid: React.FC<SessionGridProps> = ({ onSessionSelect }) => 
           75% {
             transform: scale(1.01) translate(-1px, 1px);
             opacity: 0.95;
+          }
+        }
+
+        @keyframes shimmerSweep {
+          0% {
+            background-position: -100% 0;
+          }
+          100% {
+            background-position: 200% 0;
+          }
+        }
+
+        @keyframes controlGroupPulse {
+          0%, 100% {
+            box-shadow: 0 0 8px rgba(191, 0, 255, 0.5);
+          }
+          50% {
+            box-shadow: 0 0 12px rgba(191, 0, 255, 0.8);
+          }
+        }
+
+        .control-group-badge {
+          animation: controlGroupPulse 2s ease-in-out infinite;
+        }
+
+        /* Reduce motion support */
+        @media (prefers-reduced-motion: reduce) {
+          .session-glow,
+          .shimmer-overlay,
+          .control-group-badge {
+            animation: none !important;
           }
         }
 

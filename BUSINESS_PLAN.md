@@ -1,5 +1,5 @@
 # Flowrider Business Plan
-## AI Session Orchestration Platform
+## AI Session Orchestration + Personal Intelligence Platform
 
 **Confidential - July 2026**
 
@@ -7,9 +7,17 @@
 
 ## Executive Summary
 
-Flowrider is a parallel AI session orchestration platform that enables developers to run 20+ concurrent AI coding sessions from a single command center. Unlike single-session tools like Cursor or Copilot, Flowrider multiplies developer output by enabling simultaneous work across multiple projects, features, and codebases.
+Flowrider is a parallel AI session orchestration platform with **ZOIX** - a personal intelligence layer that learns from everything you do. Unlike single-session tools like Cursor or Copilot, Flowrider multiplies developer output by enabling 20+ concurrent AI sessions while building an external brain that understands your unique patterns, workflows, and the synergies across all your projects.
 
-**Key Value Proposition:** Where Cursor gives you 1 AI assistant, Flowrider gives you 20 - all working in parallel.
+**Key Value Proposition:** Where Cursor gives you 1 AI assistant, Flowrider gives you 20 - all working in parallel - plus ZOIX, your personal AI that learns and evolves with you.
+
+### What Makes Flowrider Different
+
+Other tools provide AI assistance. Flowrider builds **intelligence**:
+- Not "recall" - building personalized intelligence from what you spend time on
+- Learns from error messages, tools you rely on, code patterns
+- Discovers synergies between projects you didn't know existed
+- An external brain that is always assisting you
 
 ### Market Timing
 
@@ -36,7 +44,7 @@ Flowrider occupies a unique position: **Meta-Orchestration**. We don't compete w
 3. **tmux-Powered Sessions** - Native terminal performance
 4. **Cost Tracking Dashboard** - Real-time API spend monitoring
 5. **Cross-Session Awareness** - AI agents that understand your full portfolio
-6. **LEO Meta-Orchestration** - Manage 20 Flowriders = 400 concurrent sessions
+6. **ZOIX Meta-Orchestration** - Manage 20 Flowriders = 400 concurrent sessions
 
 ### Competitive Advantages
 
@@ -93,7 +101,7 @@ Flowrider occupies a unique position: **Meta-Orchestration**. We don't compete w
 | **Free** | $0/mo | 3 | Basic orchestration, local LLMs only |
 | **Pro** | $49/mo | 20 | All AI providers, cost tracking, templates |
 | **Team** | $199/mo | 100 | 5 seats, shared sessions, analytics |
-| **Enterprise** | Custom | Unlimited | LEO mode, SSO, dedicated support |
+| **Enterprise** | Custom | Unlimited | ZOIX mode, SSO, dedicated support |
 
 #### 2. API/Token Pass-Through (5% margin)
 - Users can route API calls through Flowrider
@@ -212,33 +220,146 @@ Flowrider occupies a unique position: **Meta-Orchestration**. We don't compete w
 2. **Switching Costs** - Project data, trained workflows, team familiarity
 3. **Data Advantage** - Cross-session patterns only we can learn from
 4. **Brand** - "Flowrider" as a verb for parallel AI coding
-5. **LEO Architecture** - First-mover in meta-orchestration
+5. **ZOIX Architecture** - First-mover in personal AI intelligence + meta-orchestration
 6. **Organizational AI** - Custom-trained models that know YOUR codebase
 
 ---
 
-## LEO Learning: The Intelligence Layer
+## ZOIX: The External Brain (Core Product Value)
 
-### The Long-Term Vision
+> **"ZOIX isn't recall. It's intelligence built from what you spend time on."**
 
-The orchestration platform is just the entry point. The real value is in **LEO Learning** - a self-improving AI system that turns session data into organizational intelligence.
+### The Vision
+
+Orchestration is the entry point. ZOIX is the product. It's a personal intelligence system that observes everything you do across all your projects and builds an external brain that is always assisting you.
 
 ```
-Year 1:  LEO orchestrates AI agents
-Year 2:  LEO learns from outcomes
-Year 3:  LEO trains custom models
-Year 4:  LEO becomes organizational intelligence
+Day 1:   ZOIX watches you work across 20 sessions
+Week 1:  ZOIX identifies patterns in errors, tools, workflows
+Month 1: ZOIX suggests solutions before you ask
+Month 3: ZOIX understands cross-project synergies
+Year 1:  ZOIX becomes your second brain, anticipating needs
+Year 2:  ZOIX trains into a custom model that knows YOUR domain
 ```
 
-### What LEO Learns
+---
 
-**1. Pattern Detection** (Already Built - `Analyzer.ts`)
-- Error patterns and their successful solutions
-- Code patterns (common snippets, idioms)
-- Workflow patterns (sequences of actions that succeed)
-- Prompt patterns (effective ways of asking for things)
+## ZOIX Layer 2: Personal Ontology Builder (SHIPPED)
 
-**2. Interaction Tracking**
+> **"ZOIX Layer 2 learns about YOU, not just your code."**
+
+### What Layer 2 Adds
+
+While ZOIX Layer 1 learns about your *code* (patterns, errors, workflows), **Layer 2** builds a personal ontology - a structured model of *who you are* as a developer:
+
+```
+Layer 1: "You use React hooks frequently"
+Layer 2: "You're a visual learner who prefers TypeScript, gets frustrated
+          by webpack configs, and your goal is to ship a SaaS this year"
+```
+
+### 7 Integrated Backend Services (All SQLite-Persisted)
+
+| Service | Purpose | Data Stored |
+|---------|---------|-------------|
+| **UserProfiler** | Builds comprehensive user profile | Skills, interests, domains, strengths, working style |
+| **KnowledgeGraph** | Maps concept relationships | "React → hooks → useState → performance" |
+| **SkillTracker** | Tracks mastery progression | Skill levels, learning velocity, milestones |
+| **ContextMemory** | Remembers long-term context | Project history, decisions, preferences |
+| **GoalInference** | Detects and tracks goals | "Shipping MVP", "Learning Rust", "Optimizing performance" |
+| **ResourceRecommender** | Suggests learning resources | Docs, tutorials, articles based on gaps |
+| **OntologyBuilder** | Orchestrates all services | Creates unified personal model |
+
+### What Makes This Valuable
+
+**1. True Personalization at Scale**
+```
+Other AI tools:    "What's your skill level?" (asks every time)
+Flowrider + ZOIX:  "Based on your 847 TypeScript interactions and
+                    proficient-level React patterns, here's expert-level advice..."
+```
+
+**2. Goal-Aware Assistance**
+```
+Detected Goal: "Ship MVP by August"
+ZOIX Response: "You've been stuck on auth for 3 days. Here's a
+               production-ready pattern that 15 other Flowrider
+               users with similar goals shipped successfully."
+```
+
+**3. Skill Gap Detection**
+```
+ZOIX notices you avoid testing → Suggests: "Your test coverage is 12%.
+Want me to scaffold vitest for the components you just wrote?"
+```
+
+**4. Cross-Project Intelligence**
+```
+Session 3: Working on API auth
+Session 7: Working on mobile app
+ZOIX: "The auth pattern in Session 3 could replace the brittle
+       implementation in Session 7. Want me to sync them?"
+```
+
+### Technical Implementation (Shipped July 2026)
+
+```typescript
+// All services use SQLite for persistence
+interface ZOIXLayer2 {
+  userProfiler: UserProfiler;      // Tracks skills, interests, domains
+  knowledgeGraph: KnowledgeGraph;  // Maps concept relationships
+  skillTracker: SkillTracker;      // Monitors learning progression
+  contextMemory: ContextMemory;    // Long-term memory store
+  goalInference: GoalInference;    // Detects user objectives
+  resourceRec: ResourceRecommender; // Suggests learning materials
+  ontology: OntologyBuilder;       // Orchestrates the full model
+}
+
+// Example: GoalInference detecting patterns
+const goals = goalInference.inferGoals();
+// Returns: ["Ship SaaS MVP", "Master TypeScript", "Optimize performance"]
+// Based on: session activity, file patterns, error types, time allocation
+```
+
+### User-Facing Features
+
+- **ZOIX Insights Panel** - Click the pulsing ZOIX indicator to see:
+  - Your skill progression across domains
+  - Inferred goals with confidence scores
+  - Learning recommendations
+  - Cross-session pattern insights
+
+- **Ambient Learning Indicator** - Purple glow pulses when ZOIX is actively learning
+
+- **Profile Integration** - Settings panel shows ZOIX's model of you, editable
+
+---
+
+### What ZOIX Learns From (Layer 1 + Layer 2)
+
+ZOIX watches **everything** - not just code, but the patterns of how you work:
+
+**1. Error Messages** (Layer 1)
+- What errors you encounter repeatedly
+- Solutions that worked (and didn't)
+- Error → fix mappings unique to your stack
+
+**2. Tools You Rely On** (Layer 1)
+- Which npm packages you use
+- CLI tools and flags you prefer
+- AI prompts that get results
+
+**3. Workflow Patterns** (Layer 1)
+- test → commit → push sequences
+- How you structure PRs
+- Code review habits
+
+**4. Project Synergies** (Layer 1)
+- Auth patterns shared across Session 3 and 7
+- API design consistency across microservices
+- Common utility functions you could DRY up
+
+**5. Interaction Quality** (Layer 1)
 ```typescript
 interface CodeInteraction {
   prompt: string;
@@ -250,19 +371,31 @@ interface CodeInteraction {
 }
 ```
 
-**3. Cross-Session Insights**
-- Patterns that work across multiple projects
-- Team coding style preferences
-- Domain-specific knowledge accumulation
+**6. Personal Learning Style** (Layer 2 - NEW)
+- Visual vs. text-based learning preference
+- Documentation reading patterns
+- How you approach new concepts
 
-### Training Pipeline
+**7. Goals & Objectives** (Layer 2 - NEW)
+- What you're trying to achieve
+- Project deadlines and milestones
+- Career and skill development goals
+
+**8. Knowledge Topology** (Layer 2 - NEW)
+- How concepts connect in your mind
+- Gaps in understanding
+- Transfer learning opportunities
+
+**Key Insight:** Because Flowrider runs **20 sessions simultaneously**, ZOIX sees cross-project patterns that single-session tools like Cursor can never observe. **Layer 2 adds the "why" behind the "what"** - understanding your goals and learning style to provide truly personalized assistance.
+
+### ZOIX Training Pipeline
 
 | Phase | Data Required | Cost | Output |
 |-------|---------------|------|--------|
 | **Pattern Extraction** | 10K interactions | $50-100/mo | Pattern database |
 | **LoRA Fine-Tuning** | 50K interactions | $100-400/mo | Org-specific adapter |
-| **Model Distillation** | 100K interactions | $500/mo | LEO-Lite (local, $0) |
-| **Custom Model** | 10M+ interactions | $50K/mo | Full enterprise AI |
+| **Model Distillation** | 100K interactions | $500/mo | ZOIX-Lite (local, $0) |
+| **Custom Model** | 10M+ interactions | $50K/mo | Full enterprise ZOIX |
 
 ### Business Value
 
@@ -277,7 +410,7 @@ interface CodeInteraction {
 - Cross-project pattern sharing
 
 **For Enterprise:**
-- Proprietary AI asset (your LEO knows YOUR domain)
+- Proprietary AI asset (your ZOIX knows YOUR domain)
 - Massive cost reduction (90%+ savings vs cloud APIs)
 - Compliance-friendly (data never leaves your infrastructure)
 
@@ -288,8 +421,8 @@ Current State:
 - Claude/Gemini API costs: $25,000/month
 - Developer time lost to context switching: $50,000/month
 
-With LEO Learning (Year 2):
-- LEO-Lite (local inference): $0
+With ZOIX (Year 2):
+- ZOIX-Lite (local inference): $0
 - Pattern extraction: $200/month
 - LoRA training: $800/month
 - Cloud APIs (edge cases only): $2,500/month
@@ -315,11 +448,11 @@ Annual ROI: 2,040%
 
 1. **Data moat**: We collect interaction data others don't have access to
 2. **Multi-session context**: Single-session tools can't see cross-project patterns
-3. **Time advantage**: Each user session makes LEO smarter
+3. **Time advantage**: Each user session makes ZOIX smarter
 4. **Network effects**: More users = better pattern library
 
 **Long-term position:**
-> "By 2030, Flowrider's LEO isn't just a tool - it's an AI team member that knows your organization better than any new hire ever could."
+> "By 2030, ZOIX isn't just a tool - it's an AI team member that knows your organization better than any new hire ever could."
 
 ---
 
@@ -391,7 +524,7 @@ Annual ROI: 2,040%
 - [ ] 50K user milestone
 
 ### Phase 3: Scale (2028)
-- [ ] LEO meta-orchestration GA
+- [ ] ZOIX meta-orchestration GA
 - [ ] API platform launch
 - [ ] International expansion
 - [ ] Series B ($50M)
@@ -494,7 +627,7 @@ Annual ROI: 2,040%
 
 ### Glossary
 
-- **LEO:** Meta-orchestration layer (20 Flowriders = 400 sessions)
+- **ZOIX:** Personal AI intelligence system + meta-orchestration (20 Flowriders = 400 sessions)
 - **Session:** A single AI-powered terminal context
 - **Face:** One of 20 icosahedron faces representing a session slot
 - **Provider:** AI backend (Claude, Gemini, Grok, Copilot, Meta AI, Ollama, etc.)

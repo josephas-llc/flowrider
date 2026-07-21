@@ -13,6 +13,7 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import { app } from 'electron';
 import * as crypto from 'crypto';
+import { KnowledgeGraph } from './KnowledgeGraph';
 
 // ============================================
 // Data Types
@@ -92,6 +93,7 @@ export interface AIStats {
 export class Memory {
   private db: Database.Database;
   private dbPath: string;
+  private knowledgeGraph: KnowledgeGraph;
 
   constructor() {
     // Store in user data directory
@@ -99,6 +101,7 @@ export class Memory {
     this.dbPath = path.join(userDataPath, 'leo-memory.db');
     this.db = new Database(this.dbPath);
     this.initialize();
+    this.knowledgeGraph = new KnowledgeGraph(this.db);
   }
 
   private initialize(): void {
@@ -221,6 +224,10 @@ export class Memory {
       JSON.stringify(interaction.errorsCaught),
       JSON.stringify(interaction.tags)
     );
+
+    // Extract concepts from interaction for knowledge graph
+    const text = `${interaction.prompt} ${interaction.response}`;
+    this.knowledgeGraph.extractConcepts(text, `interaction:${id}`);
 
     this.logLearningEvent('interaction_saved', { id, sessionId: interaction.sessionId });
     return id;
@@ -351,6 +358,35 @@ export class Memory {
       SELECT * FROM patterns WHERE type = ? ORDER BY confidence DESC
     `).all(type) as any[];
     return rows.map(this.rowToPattern);
+  }
+
+  getAllPatterns(): Pattern[] {
+    const rows = this.db.prepare(`
+      SELECT * FROM patterns ORDER BY last_seen DESC
+    `).all() as any[];
+    return rows.map(this.rowToPattern);
+  }
+
+  getPatternCounts(): { total: number; byType: Record<Pattern['type'], number> } {
+    const total = (this.db.prepare('SELECT COUNT(*) as count FROM patterns').get() as any).count;
+
+    const byTypeRows = this.db.prepare(`
+      SELECT type, COUNT(*) as count FROM patterns GROUP BY type
+    `).all() as { type: Pattern['type']; count: number }[];
+
+    const byType: Record<Pattern['type'], number> = {
+      code: 0,
+      error: 0,
+      workflow: 0,
+      prompt: 0,
+      architecture: 0,
+    };
+
+    for (const row of byTypeRows) {
+      byType[row.type] = row.count;
+    }
+
+    return { total, byType };
   }
 
   getHighConfidencePatterns(minConfidence: number = 0.7): Pattern[] {
@@ -568,6 +604,73 @@ export class Memory {
       details: JSON.parse(row.details || '{}'),
       timestamp: row.timestamp,
     }));
+  }
+
+  // ============================================
+  // Knowledge Graph Methods
+  // ============================================
+
+  /**
+   * Get the knowledge graph (concepts, relations, clusters)
+   */
+  getKnowledgeGraph() {
+    return this.knowledgeGraph.getKnowledgeGraph();
+  }
+
+  /**
+   * Get concepts related to a specific concept
+   */
+  getRelatedConcepts(conceptName: string, limit?: number) {
+    return this.knowledgeGraph.getRelatedConcepts(conceptName, limit);
+  }
+
+  /**
+   * Get all knowledge clusters
+   */
+  getKnowledgeClusters() {
+    return this.knowledgeGraph.getKnowledgeClusters();
+  }
+
+  /**
+   * Get detected knowledge gaps
+   */
+  getKnowledgeGaps(includeDismissed?: boolean) {
+    return this.knowledgeGraph.getKnowledgeGaps(includeDismissed);
+  }
+
+  /**
+   * Dismiss a knowledge gap
+   */
+  dismissKnowledgeGap(gapId: string) {
+    return this.knowledgeGraph.dismissGap(gapId);
+  }
+
+  /**
+   * Get knowledge graph statistics
+   */
+  getKnowledgeGraphStats() {
+    return this.knowledgeGraph.getStats();
+  }
+
+  /**
+   * Form knowledge clusters from concepts
+   */
+  formKnowledgeClusters() {
+    return this.knowledgeGraph.formClusters();
+  }
+
+  /**
+   * Detect knowledge gaps
+   */
+  detectKnowledgeGaps() {
+    return this.knowledgeGraph.detectGaps();
+  }
+
+  /**
+   * Extract concepts from text
+   */
+  extractConceptsFromText(text: string, context?: string) {
+    return this.knowledgeGraph.extractConcepts(text, context);
   }
 
   // ============================================

@@ -27,13 +27,16 @@ export const DemoMode: React.FC = () => {
   const [totalTokens, setTotalTokens] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { updateSession, addTokenUsage } = useStore();
+  const { updateSession, addTokenUsage, seedZoixDemoData, resetDemoData } = useStore();
 
   // Start demo mode - creates multiple sessions with simulated activity
   const startDemo = async () => {
     setIsRunning(true);
     setTotalCost(0);
     setTotalTokens(0);
+
+    // Seed ZOIX with impressive demo data for investor presentations
+    seedZoixDemoData();
 
     // Pick random faces for demo
     const faceIndices = Array.from({ length: 8 }, (_, i) => i * 2); // Even faces
@@ -125,6 +128,9 @@ export const DemoMode: React.FC = () => {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+
+    // Reset ZOIX demo data
+    resetDemoData();
 
     // Kill demo sessions
     for (const session of demoSessions) {

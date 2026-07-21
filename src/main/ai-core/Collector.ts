@@ -82,27 +82,96 @@ class InteractionParser {
     return paths;
   }
 
-  // Extract error messages
+  // Extract error messages from terminal output
   static extractErrors(text: string): string[] {
     const errors: string[] = [];
-    const patterns = [
-      /Error:\s*(.+?)(?:\n|$)/gi,
-      /TypeError:\s*(.+?)(?:\n|$)/gi,
-      /SyntaxError:\s*(.+?)(?:\n|$)/gi,
-      /ReferenceError:\s*(.+?)(?:\n|$)/gi,
-      /failed\s+(?:to|with)?\s*(.+?)(?:\n|$)/gi,
-      /exception:\s*(.+?)(?:\n|$)/gi,
+
+    // JavaScript/TypeScript errors
+    const jsErrorPatterns = [
+      /(?:Error|Exception):\s*(.+?)(?:\n|$)/gi,
+      /(?:TypeError|ReferenceError|SyntaxError|RangeError):\s*(.+?)(?:\n|$)/gi,
+      /Uncaught\s+(?:\w+)?Error:\s*(.+?)(?:\n|$)/gi,
+      /at\s+.+?:\d+:\d+/gi, // Stack trace lines
     ];
 
-    for (const pattern of patterns) {
+    // Python errors
+    const pythonErrorPatterns = [
+      /(?:Traceback.*?\n)?(?:File|line)\s+"[^"]+".+?(?:Error|Exception):\s*(.+?)(?:\n\n|\n$)/gis,
+      /(?:NameError|ValueError|TypeError|AttributeError|KeyError|IndexError):\s*(.+?)(?:\n|$)/gi,
+    ];
+
+    // Shell/System errors
+    const shellErrorPatterns = [
+      /(?:bash|sh|zsh):\s*(?:line\s+\d+:)?\s*(.+?)(?:\n|$)/gi,
+      /command\s+not\s+found:\s*(.+?)(?:\n|$)/gi,
+      /permission\s+denied:\s*(.+?)(?:\n|$)/gi,
+    ];
+
+    // Git errors
+    const gitErrorPatterns = [
+      /fatal:\s*(.+?)(?:\n|$)/gi,
+      /error:\s*(.+?)(?:\n|$)/gi,
+      /CONFLICT\s*\([^)]+\):\s*(.+?)(?:\n|$)/gi,
+    ];
+
+    // NPM/Yarn errors
+    const npmErrorPatterns = [
+      /npm\s+ERR!\s*(.+?)(?:\n|$)/gi,
+      /error\s+An unexpected error occurred:\s*(.+?)(?:\n|$)/gi,
+      /ENOENT:\s*(.+?)(?:\n|$)/gi,
+    ];
+
+    // Build errors
+    const buildErrorPatterns = [
+      /error\s+TS\d+:\s*(.+?)(?:\n|$)/gi,
+      /ERROR in\s+(.+?)(?:\n|$)/gi,
+      /Build failed with\s+\d+\s+errors?/gi,
+    ];
+
+    // Test failures
+    const testErrorPatterns = [
+      /FAIL\s+(.+?)(?:\n|$)/gi,
+      /Test failed:\s*(.+?)(?:\n|$)/gi,
+      /AssertionError:\s*(.+?)(?:\n|$)/gi,
+      /Expected.*?but got/gi,
+    ];
+
+    // Generic failure patterns
+    const failurePatterns = [
+      /failed\s+(?:to|with)?\s*(.+?)(?:\n|$)/gi,
+      /exception:\s*(.+?)(?:\n|$)/gi,
+      /(?:cannot|unable to)\s+(.+?)(?:\n|$)/gi,
+    ];
+
+    const allPatterns = [
+      ...jsErrorPatterns,
+      ...pythonErrorPatterns,
+      ...shellErrorPatterns,
+      ...gitErrorPatterns,
+      ...npmErrorPatterns,
+      ...buildErrorPatterns,
+      ...testErrorPatterns,
+      ...failurePatterns,
+    ];
+
+    for (const pattern of allPatterns) {
       let match;
       while ((match = pattern.exec(text)) !== null) {
-        if (match[1] && match[1].length < 200) {
-          errors.push(match[1].trim());
+        const errorText = match[1] || match[0];
+        if (errorText && errorText.trim().length > 0 && errorText.length < 500) {
+          errors.push(errorText.trim());
         }
       }
     }
-    return errors;
+
+    // Also extract stack traces as complete error contexts
+    const stackTracePattern = /(?:Error|Exception):[^\n]*\n(?:\s+at\s+[^\n]+\n?)+/g;
+    let stackMatch;
+    while ((stackMatch = stackTracePattern.exec(text)) !== null) {
+      errors.push(stackMatch[0].trim());
+    }
+
+    return [...new Set(errors)]; // Remove duplicates
   }
 
   // Generate a semantic hash for similar prompt detection
@@ -119,22 +188,32 @@ class InteractionParser {
     return crypto.createHash('sha256').update(normalized).digest('hex').substring(0, 16);
   }
 
-  // Detect the intent/category of a prompt
+  // Detect the intent/category of a prompt from terminal interactions
   static detectPromptCategory(prompt: string): string[] {
     const categories: string[] = [];
     const lowerPrompt = prompt.toLowerCase();
 
     const categoryPatterns: { [key: string]: RegExp[] } = {
-      'bugfix': [/fix\s/, /bug/, /error/, /issue/, /broken/, /doesn't work/, /not working/],
-      'feature': [/add\s/, /implement/, /create/, /build/, /new\s/, /feature/],
-      'refactor': [/refactor/, /improve/, /clean\s*up/, /optimize/, /restructure/],
-      'test': [/test/, /spec/, /coverage/, /assert/, /expect/],
-      'docs': [/document/, /readme/, /comment/, /explain/, /describe/],
-      'debug': [/debug/, /why\s/, /what's wrong/, /investigate/, /find\s/],
-      'config': [/config/, /setup/, /install/, /environment/, /settings/],
-      'style': [/style/, /format/, /lint/, /prettier/, /eslint/],
-      'security': [/security/, /auth/, /permission/, /encrypt/, /password/, /token/],
-      'performance': [/performance/, /speed/, /slow/, /optimize/, /cache/, /memory/],
+      'bugfix': [/fix\s/, /bug/, /error/, /issue/, /broken/, /doesn't work/, /not working/, /repair/],
+      'feature': [/add\s/, /implement/, /create/, /build/, /new\s/, /feature/, /develop/],
+      'refactor': [/refactor/, /improve/, /clean\s*up/, /optimize/, /restructure/, /reorganize/],
+      'test': [/test/, /spec/, /coverage/, /assert/, /expect/, /vitest/, /jest/, /mocha/],
+      'docs': [/document/, /readme/, /comment/, /explain/, /describe/, /documentation/],
+      'debug': [/debug/, /why\s/, /what's wrong/, /investigate/, /find\s/, /trace/, /diagnose/],
+      'config': [/config/, /setup/, /install/, /environment/, /settings/, /\.env/, /package\.json/],
+      'style': [/style/, /format/, /lint/, /prettier/, /eslint/, /formatting/],
+      'security': [/security/, /auth/, /permission/, /encrypt/, /password/, /token/, /vulnerability/],
+      'performance': [/performance/, /speed/, /slow/, /optimize/, /cache/, /memory/, /latency/],
+      'git': [/\bgit\s/, /commit/, /push/, /pull/, /merge/, /branch/, /rebase/, /checkout/, /clone/],
+      'npm': [/\bnpm\s/, /\byarn\s/, /\bpnpm\s/, /package/, /install/, /dependencies/],
+      'build': [/build/, /compile/, /bundle/, /webpack/, /vite/, /rollup/, /transpile/],
+      'deploy': [/deploy/, /release/, /publish/, /production/, /staging/],
+      'database': [/database/, /db/, /sql/, /query/, /schema/, /migration/, /postgres/, /mysql/, /mongo/],
+      'api': [/\bapi\s/, /endpoint/, /route/, /request/, /response/, /rest/, /graphql/],
+      'ui': [/ui/, /interface/, /component/, /react/, /vue/, /angular/, /css/, /html/],
+      'typescript': [/typescript/, /\bts\b/, /type/, /interface/, /generic/],
+      'javascript': [/javascript/, /\bjs\b/, /node/, /async/, /promise/],
+      'python': [/python/, /\bpy\b/, /django/, /flask/, /pip/],
     };
 
     for (const [category, patterns] of Object.entries(categoryPatterns)) {
@@ -142,6 +221,11 @@ class InteractionParser {
         categories.push(category);
       }
     }
+
+    // Also detect from command patterns in prompt
+    if (/\$\s*git\s/.test(prompt)) categories.push('git');
+    if (/\$\s*npm\s/.test(prompt)) categories.push('npm');
+    if (/\$\s*docker\s/.test(prompt)) categories.push('docker');
 
     return categories.length > 0 ? categories : ['general'];
   }

@@ -131,8 +131,10 @@ export class SuggestionEngine {
     suggestions.push(...this.getTemplateSuggestions(request));
     suggestions.push(...this.getErrorPreventionSuggestions(request));
     suggestions.push(...this.getWorkflowSuggestions(request));
+    suggestions.push(...this.getWorkflowWarnings(request));
     suggestions.push(...this.getProductivitySuggestions(request));
     suggestions.push(...this.getCodePatternSuggestions(request));
+    suggestions.push(...this.getCrossSessionSuggestions(request));
     suggestions.push(...this.getProjectContextSuggestions(request));
     suggestions.push(...this.getLearningHighlights());
 
@@ -192,8 +194,39 @@ export class SuggestionEngine {
    * Record that a suggestion was acted upon (for learning)
    */
   recordSuggestionAction(suggestionId: string, accepted: boolean): void {
-    // In a future version, this could feed back into the learning system
     console.log(`[SuggestionEngine] Suggestion ${suggestionId} was ${accepted ? 'accepted' : 'rejected'}`);
+
+    // Find the suggestion in recent cache
+    for (const [, cached] of this.suggestionCache) {
+      const suggestion = cached.suggestions.find(s => s.id === suggestionId);
+      if (suggestion && suggestion.source.type === 'pattern' && suggestion.source.id) {
+        // Update pattern confidence based on feedback
+        const currentPattern = this.memory.findPatternByName(suggestion.source.id);
+        if (currentPattern) {
+          // Adjust confidence: increase if accepted, decrease if rejected
+          const adjustment = accepted ? 0.05 : -0.03;
+          const newConfidence = Math.max(0.1, Math.min(0.99, currentPattern.confidence + adjustment));
+
+          this.memory.updatePattern(currentPattern.id, {
+            confidence: newConfidence,
+          });
+
+          console.log(`[SuggestionEngine] Updated pattern ${currentPattern.name} confidence: ${currentPattern.confidence.toFixed(2)} -> ${newConfidence.toFixed(2)}`);
+        }
+        break;
+      }
+
+      // If it's an insight-based suggestion
+      if (suggestion && suggestion.source.type === 'insight' && suggestion.source.id) {
+        // Update insight effectiveness
+        this.memory.incrementInsightUseCount(suggestion.source.id, accepted);
+        console.log(`[SuggestionEngine] Updated insight ${suggestion.source.id} effectiveness`);
+        break;
+      }
+    }
+
+    // Clear cache to refresh suggestions with updated scores
+    this.suggestionCache.clear();
   }
 
   // ============================================
@@ -319,8 +352,8 @@ export class SuggestionEngine {
           suggestions.push({
             id: this.generateId('error-prevent'),
             type: 'error_prevention',
-            title: `Common error: ${pattern.name.substring(0, 50)}`,
-            description: `This error occurred ${pattern.occurrences} times. Solution: ${pattern.solution?.substring(0, 100)}...`,
+            title: `Avoid: ${pattern.name.substring(0, 50)}`,
+            description: `This error occurred ${pattern.occurrences} times in similar contexts. Solution: ${pattern.solution?.substring(0, 100)}...`,
             priority: 'low',
             confidence: pattern.confidence,
             relevance: 0.5,
@@ -341,7 +374,7 @@ export class SuggestionEngine {
       return suggestions;
     }
 
-    // Active error resolution suggestions
+    // Active error resolution suggestions - find EXACT matches
     for (const error of request.recentErrors) {
       const normalizedError = this.normalizeError(error);
 
@@ -349,35 +382,57 @@ export class SuggestionEngine {
       const patterns = this.memory.getPatternsByType('error');
       for (const pattern of patterns) {
         const patternContext = JSON.parse(pattern.context || '{}');
-        if (patternContext.errorTemplate &&
-            this.normalizeError(patternContext.originalError || '').includes(normalizedError.substring(0, 30))) {
+        const patternTemplate = patternContext.errorTemplate || '';
 
-          if (pattern.solution) {
-            suggestions.push({
-              id: this.generateId('error-fix'),
-              type: 'error_prevention',
-              title: 'Known error - solution available',
-              description: `This error has been resolved before: ${pattern.solution.substring(0, 100)}...`,
-              priority: 'high',
-              confidence: pattern.confidence,
-              relevance: 0.9,
-              actionable: true,
-              action: {
-                label: 'Apply Fix',
-                type: 'copy_code',
-                payload: { code: pattern.solution },
-              },
-              dismissable: true,
-              source: { type: 'pattern', id: pattern.id },
-              context: { language: request.language },
-              createdAt: Date.now(),
-            });
-          }
+        // Calculate similarity score
+        const similarity = this.calculateErrorSimilarity(normalizedError, patternTemplate);
+
+        if (similarity > 0.6 && pattern.solution) {
+          // Higher similarity = higher priority
+          const priority = similarity > 0.9 ? 'critical' : similarity > 0.75 ? 'high' : 'medium';
+
+          suggestions.push({
+            id: this.generateId('error-fix'),
+            type: 'error_prevention',
+            title: `Known error - solution available (${Math.round(similarity * 100)}% match)`,
+            description: `This error has been resolved ${pattern.occurrences} times before. Solution: ${pattern.solution.substring(0, 100)}...`,
+            priority,
+            confidence: pattern.confidence * similarity,
+            relevance: similarity,
+            actionable: true,
+            action: {
+              label: 'Apply Fix',
+              type: 'copy_code',
+              payload: { code: pattern.solution },
+            },
+            dismissable: true,
+            source: { type: 'pattern', id: pattern.id },
+            context: { language: request.language },
+            createdAt: Date.now(),
+          });
         }
       }
     }
 
     return suggestions;
+  }
+
+  /**
+   * Calculate similarity between two normalized error strings
+   */
+  private calculateErrorSimilarity(error1: string, error2: string): number {
+    if (!error1 || !error2) return 0;
+
+    const words1 = error1.toLowerCase().split(/\s+/);
+    const words2 = error2.toLowerCase().split(/\s+/);
+
+    // Calculate Jaccard similarity
+    const set1 = new Set(words1);
+    const set2 = new Set(words2);
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+
+    return intersection.size / union.size;
   }
 
   private getWorkflowSuggestions(request: SuggestionRequest): Suggestion[] {
@@ -540,8 +595,8 @@ export class SuggestionEngine {
         suggestions.push({
           id: this.generateId('learning-highlight'),
           type: 'learning',
-          title: `Flowfaster learned ${stats.totalInsights} insights`,
-          description: `Most learning in: ${topCategory.category} (${topCategory.count} insights). ${stats.totalPatterns} patterns detected.`,
+          title: `ZOIX learned ${stats.totalInsights} insights`,
+          description: `Most learning in: ${topCategory.category} (${topCategory.count} insights). ${stats.totalPatterns} patterns detected across ${stats.totalInteractions} interactions.`,
           priority: 'low',
           confidence: 0.8,
           relevance: 0.2,
@@ -551,6 +606,107 @@ export class SuggestionEngine {
           context: {},
           createdAt: Date.now(),
           expiresAt: Date.now() + 12 * 60 * 60 * 1000, // Expire after 12 hours
+        });
+      }
+    }
+
+    return suggestions;
+  }
+
+  /**
+   * Get suggestions for cross-session code sharing
+   */
+  getCrossSessionSuggestions(request: SuggestionRequest): Suggestion[] {
+    const suggestions: Suggestion[] = [];
+
+    if (!request.sessionId || !request.language) return suggestions;
+
+    // Find similar code patterns from other sessions
+    const snippets = this.memory.getSnippetsByLanguage(request.language);
+    const recentInteractions = this.memory.getRecentInteractions(100);
+
+    // Group snippets by project to find cross-pollination opportunities
+    const projectSnippets = new Map<string, typeof snippets>();
+    for (const snippet of snippets) {
+      if (!snippet.projectId || snippet.successRate < 0.7) continue;
+      const group = projectSnippets.get(snippet.projectId) || [];
+      group.push(snippet);
+      projectSnippets.set(snippet.projectId, group);
+    }
+
+    // Find snippets from other projects that might be useful
+    for (const [projectId, projectSnips] of projectSnippets) {
+      if (projectId === request.projectId) continue; // Skip same project
+
+      for (const snippet of projectSnips.slice(0, 2)) {
+        // Check if this pattern hasn't been used in current session
+        const usedInCurrentSession = recentInteractions
+          .filter(i => i.sessionId === request.sessionId)
+          .some(i => i.response.includes(snippet.code.substring(0, 50)));
+
+        if (!usedInCurrentSession && snippet.useCount >= 2) {
+          suggestions.push({
+            id: this.generateId('cross-session'),
+            type: 'cross_session',
+            title: `Code pattern from another project`,
+            description: `${snippet.purpose} (used ${snippet.useCount} times with ${Math.round(snippet.successRate * 100)}% success)`,
+            priority: 'medium',
+            confidence: snippet.successRate,
+            relevance: 0.6,
+            actionable: true,
+            action: {
+              label: 'Copy Code',
+              type: 'copy_code',
+              payload: { code: snippet.code },
+            },
+            dismissable: true,
+            source: { type: 'pattern' },
+            context: {
+              language: snippet.language,
+              projectId: projectId,
+              tags: snippet.tags,
+            },
+            createdAt: Date.now(),
+          });
+        }
+      }
+    }
+
+    return suggestions.slice(0, 3); // Limit to top 3
+  }
+
+  /**
+   * Get suggestions when workflows typically lead to errors
+   */
+  getWorkflowWarnings(request: SuggestionRequest): Suggestion[] {
+    const suggestions: Suggestion[] = [];
+    const patterns = this.memory.getPatternsByType('workflow');
+
+    for (const pattern of patterns) {
+      const context = JSON.parse(pattern.context || '{}');
+
+      // Warn about workflows with low success rates
+      if (context.successRate < 0.5 && pattern.occurrences >= 3) {
+        // Check if relevant to current project
+        if (request.projectId && !pattern.projectIds.includes(request.projectId)) {
+          continue;
+        }
+
+        const workflowSteps = (context.sequence || []).slice(0, 4).join(' → ');
+
+        suggestions.push({
+          id: this.generateId('workflow-warning'),
+          type: 'workflow',
+          title: `Warning: Low success workflow detected`,
+          description: `The workflow "${workflowSteps}" has only ${Math.round(context.successRate * 100)}% success rate across ${pattern.occurrences} attempts. Consider alternative approaches.`,
+          priority: 'medium',
+          confidence: pattern.confidence,
+          relevance: 1 - context.successRate, // Higher relevance for lower success
+          actionable: false,
+          dismissable: true,
+          source: { type: 'pattern', id: pattern.id },
+          context: { projectId: request.projectId },
+          createdAt: Date.now(),
         });
       }
     }
@@ -715,18 +871,89 @@ export class SuggestionEngine {
   }
 
   private rankSuggestions(suggestions: Suggestion[], request: SuggestionRequest): Suggestion[] {
+    const now = Date.now();
+
     return suggestions.sort((a, b) => {
-      // Priority ordering
+      // Priority ordering (critical suggestions always first)
       const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
       const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
       if (priorityDiff !== 0) return priorityDiff;
 
-      // Relevance + confidence weighted
-      const scoreA = a.relevance * 0.6 + a.confidence * 0.4;
-      const scoreB = b.relevance * 0.6 + b.confidence * 0.4;
+      // Calculate recency score (suggestions from recent patterns are more relevant)
+      const recencyA = this.calculateRecencyScore(a, now);
+      const recencyB = this.calculateRecencyScore(b, now);
+
+      // Calculate context match score
+      const contextScoreA = this.calculateContextScore(a, request);
+      const contextScoreB = this.calculateContextScore(b, request);
+
+      // Weighted composite score:
+      // - Relevance (40%): How relevant to current situation
+      // - Confidence (30%): How confident we are in this suggestion
+      // - Recency (20%): Prefer recent patterns
+      // - Context (10%): Prefer suggestions that match current context
+      const scoreA =
+        a.relevance * 0.4 +
+        a.confidence * 0.3 +
+        recencyA * 0.2 +
+        contextScoreA * 0.1;
+      const scoreB =
+        b.relevance * 0.4 +
+        b.confidence * 0.3 +
+        recencyB * 0.2 +
+        contextScoreB * 0.1;
 
       return scoreB - scoreA;
     });
+  }
+
+  /**
+   * Calculate recency score (1.0 = very recent, 0.0 = very old)
+   */
+  private calculateRecencyScore(suggestion: Suggestion, now: number): number {
+    const ageMs = now - suggestion.createdAt;
+    const dayMs = 24 * 60 * 60 * 1000;
+
+    // Exponential decay: full score for < 1 hour, half score at 24h, near-zero at 7 days
+    const hourMs = 60 * 60 * 1000;
+    if (ageMs < hourMs) return 1.0;
+    if (ageMs < dayMs) return 0.8;
+    if (ageMs < 3 * dayMs) return 0.5;
+    if (ageMs < 7 * dayMs) return 0.2;
+    return 0.1;
+  }
+
+  /**
+   * Calculate context match score
+   */
+  private calculateContextScore(suggestion: Suggestion, request: SuggestionRequest): number {
+    let score = 0.5; // Base score
+
+    // Boost for project match
+    if (suggestion.context.projectId && suggestion.context.projectId === request.projectId) {
+      score += 0.3;
+    }
+
+    // Boost for language match
+    if (suggestion.context.language && suggestion.context.language === request.language) {
+      score += 0.2;
+    }
+
+    // Boost for session match
+    if (suggestion.context.sessionId && suggestion.context.sessionId === request.sessionId) {
+      score += 0.1;
+    }
+
+    // Boost for tag overlap
+    if (suggestion.context.tags && request.currentTask) {
+      const taskLower = request.currentTask.toLowerCase();
+      const hasMatchingTag = suggestion.context.tags.some(tag =>
+        taskLower.includes(tag.toLowerCase())
+      );
+      if (hasMatchingTag) score += 0.1;
+    }
+
+    return Math.min(1.0, score);
   }
 
   private filterDismissed(suggestions: Suggestion[]): Suggestion[] {

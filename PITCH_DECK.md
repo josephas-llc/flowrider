@@ -86,13 +86,19 @@
 - ✅ 20-session management working
 - ✅ Multi-provider integration (Claude, Gemini, Grok, Copilot, Meta AI, Ollama)
 - ✅ Cost tracking implemented
-- ✅ LEO meta-orchestration designed (400 sessions)
+- ✅ ZOIX meta-orchestration designed (400 sessions)
+- ✅ **ZOIX Layer 2: Personal Ontology Builder (SHIPPED July 2026)**
+  - 7 integrated backend services with SQLite persistence
+  - UserProfiler, KnowledgeGraph, SkillTracker, ContextMemory
+  - GoalInference, ResourceRecommender, OntologyBuilder
+  - ZOIX Insights Panel UI with real-time learning indicators
 
 **Technical Validation:**
 - Built with Electron + React + Three.js
 - tmux-powered native terminal performance
-- SQLite persistence for session data
+- SQLite persistence for session data + user profiles
 - TypeScript throughout (type-safe)
+- 33 unit tests passing, 5/7 E2E tests passing
 
 **Next Milestone:** Public beta launch
 
@@ -163,7 +169,7 @@
 
 ## Slide 9: Moat & Defensibility
 
-### Five Layers of Protection
+### Six Layers of Protection (ZOIX Layer 2 Added)
 
 1. **Network Effects**
    - Shared session templates
@@ -183,8 +189,16 @@
    - "Flowrider" as a verb for parallel AI coding
 
 5. **First-Mover**
-   - LEO meta-orchestration architecture
+   - ZOIX personal AI intelligence + meta-orchestration
    - 400-session capability
+
+6. **ZOIX Layer 2: Personal Ontology (NEW - SHIPPED)**
+   - 7 integrated services building user profile
+   - **UserProfiler** - Tracks skills, interests, domains
+   - **KnowledgeGraph** - Maps concept relationships
+   - **SkillTracker** - Monitors learning progression
+   - **GoalInference** - Detects user objectives
+   - User data compounds over time = irreplaceable moat
 
 ---
 
@@ -334,11 +348,11 @@
      └────────┘    └────────┘    └────────┘
 ```
 
-## A2: LEO Meta-Orchestration
+## A2: ZOIX Meta-Orchestration
 
 ```
                     ┌─────────────────┐
-                    │       LEO       │
+                    │       ZOIX      │
                     │   (400 total)   │
                     └────────┬────────┘
                              │
@@ -353,7 +367,7 @@
    20 Sessions          20 Sessions          20 Sessions
 ```
 
-LEO = 20 Flowriders × 20 Sessions = **400 concurrent AI sessions**
+ZOIX = 20 Flowriders × 20 Sessions = **400 concurrent AI sessions**
 
 ## A3: Competitive Landscape Map
 

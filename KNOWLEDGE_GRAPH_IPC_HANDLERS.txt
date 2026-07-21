@@ -1,0 +1,95 @@
+// Add these IPC handlers to src/main/main.ts after the 'leoai:clearDismissedSuggestions' handler (around line 660)
+
+  // ========================================
+  // Knowledge Graph IPC (ZOIX)
+  // ========================================
+
+  // Get the full knowledge graph
+  ipcMain.handle('zoix:getKnowledgeGraph', async () => {
+    try {
+      const graph = aiCore.getKnowledgeGraph();
+      return { success: true, data: graph };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get related concepts
+  ipcMain.handle('zoix:getRelatedConcepts', async (_event, conceptName: string, limit?: number) => {
+    try {
+      const related = aiCore.getRelatedConcepts(conceptName, limit);
+      return { success: true, data: related };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get knowledge clusters
+  ipcMain.handle('zoix:getKnowledgeClusters', async () => {
+    try {
+      const clusters = aiCore.getKnowledgeClusters();
+      return { success: true, data: clusters };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get knowledge gaps
+  ipcMain.handle('zoix:getKnowledgeGaps', async (_event, includeDismissed?: boolean) => {
+    try {
+      const gaps = aiCore.getKnowledgeGaps(includeDismissed);
+      return { success: true, data: gaps };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Dismiss a knowledge gap
+  ipcMain.handle('zoix:dismissKnowledgeGap', async (_event, gapId: string) => {
+    try {
+      aiCore.dismissKnowledgeGap(gapId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get knowledge graph statistics
+  ipcMain.handle('zoix:getKnowledgeGraphStats', async () => {
+    try {
+      const stats = aiCore.getKnowledgeGraphStats();
+      return { success: true, data: stats };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Form knowledge clusters
+  ipcMain.handle('zoix:formKnowledgeClusters', async () => {
+    try {
+      const clusters = aiCore.formKnowledgeClusters();
+      return { success: true, data: clusters };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Detect knowledge gaps
+  ipcMain.handle('zoix:detectKnowledgeGaps', async () => {
+    try {
+      const gaps = aiCore.detectKnowledgeGaps();
+      return { success: true, data: gaps };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Extract concepts from text
+  ipcMain.handle('zoix:extractConcepts', async (_event, text: string, context?: string) => {
+    try {
+      const concepts = aiCore.extractConceptsFromText(text, context);
+      return { success: true, data: concepts };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });

@@ -42,8 +42,6 @@ const SearchIcon = () => (
   </svg>
 );
 
-const POLL_INTERVAL = 100; // Fast polling for responsive feel
-
 // Patterns that indicate Claude Code is waiting for user input
 const ATTENTION_PATTERNS = [
   // Questions
@@ -97,11 +95,11 @@ export const TerminalView: React.FC = () => {
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastOutputRef = useRef<string>('');
+  const lastOutputRef = useRef<string>(''); // For copy output feature
   const tokenAccumulatorRef = useRef<TokenAccumulator>(new TokenAccumulator());
   const connectedSessionRef = useRef<string | null>(null);
   const lastTokensRef = useRef<{ input: number; output: number }>({ input: 0, output: 0 });
+  const ptyCleanupRef = useRef<(() => void) | null>(null); // PTY event listener cleanup
 
   const [showSearch, setShowSearch] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -177,10 +175,11 @@ export const TerminalView: React.FC = () => {
     setTerminalDimensions(terminal.cols, terminal.rows);
     console.log(`[Terminal] Initial dimensions: ${terminal.cols}x${terminal.rows}`);
 
-    // Handle input - send to tmux (use ref to avoid stale closure)
+    // Handle input - send to PTY (use ref to avoid stale closure)
+    // PTY streaming gives us real-time bidirectional communication
     terminal.onData((data) => {
-      if (connectedSessionRef.current && window.flowrider) {
-        window.flowrider.tmux.sendInput(connectedSessionRef.current, data).catch(console.error);
+      if (connectedSessionRef.current && window.flowrider?.pty) {
+        window.flowrider.pty.write(connectedSessionRef.current, data).catch(console.error);
       }
     });
 
@@ -210,135 +209,122 @@ export const TerminalView: React.FC = () => {
     }
   }, [attachedSession, selectedSession?.tmuxSession]);
 
-  // Poll tmux for output with token parsing
-  const startPolling = useCallback((sessionName: string) => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
+  // PTY streaming - attach to tmux session via node-pty
+  // This replaces polling with real-time byte streaming
+  const attachPty = useCallback(async (sessionName: string) => {
+    if (!window.flowrider?.pty || !xtermRef.current) {
+      console.error('[Terminal] PTY API not available');
+      return;
     }
 
-    // Clear lastOutputRef so we get fresh content after resize
-    lastOutputRef.current = '';
+    // Cleanup any existing PTY connection
+    if (ptyCleanupRef.current) {
+      ptyCleanupRef.current();
+      ptyCleanupRef.current = null;
+    }
 
-    // Sync tmux size immediately on connect - CRITICAL for proper display
-    // The tmux session may have been created with different dimensions
-    const syncAndStartPolling = async () => {
-      if (xtermRef.current && window.flowrider) {
-        const terminal = xtermRef.current;
-        const cols = terminal.cols;
-        const rows = terminal.rows;
-        if (cols > 0 && rows > 0) {
-          try {
-            // 1. Resize tmux to match our terminal
-            await window.flowrider.tmux.resize(sessionName, cols, rows);
-            console.log(`[Terminal] Synced tmux size to ${cols}x${rows}`);
+    const terminal = xtermRef.current;
+    const cols = terminal.cols;
+    const rows = terminal.rows;
 
-            // 2. Wait a beat for apps inside to receive SIGWINCH and redraw
-            await new Promise(resolve => setTimeout(resolve, 150));
+    console.log(`[Terminal] Attaching PTY to session: ${sessionName} (${cols}x${rows})`);
 
-            // 3. Send an empty command to trigger any pending redraws
-            await window.flowrider.tmux.sendCommand(sessionName, '');
-
-            // 4. Wait another beat for the redraw to complete
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // 5. Clear lastOutputRef again to ensure we get fresh post-resize content
-            lastOutputRef.current = '';
-
-            console.log(`[Terminal] Ready to poll after resize sync`);
-          } catch (err) {
-            console.error('[Terminal] Failed initial tmux sync:', err);
-          }
-        }
+    try {
+      // Attach PTY to tmux session
+      const result = await window.flowrider.pty.attach(sessionName, cols, rows);
+      if (!result.success) {
+        console.error('[Terminal] Failed to attach PTY:', result.error);
+        terminal.writeln(`\x1b[31mError: ${result.error || 'Failed to attach'}\x1b[0m`);
+        return;
       }
 
-      // Start the polling loop after sync completes
-      startPollingLoop();
-    };
+      console.log(`[Terminal] PTY attached successfully`);
 
-    const startPollingLoop = () => {
-      pollOutput();
-      pollIntervalRef.current = setInterval(pollOutput, POLL_INTERVAL);
-    };
+      // Set up PTY data listener - streams raw bytes directly to xterm.js
+      // This is the key fix: no polling, no capture-pane, just raw PTY output
+      const cleanupData = window.flowrider.pty.onData((incomingSession: string, data: string) => {
+        if (incomingSession === sessionName && xtermRef.current) {
+          // Write raw PTY data directly to terminal
+          xtermRef.current.write(data);
 
-    const pollOutput = async () => {
-      if (!window.flowrider || !xtermRef.current) return;
+          // Accumulate for copy feature and token parsing
+          lastOutputRef.current += data;
+          // Keep last 10KB for memory efficiency
+          if (lastOutputRef.current.length > 10000) {
+            lastOutputRef.current = lastOutputRef.current.slice(-10000);
+          }
 
-      try {
-        const result = await window.flowrider.tmux.getOutput(sessionName, 500);
-        if ((result as any).success && (result as any).data) {
-          const output = (result as any).data as string;
+          // Parse tokens from output (check periodically, not on every chunk)
+          const tokenUsage = parseTokensFromOutput(lastOutputRef.current) || parseClaudeCodeStatus(lastOutputRef.current);
+          if (tokenUsage && selectedFace !== null) {
+            const deltaInput = Math.max(0, tokenUsage.inputTokens - lastTokensRef.current.input);
+            const deltaOutput = Math.max(0, tokenUsage.outputTokens - lastTokensRef.current.output);
 
-          // Only redraw if content changed
-          if (output !== lastOutputRef.current) {
-            // With escape sequences from capture-pane -e, we need to do a full redraw
-            // This ensures cursor positioning and ANSI codes are applied correctly
-            // Use reset() + write() for cleanest rendering
-            xtermRef.current.reset();
-            xtermRef.current.write(output);
-            lastOutputRef.current = output;
+            setLiveTokens({
+              input: tokenUsage.inputTokens,
+              output: tokenUsage.outputTokens,
+              cost: tokenUsage.estimatedCost,
+            });
 
-            // Parse tokens from output
-            const tokenUsage = parseTokensFromOutput(output) || parseClaudeCodeStatus(output);
-            if (tokenUsage && selectedFace !== null) {
-              // Calculate delta from previous values using ref (avoids stale closure)
-              const deltaInput = Math.max(0, tokenUsage.inputTokens - lastTokensRef.current.input);
-              const deltaOutput = Math.max(0, tokenUsage.outputTokens - lastTokensRef.current.output);
+            lastTokensRef.current = { input: tokenUsage.inputTokens, output: tokenUsage.outputTokens };
 
-              // Update live display
-              setLiveTokens({
-                input: tokenUsage.inputTokens,
-                output: tokenUsage.outputTokens,
-                cost: tokenUsage.estimatedCost,
-              });
-
-              // Update ref for next delta calculation
-              lastTokensRef.current = { input: tokenUsage.inputTokens, output: tokenUsage.outputTokens };
-
-              // Only add to store if there's a positive delta (new tokens used)
-              if (deltaInput > 0 || deltaOutput > 0) {
-                addTokenUsage(selectedFace, deltaInput, deltaOutput);
-              }
-            }
-
-            // Check if session needs attention (only for the attached session)
-            if (selectedFace !== null) {
-              const attention = detectAttentionNeeded(output);
-              setSessionNeedsAttention(selectedFace, attention.needsAttention, attention.reason);
+            if (deltaInput > 0 || deltaOutput > 0) {
+              addTokenUsage(selectedFace, deltaInput, deltaOutput);
             }
           }
-        }
-      } catch (err) {
-        console.error('[Terminal] Poll error:', err);
-        // Show error to user if terminal is available
-        if (xtermRef.current) {
-          xtermRef.current.writeln(`\x1b[31mError: Session may have disconnected\x1b[0m`);
-        }
-      }
-    };
 
-    // Start the async sync process, which will then start polling
-    syncAndStartPolling();
-  }, [selectedFace]);
+          // Check if session needs attention
+          if (selectedFace !== null) {
+            const attention = detectAttentionNeeded(lastOutputRef.current);
+            setSessionNeedsAttention(selectedFace, attention.needsAttention, attention.reason);
+          }
+        }
+      });
 
-  const stopPolling = useCallback(() => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
+      // Set up PTY exit listener
+      const cleanupExit = window.flowrider.pty.onExit((incomingSession: string, exitCode: number) => {
+        if (incomingSession === sessionName) {
+          console.log(`[Terminal] PTY session exited with code: ${exitCode}`);
+          if (xtermRef.current) {
+            xtermRef.current.writeln(`\x1b[33mSession ended (exit code: ${exitCode})\x1b[0m`);
+          }
+        }
+      });
+
+      // Store cleanup function
+      ptyCleanupRef.current = () => {
+        cleanupData();
+        cleanupExit();
+        window.flowrider?.pty?.detach(sessionName).catch(console.error);
+      };
+
+    } catch (err) {
+      console.error('[Terminal] PTY attach error:', err);
+      terminal.writeln(`\x1b[31mError: Failed to attach to session\x1b[0m`);
+    }
+  }, [selectedFace, addTokenUsage, setSessionNeedsAttention]);
+
+  // Detach PTY and cleanup listeners
+  const detachPty = useCallback(() => {
+    if (ptyCleanupRef.current) {
+      ptyCleanupRef.current();
+      ptyCleanupRef.current = null;
     }
     lastOutputRef.current = '';
   }, []);
 
-  // Handle attach/detach
+  // Handle attach/detach via PTY streaming
   useEffect(() => {
     if (connectedSession) {
       if (xtermRef.current) {
         xtermRef.current.clear();
-        xtermRef.current.writeln(`\x1b[32mConnected to: ${connectedSession}\x1b[0m`);
+        xtermRef.current.writeln(`\x1b[32mConnecting to: ${connectedSession}...\x1b[0m`);
         xtermRef.current.writeln('');
       }
-      startPolling(connectedSession);
+      // Attach PTY for real-time streaming (replaces polling)
+      attachPty(connectedSession);
     } else {
-      stopPolling();
+      detachPty();
       if (xtermRef.current) {
         xtermRef.current.clear();
         xtermRef.current.writeln('');
@@ -349,12 +335,12 @@ export const TerminalView: React.FC = () => {
       }
     }
 
-    return () => stopPolling();
-  }, [connectedSession, startPolling, stopPolling]);
+    return () => detachPty();
+  }, [connectedSession, attachPty, detachPty]);
 
-  // Sync tmux session size to match xterm.js terminal dimensions
-  const syncTmuxSize = useCallback(async (sessionName: string) => {
-    if (!xtermRef.current || !window.flowrider) return;
+  // Sync PTY size to match xterm.js terminal dimensions
+  const syncPtySize = useCallback(async (sessionName: string) => {
+    if (!xtermRef.current || !window.flowrider?.pty) return;
 
     const terminal = xtermRef.current;
     const cols = terminal.cols;
@@ -362,29 +348,38 @@ export const TerminalView: React.FC = () => {
 
     if (cols > 0 && rows > 0) {
       try {
-        await window.flowrider.tmux.resize(sessionName, cols, rows);
-        console.log(`[Terminal] Synced tmux size to ${cols}x${rows}`);
+        await window.flowrider.pty.resize(sessionName, cols, rows);
+        console.log(`[Terminal] Synced PTY size to ${cols}x${rows}`);
       } catch (err) {
-        console.error('[Terminal] Failed to sync tmux size:', err);
+        console.error('[Terminal] Failed to sync PTY size:', err);
       }
     }
   }, []);
 
-  // Handle resize
+  // Handle resize with double-RAF for xterm.js sizing race condition
+  // Game UX best practice: Let browser fully layout before fitting terminal
   useEffect(() => {
     const handleResize = () => {
       if (fitAddonRef.current && xtermRef.current) {
-        fitAddonRef.current.fit();
+        // Double requestAnimationFrame: First RAF schedules for next frame,
+        // second RAF ensures DOM has fully reflowed before we measure
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (!fitAddonRef.current || !xtermRef.current) return;
 
-        // Update store with new dimensions
-        const terminal = xtermRef.current;
-        setTerminalDimensions(terminal.cols, terminal.rows);
-        console.log(`[Terminal] Resized to: ${terminal.cols}x${terminal.rows}`);
+            fitAddonRef.current.fit();
 
-        // After fitting, sync the new size to tmux
-        if (connectedSessionRef.current) {
-          syncTmuxSize(connectedSessionRef.current);
-        }
+            // Update store with new dimensions
+            const terminal = xtermRef.current;
+            setTerminalDimensions(terminal.cols, terminal.rows);
+            console.log(`[Terminal] Resized to: ${terminal.cols}x${terminal.rows}`);
+
+            // After fitting, sync the new size to PTY
+            if (connectedSessionRef.current) {
+              syncPtySize(connectedSessionRef.current);
+            }
+          });
+        });
       }
     };
 
@@ -399,7 +394,7 @@ export const TerminalView: React.FC = () => {
       window.removeEventListener('resize', handleResize);
       observer.disconnect();
     };
-  }, [syncTmuxSize]);
+  }, [syncPtySize]);
 
   const formatTokens = (n: number) => {
     if (n < 1000) return n.toString();

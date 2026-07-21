@@ -290,6 +290,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
       if (filteredCommands[selectedIndex]) {
         filteredCommands[selectedIndex].action();
       }
+    } else if (e.key === 'Tab') {
+      // Tab completion: complete to currently selected command name
+      e.preventDefault();
+      if (filteredCommands[selectedIndex]) {
+        const selectedCommand = filteredCommands[selectedIndex];
+        // Extract meaningful part of command name for completion
+        const completionText = selectedCommand.name
+          .replace(/^Session \d+: /, '') // Remove "Session N: " prefix
+          .replace(/^Go to /, '')        // Remove "Go to " prefix
+          .replace(/^Switch to /, '')    // Remove "Switch to " prefix
+          .toLowerCase();
+        setQuery(completionText);
+      }
     }
   }, [filteredCommands, selectedIndex, onClose]);
 
@@ -484,6 +497,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
           background: 'rgba(0, 0, 0, 0.2)',
         }}>
           <span><kbd style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: 2 }}>↑↓</kbd> Navigate</span>
+          <span><kbd style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: 2 }}>Tab</kbd> Complete</span>
           <span><kbd style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: 2 }}>↵</kbd> Select</span>
           <span><kbd style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: 2 }}>esc</kbd> Close</span>
         </div>
