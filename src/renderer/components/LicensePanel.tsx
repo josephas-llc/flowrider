@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useStore } from '../store';
 
 interface LicenseInfo {
   tier: 'free' | 'pro' | 'team' | 'enterprise';
@@ -27,7 +28,17 @@ const TIER_LABELS: Record<string, string> = {
   enterprise: 'Enterprise'
 };
 
+const SESSION_SLOT_OPTIONS = [4, 6, 8, 12, 20] as const;
+const SLOT_DESCRIPTIONS: Record<number, string> = {
+  4: '2×2 grid - Minimal, focused',
+  6: '2×3 grid - Balanced',
+  8: '2×4 grid - Default',
+  12: '3×4 grid - Power user',
+  20: '4×5 grid - Maximum capacity',
+};
+
 export const LicensePanel: React.FC = () => {
+  const { sessionSlots, setSessionSlots } = useStore();
   const [license, setLicense] = useState<LicenseInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
@@ -310,6 +321,33 @@ export const LicensePanel: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Display Settings */}
+      <div style={styles.displaySettings}>
+        <h3 style={styles.sectionTitle}>Display Settings</h3>
+        <p style={styles.hint}>
+          Choose how many session slots to display. Fewer slots means less cognitive load.
+        </p>
+        <div style={styles.slotButtonGroup}>
+          {SESSION_SLOT_OPTIONS.map((slots) => (
+            <button
+              key={slots}
+              onClick={() => setSessionSlots(slots)}
+              style={{
+                ...styles.slotButton,
+                ...(sessionSlots === slots ? styles.slotButtonActive : {}),
+              }}
+              title={SLOT_DESCRIPTIONS[slots]}
+            >
+              <span style={styles.slotNumber}>{slots}</span>
+              <span style={styles.slotDesc}>{SLOT_DESCRIPTIONS[slots].split(' - ')[0]}</span>
+            </button>
+          ))}
+        </div>
+        <p style={styles.slotHint}>
+          Current: {sessionSlots} sessions ({SLOT_DESCRIPTIONS[sessionSlots]?.split(' - ')[1] || 'Custom'})
+        </p>
+      </div>
     </div>
   );
 };
@@ -505,6 +543,53 @@ const styles: Record<string, React.CSSProperties> = {
   },
   currentTierRow: {
     background: 'rgba(0, 255, 255, 0.1)',
+  },
+  displaySettings: {
+    marginTop: '32px',
+    padding: '20px',
+    background: 'rgba(147, 51, 234, 0.05)',
+    border: '1px solid rgba(147, 51, 234, 0.2)',
+    borderRadius: '8px',
+  },
+  slotButtonGroup: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap' as const,
+    marginTop: '12px',
+  },
+  slotButton: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '4px',
+    padding: '12px 16px',
+    background: 'rgba(0, 0, 0, 0.3)',
+    border: '1px solid rgba(147, 51, 234, 0.3)',
+    borderRadius: '8px',
+    color: '#888',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    minWidth: '60px',
+  },
+  slotButtonActive: {
+    background: 'rgba(147, 51, 234, 0.2)',
+    border: '1px solid rgba(147, 51, 234, 0.6)',
+    color: '#9333ea',
+    boxShadow: '0 0 10px rgba(147, 51, 234, 0.3)',
+  },
+  slotNumber: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+  },
+  slotDesc: {
+    fontSize: '10px',
+    opacity: 0.8,
+  },
+  slotHint: {
+    fontSize: '12px',
+    color: '#666',
+    marginTop: '12px',
+    textAlign: 'center' as const,
   },
 };
 

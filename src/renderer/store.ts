@@ -354,8 +354,9 @@ export interface DashboardMetrics {
 // ============================================
 
 interface FlowriderState {
-  // Sessions - 20 faces of the icosahedron
+  // Sessions - configurable number of slots (default 8, max 20)
   sessions: Session[];
+  sessionSlots: number; // 4, 6, 8, 12, or 20
   selectedFace: number | null;
   attachedSession: string | null;
 
@@ -459,6 +460,7 @@ interface FlowriderState {
   createHypothesisBranch: (sourceFaceIndex: number, targetFaceIndex: number, branchName: string, hypothesis: string) => void;
   updateHypothesisStatus: (faceIndex: number, status: 'exploring' | 'promising' | 'abandoned' | 'merged') => void;
   markSessionActivity: (faceIndex: number) => void;
+  setSessionSlots: (slots: number) => void;
   setSessionNeedsAttention: (faceIndex: number, needsAttention: boolean, reason?: string) => void;
   clearAllAttention: () => void;
 
@@ -594,6 +596,7 @@ export const useStore = create<FlowriderState>()(
     (set, get) => ({
       // Initial state
       sessions: initializeSessions(),
+      sessionSlots: 8, // Default to 8 slots (options: 4, 6, 8, 12, 20)
       selectedFace: null,
       attachedSession: null,
       controlGroups: {}, // StarCraft-style control groups (1-9)
@@ -921,6 +924,13 @@ export const useStore = create<FlowriderState>()(
               : s
           ),
         })),
+
+      // Session Slots - configurable number of visible sessions
+      setSessionSlots: (slots) => {
+        const validSlots = [4, 6, 8, 12, 20];
+        const newSlots = validSlots.includes(slots) ? slots : 8;
+        set({ sessionSlots: newSlots });
+      },
 
       setSessionNeedsAttention: (faceIndex, needsAttention, reason) =>
         set((state) => ({

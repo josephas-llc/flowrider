@@ -17,7 +17,7 @@ interface SessionGridProps {
 }
 
 export const SessionGrid: React.FC<SessionGridProps> = ({ onSessionSelect }) => {
-  const { sessions, selectedFace, setAttachedSession, updateSession, controlGroups } = useStore();
+  const { sessions, selectedFace, setAttachedSession, updateSession, controlGroups, sessionSlots } = useStore();
   const [, forceUpdate] = useState(0);
 
   // Force re-render every minute to update relative timestamps
@@ -91,7 +91,7 @@ export const SessionGrid: React.FC<SessionGridProps> = ({ onSessionSelect }) => 
         alignContent: 'start',
       }}
     >
-      {sessions.slice(0, 20).map((session, idx) => {
+      {sessions.slice(0, sessionSlots).map((session, idx) => {
         const isActive = session.status !== 'empty';
         const isSelected = selectedFace === idx;
         const needsAttention = session.needsAttention;

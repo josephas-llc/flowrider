@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { AddCustomProviderModal, CustomProvider } from './AddCustomProviderModal';
 
 type AIProviderType = 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local';
 
@@ -55,6 +56,9 @@ const PROVIDER_CONFIGS: Record<AIProviderType, ProviderConfig> = {
   },
 };
 
+// Storage key for custom providers
+const CUSTOM_PROVIDERS_KEY = 'flowrider-custom-providers';
+
 export const APIKeysPanel: React.FC = () => {
   const [keys, setKeys] = useState<Record<AIProviderType, string>>({
     openai: '',
@@ -72,8 +76,8 @@ export const APIKeysPanel: React.FC = () => {
     ollama: false,
     local: false,
   });
-  const [testingProvider, setTestingProvider] = useState<AIProviderType | null>(null);
-  const [testResults, setTestResults] = useState<Record<AIProviderType, { success: boolean; message: string } | null>>({
+  const [testingProvider, setTestingProvider] = useState<AIProviderType | string | null>(null);
+  const [testResults, setTestResults] = useState<Record<AIProviderType | string, { success: boolean; message: string } | null>>({
     openai: null,
     claude: null,
     gemini: null,
@@ -85,6 +89,34 @@ export const APIKeysPanel: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Custom providers state
+  const [customProviders, setCustomProviders] = useState<CustomProvider[]>([]);
+  const [showAddProviderModal, setShowAddProviderModal] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<CustomProvider | null>(null);
+  const [customVisibleKeys, setCustomVisibleKeys] = useState<Record<string, boolean>>({});
+
+  // Load custom providers from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(CUSTOM_PROVIDERS_KEY);
+      if (stored) {
+        setCustomProviders(JSON.parse(stored));
+      }
+    } catch (err) {
+      console.error('[APIKeysPanel] Failed to load custom providers:', err);
+    }
+  }, []);
+
+  // Save custom providers to localStorage
+  const saveCustomProviders = useCallback((providers: CustomProvider[]) => {
+    try {
+      localStorage.setItem(CUSTOM_PROVIDERS_KEY, JSON.stringify(providers));
+      setCustomProviders(providers);
+    } catch (err) {
+      console.error('[APIKeysPanel] Failed to save custom providers:', err);
+    }
+  }, []);
 
   // Load API keys on mount
   const loadApiKeys = useCallback(async () => {
@@ -222,6 +254,67 @@ export const APIKeysPanel: React.FC = () => {
     setTestingProvider(null);
   };
 
+  // Test custom provider connection
+  const handleTestCustomProvider = async (provider: CustomProvider) => {
+    setTestingProvider(provider.id);
+    setTestResults({ ...testResults, [provider.id]: null });
+
+    try {
+      const testUrl = provider.baseUrl.trim().replace(/\/$/, '');
+      const modelsUrl = `${testUrl}/v1/models`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (provider.apiKey) {
+        headers['Authorization'] = `Bearer ${provider.apiKey}`;
+      }
+
+      const response = await fetch(modelsUrl, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const modelCount = data?.data?.length || 0;
+        setTestResults({
+          ...testResults,
+          [provider.id]: {
+            success: true,
+            message: `Connected! ${modelCount} model(s) available`,
+          },
+        });
+      } else if (response.status === 401 || response.status === 403) {
+        setTestResults({
+          ...testResults,
+          [provider.id]: {
+            success: false,
+            message: 'Authentication failed - check API key',
+          },
+        });
+      } else {
+        setTestResults({
+          ...testResults,
+          [provider.id]: {
+            success: false,
+            message: `Server returned ${response.status}`,
+          },
+        });
+      }
+    } catch (err) {
+      setTestResults({
+        ...testResults,
+        [provider.id]: {
+          success: false,
+          message: err instanceof Error ? err.message : 'Connection failed',
+        },
+      });
+    }
+    setTestingProvider(null);
+  };
+
   // Toggle key visibility
   const toggleKeyVisibility = (provider: AIProviderType) => {
     setVisibleKeys({
@@ -235,6 +328,37 @@ export const APIKeysPanel: React.FC = () => {
     setKeys({
       ...keys,
       [provider]: value,
+    });
+  };
+
+  // Handle add/edit custom provider
+  const handleSaveCustomProvider = (provider: CustomProvider) => {
+    const existing = customProviders.findIndex((p) => p.id === provider.id);
+    if (existing >= 0) {
+      const updated = [...customProviders];
+      updated[existing] = provider;
+      saveCustomProviders(updated);
+    } else {
+      saveCustomProviders([...customProviders, provider]);
+    }
+    setEditingProvider(null);
+    setSuccess(`Custom provider "${provider.name}" saved`);
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  // Delete custom provider
+  const handleDeleteCustomProvider = (id: string) => {
+    const updated = customProviders.filter((p) => p.id !== id);
+    saveCustomProviders(updated);
+    setSuccess('Custom provider deleted');
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  // Toggle custom provider key visibility
+  const toggleCustomKeyVisibility = (id: string) => {
+    setCustomVisibleKeys({
+      ...customVisibleKeys,
+      [id]: !customVisibleKeys[id],
     });
   };
 
@@ -349,7 +473,111 @@ export const APIKeysPanel: React.FC = () => {
             </div>
           );
         })}
+
+        {/* Custom Providers */}
+        {customProviders.map((provider) => {
+          const testResult = testResults[provider.id];
+          const isVisible = customVisibleKeys[provider.id];
+
+          return (
+            <div key={provider.id} style={{ ...styles.providerCard, ...styles.customProviderCard }}>
+              <div style={styles.providerHeader}>
+                <h3 style={styles.providerName}>{provider.name}</h3>
+                <span style={styles.customBadge}>Custom</span>
+              </div>
+
+              <p style={styles.providerDescription}>{provider.description}</p>
+              <p style={styles.providerUrl}>{provider.baseUrl}</p>
+
+              {provider.apiKey && (
+                <div style={styles.inputGroup}>
+                  <div style={styles.inputWrapper}>
+                    <input
+                      type={isVisible ? 'text' : 'password'}
+                      value={provider.apiKey}
+                      readOnly
+                      style={{ ...styles.input, opacity: 0.7 }}
+                    />
+                    <button
+                      onClick={() => toggleCustomKeyVisibility(provider.id)}
+                      style={styles.toggleButton}
+                      title={isVisible ? 'Hide' : 'Show'}
+                    >
+                      {isVisible ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div style={styles.buttonRow}>
+                <button
+                  onClick={() => {
+                    setEditingProvider(provider);
+                    setShowAddProviderModal(true);
+                  }}
+                  style={{ ...styles.button, ...styles.editButton }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleTestCustomProvider(provider)}
+                  disabled={testingProvider === provider.id}
+                  style={{
+                    ...styles.button,
+                    ...styles.testButton,
+                    opacity: testingProvider === provider.id ? 0.5 : 1,
+                  }}
+                >
+                  {testingProvider === provider.id ? 'Testing...' : 'Test'}
+                </button>
+                <button
+                  onClick={() => handleDeleteCustomProvider(provider.id)}
+                  style={{ ...styles.button, ...styles.deleteButton }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {testResult && (
+                <div
+                  style={{
+                    ...styles.testResult,
+                    ...(testResult.success ? styles.testSuccess : styles.testError),
+                  }}
+                >
+                  {testResult.message}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Add Custom Provider Card */}
+        <div
+          style={styles.addProviderCard}
+          onClick={() => {
+            setEditingProvider(null);
+            setShowAddProviderModal(true);
+          }}
+        >
+          <div style={styles.addProviderIcon}>+</div>
+          <div style={styles.addProviderText}>Add Custom Provider</div>
+          <p style={styles.addProviderHint}>
+            Connect any OpenAI-compatible API
+          </p>
+        </div>
       </div>
+
+      {/* Add/Edit Provider Modal */}
+      <AddCustomProviderModal
+        isOpen={showAddProviderModal}
+        onClose={() => {
+          setShowAddProviderModal(false);
+          setEditingProvider(null);
+        }}
+        onSave={handleSaveCustomProvider}
+        editProvider={editingProvider}
+      />
     </div>
   );
 };
@@ -403,6 +631,10 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '8px',
     padding: '20px',
   },
+  customProviderCard: {
+    background: 'rgba(147, 51, 234, 0.1)',
+    border: '1px solid rgba(147, 51, 234, 0.3)',
+  },
   providerHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -422,10 +654,25 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px 8px',
     borderRadius: '4px',
   },
+  customBadge: {
+    fontSize: '11px',
+    color: '#9333ea',
+    background: 'rgba(147, 51, 234, 0.2)',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    fontWeight: 600,
+  },
   providerDescription: {
     fontSize: '12px',
     color: '#888',
-    marginBottom: '16px',
+    marginBottom: '8px',
+  },
+  providerUrl: {
+    fontSize: '11px',
+    color: '#666',
+    marginBottom: '12px',
+    fontFamily: 'monospace',
+    wordBreak: 'break-all',
   },
   inputGroup: {
     marginBottom: '12px',
@@ -480,6 +727,20 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #00ffff',
     color: '#00ffff',
   },
+  editButton: {
+    background: 'transparent',
+    border: '1px solid #9333ea',
+    color: '#9333ea',
+  },
+  deleteButton: {
+    flex: 0,
+    padding: '10px 14px',
+    background: 'transparent',
+    border: '1px solid #ff4444',
+    color: '#ff4444',
+    fontSize: '16px',
+    fontWeight: 'bold',
+  },
   testResult: {
     marginTop: '12px',
     padding: '10px',
@@ -495,6 +756,37 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(255, 68, 68, 0.1)',
     border: '1px solid #ff4444',
     color: '#ff4444',
+  },
+  addProviderCard: {
+    background: 'rgba(147, 51, 234, 0.1)',
+    border: '2px dashed rgba(147, 51, 234, 0.4)',
+    borderRadius: '8px',
+    padding: '30px 20px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    minHeight: '180px',
+  },
+  addProviderIcon: {
+    fontSize: '36px',
+    fontWeight: 'bold',
+    color: '#9333ea',
+    marginBottom: '12px',
+  },
+  addProviderText: {
+    fontSize: '16px',
+    fontWeight: 600,
+    color: '#9333ea',
+    marginBottom: '8px',
+  },
+  addProviderHint: {
+    fontSize: '12px',
+    color: '#666',
+    textAlign: 'center',
+    margin: 0,
   },
 };
 

@@ -17,6 +17,7 @@ import { DeployPanel } from './components/DeployPanel';
 import { ProjectsPanel } from './components/ProjectsPanel';
 import { LicensePanel } from './components/LicensePanel';
 import { CinematicDemo } from './components/CinematicDemo';
+import { AutopilotDemoOverlay } from './components/AutopilotDemoOverlay';
 import { UpdatePanel } from './components/UpdatePanel';
 import { APIKeysPanel } from './components/APIKeysPanel';
 import { useStore } from './store';
@@ -39,11 +40,12 @@ const App: React.FC = () => {
   const [showSessionPanel, setShowSessionPanel] = useState(false);
   const [showSessionSearch, setShowSessionSearch] = useState(false);
   const [showCinematicDemo, setShowCinematicDemo] = useState(false);
+  const [showAutopilotDemo, setShowAutopilotDemo] = useState(false);
   const [showZoixPanel, setShowZoixPanel] = useState(false);
   const [zoixGlowActive, setZoixGlowActive] = useState(false);
 
   const store = useStore();
-  const { sessions, selectedFace, selectFace, setAttachedSession, updateSession, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux, syncZoixData, isFirstRun, setIsFirstRun } = store;
+  const { sessions, selectedFace, selectFace, setAttachedSession, updateSession, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux, syncZoixData, isFirstRun, setIsFirstRun, sessionSlots } = store;
 
   // Command Palette (Cmd+K)
   const commandPalette = useCommandPalette();
@@ -160,7 +162,7 @@ const App: React.FC = () => {
 
           {/* Session Switcher - Compact horizontal pills */}
           <div className="session-switcher">
-            {sessions.slice(0, 20).map((session, idx) => (
+            {sessions.slice(0, sessionSlots).map((session, idx) => (
               <button
                 key={idx}
                 className={`session-pill ${selectedFace === idx ? 'selected' : ''} ${session.status !== 'empty' ? 'active' : ''} ${session.needsAttention ? 'attention' : ''}`}
@@ -224,28 +226,28 @@ const App: React.FC = () => {
 
           {/* Stats - Minimal */}
           <div className="nav-stats-v2">
-            <span className="stat-mini">{activeSessions}/20</span>
+            <span className="stat-mini">{activeSessions}/{sessionSlots}</span>
             <span className="stat-mini accent">${costMetrics.totalCost < 0.01 ? '<0.01' : costMetrics.totalCost.toFixed(2)}</span>
           </div>
 
-          {/* Cinematic Demo Button */}
+          {/* Autopilot Demo Button - Hands-free investor presentation */}
           <button
-            className={`demo-btn ${showCinematicDemo ? 'active' : ''}`}
-            onClick={() => setShowCinematicDemo(!showCinematicDemo)}
-            title="Cinematic Demo for Investors"
+            className={`demo-btn ${showAutopilotDemo ? 'active' : ''}`}
+            onClick={() => setShowAutopilotDemo(!showAutopilotDemo)}
+            title="Autopilot Demo for Investors (90 seconds)"
             style={{
               padding: '6px 12px',
-              background: showCinematicDemo ? 'linear-gradient(135deg, #9b59b6, #3498db)' : 'var(--bg-tertiary)',
+              background: showAutopilotDemo ? 'linear-gradient(135deg, #22c55e, #3b82f6)' : 'linear-gradient(135deg, #9b59b6, #3498db)',
               border: '1px solid rgba(155, 89, 182, 0.3)',
               borderRadius: 4,
-              color: showCinematicDemo ? '#fff' : '#9b59b6',
+              color: '#fff',
               fontSize: 11,
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'all 0.2s ease',
             }}
           >
-            🎬 Demo
+            {showAutopilotDemo ? '⏹ Stop' : '▶ Demo'}
           </button>
 
           {/* Quick Tour Button */}
@@ -405,10 +407,17 @@ const App: React.FC = () => {
       {/* Keyboard Shortcuts Help (? key) */}
       <KeyboardShortcutsHelp isOpen={keyboardShortcuts.isOpen} onClose={keyboardShortcuts.close} />
 
-      {/* Cinematic Demo for Investor Presentations */}
+      {/* Cinematic Demo for Investor Presentations (legacy) */}
       {showCinematicDemo && (
         <CinematicDemo onClose={() => setShowCinematicDemo(false)} />
       )}
+
+      {/* Autopilot Demo - Hands-free 90-second investor demo */}
+      <AutopilotDemoOverlay
+        isActive={showAutopilotDemo}
+        onClose={() => setShowAutopilotDemo(false)}
+        onViewChange={setMainView}
+      />
 
       {/* ZOIX Insights Panel */}
       <ZoixInsightsPanel isOpen={showZoixPanel} onClose={() => setShowZoixPanel(false)} />
