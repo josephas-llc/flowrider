@@ -150,7 +150,7 @@
     "@types/node": "^26.1.0",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
-    "@types/three": "^0.185.0",
+    "@types/three": "^0.185.1",
     "@vitejs/plugin-react": "^4.2.0",
     "@vitest/coverage-v8": "^4.1.9",
     "concurrently": "^8.2.2",
