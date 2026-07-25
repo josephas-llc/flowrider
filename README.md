@@ -73,16 +73,15 @@ Pick your AI for each session:
 
 | Provider | Models | Cost |
 |----------|--------|------|
+| **Zoix (Flowrider)** | **Auto-routes to best model** | **$$$ savings** |
 | Claude (Anthropic) | Opus 4, Sonnet 4, Haiku | $$$ |
+| OpenAI | GPT-4o, GPT-4o-mini | $$ |
 | Gemini (Google) | Pro, Flash, Ultra | $$ |
 | Grok (xAI) | Grok-2, Grok-3 | $$ |
-| Copilot (GitHub) | GPT-based | $$ |
-| Meta AI | Llama 4, CodeLlama | $ |
-| Apple Intelligence | On-device | **FREE** |
-| Ollama | Llama, Mistral, etc. | **FREE** |
+| Ollama | Llama, Mistral, Qwen | **FREE** |
 | Local LLMs | Any GGUF model | **FREE** |
 
-**Smart Strategy**: Use free local models for 80% of tasks. Reserve cloud APIs for complex reasoning. Users report **10x cost reduction**.
+**Smart Strategy**: Use **Zoix** to automatically route to the right model. Simple tasks → free local models. Complex tasks → cloud APIs. **60-80% cost reduction** with zero configuration.
 
 ### Dashboard
 - **ROI Calculator**: See exactly what you're saving vs hiring developers
@@ -91,7 +90,32 @@ Pick your AI for each session:
 - **A2A Messaging**: Sessions can talk to each other
 - **Activity Log**: Full audit trail, EU AI Act compliant
 
-### Coming Soon: LEO Mode
+### Zoix: AI Cost Control (NEW)
+
+**The Army is running out of AI tokens. CEOs are shocked by AI bills. Zoix fixes this.**
+
+Zoix is the intelligent routing layer that:
+- **Routes smart** - Uses cheap models for simple tasks, expensive for complex
+- **Learns** - Gets better at routing based on your usage patterns
+- **Controls costs** - Hard budget limits that can't be exceeded
+- **Tracks everything** - Full visibility into AI spend
+
+```
+Without Zoix: Every request → Claude Opus ($15/MTok) → $500/month
+With Zoix:    Smart routing → Right model each time → $100/month
+```
+
+| Task | Without Zoix | With Zoix |
+|------|--------------|-----------|
+| Format JSON | Claude Opus ($0.15) | Llama 8B ($0.00) |
+| Write test | Claude Opus ($0.15) | GPT-4o-mini ($0.002) |
+| Debug race condition | Claude Opus ($0.15) | Claude Opus ($0.15) |
+
+**Result: 60-80% cost reduction. Zero quality loss.**
+
+See [docs/ZOIX_VALUE_PROPOSITION.md](docs/ZOIX_VALUE_PROPOSITION.md) for full details.
+
+### LEO Mode: 400 Agents
 
 **L**ocal **E**xecutive **O**rchestrator
 
@@ -164,7 +188,7 @@ Copilot suggests code. Flowrider executes tasks. It's the difference between aut
 Same power, but multiplied by 20 and visualized. Plus model choice - run Claude for hard problems, free Llama for simple ones.
 
 ### vs Building It Yourself
-You could tmux + Claude Code + custom scripts. We did that for you, added a 3D interface, cost tracking, and the roadmap to LEO.
+You could tmux + Claude Code + custom scripts. We did that for you, added a 3D interface, cost tracking, and the roadmap to ZOIX.
 
 ## The Market
 
@@ -221,13 +245,13 @@ The AI coding tools market is exploding:
 - [ ] Guard rails and safety
 - [ ] Rollback capability
 
-### Phase 4: LEO Mode
+### Phase 4: ZOIX Mode
 - [ ] 20 Flowrider orchestration
 - [ ] 400 concurrent agents
 - [ ] Project portfolio management
 - [ ] Escalation protocols
 
-### Phase 5: LEO Learning
+### Phase 5: ZOIX Learning
 - [ ] Custom model fine-tuning
 - [ ] Organizational pattern learning
 - [ ] Proprietary AI asset creation

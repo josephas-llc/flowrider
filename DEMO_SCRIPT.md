@@ -6,10 +6,11 @@
 > For a quick 60-second launch video, see [VIDEO_STORYBOARD_60S.md](VIDEO_STORYBOARD_60S.md)
 
 ## Video Details
-- **Title:** "Flowrider: Run 20 AI Coding Sessions in Parallel | Demo"
-- **Length:** 3-5 minutes
+- **Title:** "Flowrider: Run 20 AI Coding Sessions + Cut AI Costs 80% | Demo"
+- **Length:** 4-5 minutes
 - **Style:** Fast-paced, dev-focused, no fluff
 - **Music:** Lo-fi beats or synthwave (subtle)
+- **Key Message:** Multi-session orchestration + ZOIX AI cost control
 
 ---
 
@@ -143,32 +144,83 @@ Quick tour through dashboard tabs
 
 ---
 
-## SECTION 5: LEO MODE TEASER (3:00 - 3:30)
+## SECTION 5: ZOIX - AI COST CONTROL (3:00 - 4:00)
 
 ### Visual
-Dashboard → LEO tab (or teaser animation)
+Dashboard → ZOIX / Cost Control panel
 
 ### Script
-> "And we're just getting started."
+> "Here's the thing enterprises are freaking out about:"
+>
+> *[Show headline graphic]*
+> "The US Army is running out of AI tokens. CEOs are shocked by AI bills."
+>
+> "They thought replacing humans with AI would save money. Instead, every request goes to Claude Opus at $15 per million tokens."
+>
+> *[Show ZOIX routing diagram]*
+> "ZOIX fixes this. Watch."
+>
+> *[Show simple request]*
+> "'Format this JSON' - ZOIX routes to free Llama. Zero cost."
+>
+> *[Show medium request]*
+> "'Write a unit test' - GPT-4o-mini. Two cents."
+>
+> *[Show complex request]*
+> "'Debug this race condition' - Now it uses Claude Opus."
+>
+> "60 to 80 percent cost reduction. Zero quality loss."
+>
+> *[Show budget controls panel]*
+> "Plus hard budget limits. Set $100/month max. ZOIX enforces it. CFOs can finally sleep at night."
+
+### Demo Actions
+1. Show headline: "Army running out of AI tokens"
+2. Show ZOIX routing panel
+3. Demo three requests with different routing
+4. Show cost comparison: Before vs After
+5. Show budget controls being set
+
+### On Screen
+```
+ZOIX: AI COST CONTROL
+
+Without ZOIX: $500/month → With ZOIX: $100/month
+
+"Format JSON"        → Llama 8B (FREE)
+"Write test"         → GPT-4o-mini ($0.002)
+"Debug race cond"    → Claude Opus ($0.15)
+
+Result: 60-80% savings. Zero quality loss.
+```
+
+---
+
+## SECTION 6: LEO MODE TEASER (4:00 - 4:20)
+
+### Visual
+LEO Mode preview animation
+
+### Script
+> "And we're scaling this up."
 >
 > "LEO Mode: One Flowrider is 20 sessions. LEO manages 20 Flowriders."
 >
 > *[Show 400 number]*
 > "That's 400 AI agents. One human. Your entire portfolio."
 >
-> "Multi-repo development. Agency client management. Enterprise platform teams."
->
-> "Coming Q3 2026."
+> "All with ZOIX cost control built in. Enterprise-ready."
 
 ### On Screen
 ```
 LEO MODE
 20 Flowriders × 20 Sessions = 400 AI Agents
+All with ZOIX cost control
 ```
 
 ---
 
-## OUTRO (3:30 - 3:45)
+## OUTRO (4:20 - 4:40)
 
 ### Visual
 Return to icosahedron, slow rotation, fade to logo
@@ -278,7 +330,7 @@ Discord: [link]
 0:45 The Solution
 1:30 Pick Your AI
 2:15 Dashboard Features
-3:00 LEO Mode Preview
+3:00 ZOIX Mode Preview
 3:30 Get Started
 
 #AIcoding #developertools #cursor #copilot #claudecode #flowrider
@@ -300,5 +352,5 @@ After the main demo, consider:
 1. **"5 Minute Setup: Flowrider + Ollama"** - Tutorial
 2. **"Flowrider vs Cursor: Which is Better?"** - Comparison
 3. **"I Used 20 AI Agents for a Week"** - Experience report
-4. **"LEO Mode Deep Dive"** - Future feature preview
+4. **"ZOIX Mode Deep Dive"** - Future feature preview
 5. **"Flowrider for Teams"** - Enterprise features
