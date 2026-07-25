@@ -57,7 +57,7 @@ contextBridge.exposeInMainWorld('flowrider', {
     getTotalCost: () => ipcRenderer.invoke('costs:total'),
   },
 
-  // LEO (Local Execution Orchestrator)
+  // Fleet Management (multi-instance orchestration, formerly LEO)
   leo: {
     enable: () => ipcRenderer.invoke('leo:enable'),
     disable: () => ipcRenderer.invoke('leo:disable'),
@@ -284,15 +284,15 @@ contextBridge.exposeInMainWorld('flowrider', {
     setOllamaUrl: (url: string) => ipcRenderer.invoke('ai:setOllamaUrl', url),
 
     // API key management
-    setApiKey: (provider: 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local', key: string) =>
+    setApiKey: (provider: 'zoix' | 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local', key: string) =>
       ipcRenderer.invoke('ai:setApiKey', provider, key),
-    getApiKey: (provider: 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local') =>
+    getApiKey: (provider: 'zoix' | 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local') =>
       ipcRenderer.invoke('ai:getApiKey', provider),
     getApiKeys: () => ipcRenderer.invoke('ai:getApiKeys'),
 
     // AI calls
     call: (options: {
-      provider: 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local';
+      provider: 'zoix' | 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local';
       model?: string;
       messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
       maxTokens?: number;
@@ -301,14 +301,14 @@ contextBridge.exposeInMainWorld('flowrider', {
     }) => ipcRenderer.invoke('ai:call', options),
 
     quickPrompt: (
-      provider: 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local',
+      provider: 'zoix' | 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local',
       prompt: string,
       model?: string
     ) => ipcRenderer.invoke('ai:quickPrompt', provider, prompt, model),
 
     // Cost calculation
     calculateCost: (
-      provider: 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local',
+      provider: 'zoix' | 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local',
       model: string,
       inputTokens: number,
       outputTokens: number
@@ -476,6 +476,30 @@ contextBridge.exposeInMainWorld('flowrider', {
       ipcRenderer.on('pty:exit', listener);
       return () => ipcRenderer.removeListener('pty:exit', listener);
     },
+  },
+
+  // Enterprise Billing (CFO/accounting visibility)
+  billing: {
+    getReport: (periodType?: string) =>
+      ipcRenderer.invoke('billing:getReport', periodType),
+    getProjections: () =>
+      ipcRenderer.invoke('billing:getProjections'),
+    getAlerts: (unacknowledgedOnly?: boolean) =>
+      ipcRenderer.invoke('billing:getAlerts', unacknowledgedOnly),
+    acknowledgeAlert: (alertId: string) =>
+      ipcRenderer.invoke('billing:acknowledgeAlert', alertId),
+    exportCSV: (periodType?: string) =>
+      ipcRenderer.invoke('billing:exportCSV', periodType),
+    exportJSON: (periodType?: string) =>
+      ipcRenderer.invoke('billing:exportJSON', periodType),
+    getROI: () =>
+      ipcRenderer.invoke('billing:getROI'),
+    recordProjectCost: (params: {
+      projectId: string;
+      projectName: string;
+      cost: number;
+      provider: string;
+    }) => ipcRenderer.invoke('billing:recordProjectCost', params),
   },
 
   // App info
@@ -734,6 +758,16 @@ declare global {
         onData: (callback: (sessionName: string, data: string) => void) => () => void;
         onExit: (callback: (sessionName: string, exitCode: number) => void) => () => void;
       };
+      billing: {
+        getReport: (periodType?: string) => Promise<{ success: boolean; data?: BillingReport; error?: string }>;
+        getProjections: () => Promise<{ success: boolean; data?: CostProjection[]; error?: string }>;
+        getAlerts: (unacknowledgedOnly?: boolean) => Promise<{ success: boolean; data?: BillingAlert[]; error?: string }>;
+        acknowledgeAlert: (alertId: string) => Promise<{ success: boolean; data?: { acknowledged: boolean }; error?: string }>;
+        exportCSV: (periodType?: string) => Promise<{ success: boolean; data?: string; error?: string }>;
+        exportJSON: (periodType?: string) => Promise<{ success: boolean; data?: string; error?: string }>;
+        getROI: () => Promise<{ success: boolean; data?: ROISummary; error?: string }>;
+        recordProjectCost: (params: { projectId: string; projectName: string; cost: number; provider: string }) => Promise<{ success: boolean; data?: { recorded: boolean }; error?: string }>;
+      };
       platform: string;
       version: string;
     };
@@ -943,7 +977,7 @@ declare global {
   }
 
   // AI Service Types
-  type AIProviderType = 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local';
+  type AIProviderType = 'zoix' | 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local';
 
   interface AIMessage {
     role: 'user' | 'assistant' | 'system';
@@ -1100,5 +1134,75 @@ declare global {
     running: boolean;
     port: number;
     url: string | null;
+  }
+
+  // Billing Types (Enterprise CFO visibility)
+  type BillingPeriod = 'daily' | 'weekly' | 'monthly';
+  type AlertType = 'budget_warning' | 'budget_exceeded' | 'anomaly' | 'projection_warning';
+
+  interface ProviderCost {
+    provider: string;
+    inputTokens: number;
+    outputTokens: number;
+    cost: number;
+    callCount: number;
+  }
+
+  interface ProjectCost {
+    projectId: string;
+    projectName: string;
+    totalCost: number;
+    byProvider: ProviderCost[];
+    callCount: number;
+  }
+
+  interface BillingReport {
+    periodType: BillingPeriod;
+    periodStart: Date;
+    periodEnd: Date;
+    totalCost: number;
+    byProvider: ProviderCost[];
+    byProject: ProjectCost[];
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalCalls: number;
+    averageCostPerCall: number;
+    projectedMonthEnd: number;
+    budgetUsedPercent: number;
+    budgetRemaining: number | null;
+  }
+
+  interface CostProjection {
+    date: string;
+    projectedCost: number;
+    lowerBound: number;
+    upperBound: number;
+    confidence: number;
+  }
+
+  interface BillingAlert {
+    id: string;
+    type: AlertType;
+    severity: 'info' | 'warning' | 'critical';
+    title: string;
+    message: string;
+    createdAt: Date;
+    acknowledgedAt: Date | null;
+    data?: {
+      threshold?: number;
+      current?: number;
+      projected?: number;
+    };
+  }
+
+  interface ROISummary {
+    totalInvestment: number;
+    estimatedValue: number;
+    roi: number;
+    tasksCompleted: number;
+    avgCostPerTask: number;
+    avgValuePerTask: number;
+    savingsFromRouting: number;
+    topValueProjects: Array<{ projectName: string; value: number; cost: number; roi: number }>;
   }
 }

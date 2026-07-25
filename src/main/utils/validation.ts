@@ -100,7 +100,11 @@ export const updateWebhookSchema = z.object({
 // AI Service Schemas
 // ============================================
 
-export const aiProviderSchema = z.enum(['ollama', 'claude', 'openai', 'gemini']);
+// All supported AI providers (matches AIProvider type from shared/ai-types.ts)
+export const aiProviderSchema = z.enum([
+  'zoix', 'claude', 'openai', 'ollama', 'gemini', 'grok', 'mistral', 'kimi',
+  'deepseek', 'cohere', 'qwen', 'yi', 'falcon', 'hunyuan', 'local'
+]);
 
 export const aiMessageSchema = z.object({
   role: z.enum(['user', 'assistant', 'system']),

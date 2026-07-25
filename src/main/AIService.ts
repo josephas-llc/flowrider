@@ -9,7 +9,9 @@ import * as path from 'path';
 // TYPES
 // ============================================
 
-export type AIProviderType = 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'local';
+// Import AIProvider from shared types and re-export as AIProviderType for backwards compatibility
+import { AIProvider } from '../shared/ai-types';
+export type AIProviderType = AIProvider;
 
 export interface AIMessage {
   role: 'user' | 'assistant' | 'system';
@@ -66,6 +68,23 @@ const CLAUDE_PRICING: Record<string, { input: number; output: number }> = {
   'claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
   'claude-haiku': { input: 0.25, output: 1.25 },
 };
+
+// Zoix API configuration
+const ZOIX_API_URL = 'https://flowrider-web.vercel.app/api';
+
+export interface ZoixResponse {
+  content: string;
+  model: string;
+  cost: number;
+  tokens: {
+    input: number;
+    output: number;
+  };
+  zoixInsights?: {
+    routingReason: string;
+    learnedPatterns: number;
+  };
+}
 
 // ============================================
 // AI SERVICE CLASS
@@ -186,8 +205,70 @@ export class AIService {
     }
   }
 
+  async checkZoixHealth(): Promise<ProviderHealth> {
+    const apiKey = this.apiKeys.get('zoix');
+    if (!apiKey) {
+      return {
+        provider: 'zoix',
+        available: false,
+        error: 'ZOIX_API_KEY not configured',
+      };
+    }
+
+    return new Promise((resolve) => {
+      const req = https.get(
+        `${ZOIX_API_URL}/v1/models`,
+        {
+          timeout: 5000,
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+        },
+        (res) => {
+          let data = '';
+          res.on('data', (chunk) => (data += chunk));
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(data);
+              const models = Array.isArray(parsed) ? parsed.map((m: { id: string }) => m.id) : [];
+              resolve({
+                provider: 'zoix',
+                available: true,
+                models,
+              });
+            } catch {
+              resolve({
+                provider: 'zoix',
+                available: false,
+                error: 'Invalid response from Zoix',
+              });
+            }
+          });
+        }
+      );
+
+      req.on('error', (err) => {
+        resolve({
+          provider: 'zoix',
+          available: false,
+          error: err.message,
+        });
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        resolve({
+          provider: 'zoix',
+          available: false,
+          error: 'Connection timeout',
+        });
+      });
+    });
+  }
+
   async checkAllProviders(): Promise<ProviderHealth[]> {
     const results = await Promise.all([
+      this.checkZoixHealth(),
       this.checkClaudeHealth(),
       this.checkOllamaHealth(),
     ]);
@@ -437,11 +518,155 @@ export class AIService {
   }
 
   // ========================================
+  // Zoix Integration (Flowrider AI Routing Layer)
+  // ========================================
+
+  async callZoix(options: AICallOptions): Promise<AICallResult> {
+    const startTime = Date.now();
+    const apiKey = this.apiKeys.get('zoix');
+
+    if (!apiKey) {
+      return {
+        success: false,
+        provider: 'zoix',
+        error: 'ZOIX_API_KEY not configured. Set it in Settings > API Keys.',
+        duration: Date.now() - startTime,
+      };
+    }
+
+    return new Promise((resolve) => {
+      // Build the prompt from messages
+      let fullPrompt = '';
+      let systemPrompt = options.systemPrompt || '';
+
+      for (const msg of options.messages) {
+        if (msg.role === 'system') {
+          systemPrompt = msg.content;
+        } else {
+          fullPrompt += msg.content + '\n\n';
+        }
+      }
+
+      if (systemPrompt) {
+        fullPrompt = `${systemPrompt}\n\n${fullPrompt}`;
+      }
+
+      // Build Zoix request payload
+      const payload: Record<string, unknown> = {
+        prompt: fullPrompt.trim(),
+        temperature: options.temperature ?? 0.7,
+        maxTokens: options.maxTokens ?? 1000,
+        stream: false,
+      };
+
+      // Add model if specified and not 'auto'
+      if (options.model && options.model !== 'auto') {
+        payload.model = options.model;
+      }
+
+      // Add context for cross-session learning
+      payload.context = 'flowrider_cli|domain:development|agent:flowrider';
+
+      // Add budget control
+      payload.budget = 0.10; // Max $0.10 per request
+
+      const requestBody = JSON.stringify(payload);
+
+      const url = new URL(`${ZOIX_API_URL}/v1/completions`);
+      const reqOptions = {
+        hostname: url.hostname,
+        port: 443,
+        path: url.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(requestBody),
+          Authorization: `Bearer ${apiKey}`,
+        },
+        timeout: 60000, // 60 seconds
+      };
+
+      const req = https.request(reqOptions, (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          const duration = Date.now() - startTime;
+
+          if (res.statusCode !== 200) {
+            resolve({
+              success: false,
+              provider: 'zoix',
+              error: `Zoix API returned ${res.statusCode}: ${data}`,
+              duration,
+            });
+            return;
+          }
+
+          try {
+            const parsed = JSON.parse(data) as ZoixResponse;
+
+            // Log insights if available
+            if (parsed.zoixInsights) {
+              console.log(
+                `[AIService/Zoix] Routing: ${parsed.zoixInsights.routingReason}, ` +
+                  `Learned patterns: ${parsed.zoixInsights.learnedPatterns}`
+              );
+            }
+
+            resolve({
+              success: true,
+              content: parsed.content || '',
+              inputTokens: parsed.tokens?.input || 0,
+              outputTokens: parsed.tokens?.output || 0,
+              totalTokens: (parsed.tokens?.input || 0) + (parsed.tokens?.output || 0),
+              cost: parsed.cost || 0,
+              model: parsed.model || 'auto',
+              provider: 'zoix',
+              duration,
+            });
+          } catch (e) {
+            resolve({
+              success: false,
+              provider: 'zoix',
+              error: 'Failed to parse Zoix response',
+              duration,
+            });
+          }
+        });
+      });
+
+      req.on('error', (err) => {
+        resolve({
+          success: false,
+          provider: 'zoix',
+          error: err.message,
+          duration: Date.now() - startTime,
+        });
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        resolve({
+          success: false,
+          provider: 'zoix',
+          error: 'Request timeout',
+          duration: Date.now() - startTime,
+        });
+      });
+
+      req.write(requestBody);
+      req.end();
+    });
+  }
+
+  // ========================================
   // Unified Call Interface
   // ========================================
 
   async call(options: AICallOptions): Promise<AICallResult> {
     switch (options.provider) {
+      case 'zoix':
+        return this.callZoix(options);
       case 'ollama':
         return this.callOllama(options);
       case 'claude':
@@ -513,7 +738,7 @@ export class AIService {
 
   getApiKeys(): Record<AIProviderType, string | undefined> {
     const keys: Record<string, string | undefined> = {};
-    const providers: AIProviderType[] = ['claude', 'openai', 'ollama', 'gemini', 'grok', 'local'];
+    const providers: AIProviderType[] = ['zoix', 'claude', 'openai', 'ollama', 'gemini', 'grok', 'local'];
     for (const provider of providers) {
       keys[provider] = this.apiKeys.get(provider);
     }
