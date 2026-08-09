@@ -1,23 +1,58 @@
-Copyright (c) 2026 Joesphas LLC. All Rights Reserved.
+MIT License
 
-PROPRIETARY SOFTWARE LICENSE
+Copyright (c) 2024-2026 Josephas LLC
 
-This software and associated documentation files (the "Software") are the
-proprietary property of Joesphas LLC and are protected by copyright law.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-RESTRICTIONS:
-- You may NOT copy, modify, merge, publish, distribute, sublicense, or sell
-  copies of the Software without express written permission from Joesphas LLC.
-- You may NOT reverse engineer, decompile, or disassemble the Software.
-- You may NOT use the Software to create derivative works or competing products.
-
-AUTHORIZED USE:
-- Licensed users may use the Software in accordance with their subscription
-  or license agreement with Joesphas LLC.
-
-For licensing inquiries, contact: legal@josephas.com
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-JOESPHAS LLC BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------------------------------------------------------------
+
+OPEN CORE MODEL
+
+This repository uses an Open Core licensing model:
+
+ZOIX CORE (MIT License)
+The following components are fully open source under the MIT License above:
+- src/main/ai-core/        Zoix learning and routing intelligence
+- src/main/providers/      AI provider abstractions
+- src/main/AIService.ts    Unified AI service layer
+- All routing algorithms, feedback loops, and energy estimation models
+
+You are free to use, modify, and distribute Zoix in your own projects,
+whether commercial or non-commercial.
+
+FLOWRIDER PRO (Commercial License)
+Some features require a commercial license from Josephas LLC:
+- LEO Mode (400+ agent orchestration)
+- Enterprise SSO and team management
+- Priority support and SLAs
+- Hosted Zoix API service
+
+For commercial licensing: hello@josephas.com
+
+-------------------------------------------------------------------------------
+
+WHY OPEN CORE?
+
+Our mission: Reduce the energy footprint of AI usage worldwide.
+
+The more developers using smart routing, the more watts we save collectively.
+By open-sourcing the core routing intelligence, we maximize global impact.
+By offering commercial features, we fund continued development.
+
+Your work costs less of the world.

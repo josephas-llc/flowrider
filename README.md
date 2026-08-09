@@ -258,7 +258,21 @@ The AI coding tools market is exploding:
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! Flowrider uses an **Open Core** model:
+
+| Component | License | Contribute? |
+|-----------|---------|-------------|
+| **Zoix Core** (routing, learning) | MIT | Yes! We need help here |
+| **Flowrider App** | MIT | Yes, open an issue first |
+| **Flowrider Pro** | Commercial | Contact us |
+
+**High-impact contribution areas:**
+- Routing algorithm improvements
+- New AI provider integrations
+- Energy estimation accuracy
+- Task categorization
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and [docs/OPEN_CORE.md](docs/OPEN_CORE.md) for the full open core model.
 
 ### Development
 
@@ -272,13 +286,18 @@ npm test
 # Build for production
 npm run build
 
-# Create distributable
-npm run dist
+# Quick audit (in Claude Code)
+/audit 2  # Check Zoix routing
+/audit 9  # Check soul/simplicity
 ```
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+**MIT License** - See [LICENSE](LICENSE) for details.
+
+The Zoix routing core is fully open source. Use it in your own projects, commercial or otherwise. We just ask that you help us reduce AI's energy footprint by contributing improvements back.
+
+**Your work costs less of the world.**
 
 ## Links
 
