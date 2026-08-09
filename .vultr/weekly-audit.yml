@@ -1,0 +1,241 @@
+# Flowrider Weekly Audit - Vultr Serverless/Cron Configuration
+#
+# This runs on Vultr infrastructure (not GitHub Actions)
+# Deploy as a Vultr Serverless Function or Vultr Kubernetes CronJob
+#
+# Setup:
+# 1. Create Vultr Serverless Function or k8s CronJob
+# 2. Set environment variables (see below)
+# 3. Point to this config or inline the script
+#
+# Required Environment Variables:
+#   ANTHROPIC_API_KEY - For Claude API calls
+#   GITHUB_TOKEN - To create issues in the repo
+#   GITHUB_REPO - josephas-llc/flowrider
+#   SLACK_WEBHOOK_URL - (optional) For notifications
+
+name: weekly-audit
+description: Automated weekly code audit using rotating 9-expert framework
+
+# Vultr Cron Schedule (runs every Monday at 9am UTC)
+schedule: "0 9 * * 1"
+
+# Runtime configuration
+runtime: nodejs20
+timeout: 300  # 5 minutes max
+memory: 512   # MB
+
+# Environment
+env:
+  - ANTHROPIC_API_KEY   # Set in Vultr dashboard
+  - GITHUB_TOKEN        # Set in Vultr dashboard
+  - GITHUB_REPO         # josephas-llc/flowrider
+  - SLACK_WEBHOOK_URL   # Optional
+
+---
+# Audit Script (deploy as index.js or inline)
+#
+# This script:
+# 1. Determines which lens to run this week (rotating 1-9)
+# 2. Clones the repo
+# 3. Calls Claude API with audit prompt
+# 4. Creates GitHub issue with findings
+# 5. Optionally notifies Slack
+
+script: |
+  const Anthropic = require('@anthropic-ai/sdk');
+  const { Octokit } = require('@octokit/rest');
+
+  const LENSES = [
+    { num: 1, name: 'Architecture', focus: 'components, abstractions, coupling, state' },
+    { num: 2, name: 'Core Differentiator (Zoix)', focus: 'routing, feedback loops, learning' },
+    { num: 3, name: 'Security', focus: 'API keys, sandboxing, injection, deps' },
+    { num: 4, name: 'Cost/Metrics', focus: 'tracking, energy, savings measurement' },
+    { num: 5, name: 'Infrastructure', focus: 'sessions, concurrency, streaming, cleanup' },
+    { num: 6, name: 'DX', focus: 'clone experience, docs, demo path' },
+    { num: 7, name: 'Cognitive Load', focus: 'user mental load, trust signals' },
+    { num: 8, name: 'Flow/Feedback', focus: 'dead air, celebrations, progression' },
+    { num: 9, name: 'Soul', focus: 'purpose clarity, first 90s, what to cut' },
+  ];
+
+  async function runAudit() {
+    // Determine this week's lens (rotate based on week number)
+    const weekNum = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
+    const lens = LENSES[weekNum % 9];
+
+    console.log(`Running audit: Lens ${lens.num} - ${lens.name}`);
+
+    // Initialize clients
+    const anthropic = new Anthropic();
+    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+    const [owner, repo] = process.env.GITHUB_REPO.split('/');
+
+    // Get key files for context (lightweight - not full clone)
+    const filesToAudit = [
+      'src/main/AIService.ts',
+      'src/main/ai-core/TaskOutcomes.ts',
+      'src/main/ai-core/ZoixIntelligence.ts',
+      'src/renderer/App.tsx',
+      'src/renderer/store.ts',
+      'README.md',
+      'package.json',
+    ];
+
+    let codeContext = '';
+    for (const filePath of filesToAudit) {
+      try {
+        const { data } = await octokit.repos.getContent({ owner, repo, path: filePath });
+        const content = Buffer.from(data.content, 'base64').toString();
+        codeContext += `\n--- ${filePath} ---\n${content.slice(0, 3000)}\n`;
+      } catch (e) {
+        // File might not exist
+      }
+    }
+
+    // Run audit via Claude
+    const prompt = `You are auditing the Flowrider codebase using Lens ${lens.num}: ${lens.name}
+
+Focus areas: ${lens.focus}
+
+Here are key files from the codebase:
+${codeContext}
+
+Perform a focused audit and provide:
+1. Overall score: STRONG / ADEQUATE / WEAK
+2. 3-5 specific findings with file:line references where possible
+3. Top 3 risks
+4. Top 3 quick wins (mark effort as S/M/L)
+5. Single most important recommended action
+
+Be concise and actionable. This is a weekly check-in, not a full audit.`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const auditResult = response.content[0].text;
+
+    // Create GitHub issue
+    const issueTitle = `[Weekly Audit] Lens ${lens.num}: ${lens.name} - Week ${weekNum % 52}`;
+    const issueBody = `## Automated Weekly Audit
+
+**Lens:** ${lens.num} - ${lens.name}
+**Focus:** ${lens.focus}
+**Date:** ${new Date().toISOString().split('T')[0]}
+
+---
+
+${auditResult}
+
+---
+
+*This audit was automatically generated. Next week: Lens ${LENSES[(weekNum + 1) % 9].name}*
+
+To run a manual audit: \`/audit ${lens.num}\` in Claude Code
+`;
+
+    const issue = await octokit.issues.create({
+      owner,
+      repo,
+      title: issueTitle,
+      body: issueBody,
+      labels: ['audit', 'automated'],
+    });
+
+    console.log(`Created issue: ${issue.data.html_url}`);
+
+    // Optional: Slack notification
+    if (process.env.SLACK_WEBHOOK_URL) {
+      await fetch(process.env.SLACK_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: `Weekly Audit Complete: Lens ${lens.num} - ${lens.name}`,
+          blocks: [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `*Weekly Audit Complete*\nLens ${lens.num}: ${lens.name}\n<${issue.data.html_url}|View Issue>`,
+              },
+            },
+          ],
+        }),
+      });
+    }
+
+    return { success: true, issue: issue.data.html_url };
+  }
+
+  module.exports = { handler: runAudit };
+
+---
+# Alternative: Vultr Kubernetes CronJob
+# If using k8s instead of Serverless Functions
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: flowrider-weekly-audit
+  namespace: flowrider
+spec:
+  schedule: "0 9 * * 1"  # Every Monday 9am UTC
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: audit
+            image: node:20-slim
+            command:
+            - /bin/sh
+            - -c
+            - |
+              npm install @anthropic-ai/sdk @octokit/rest
+              node -e "$(cat <<'SCRIPT'
+              // Inline the script above here
+              SCRIPT
+              )"
+            env:
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: audit-secrets
+                  key: anthropic-api-key
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: audit-secrets
+                  key: github-token
+            - name: GITHUB_REPO
+              value: "josephas-llc/flowrider"
+          restartPolicy: OnFailure
+
+---
+# Setup Instructions for Vultr
+
+# Option A: Vultr Serverless Functions
+# 1. Go to Vultr Dashboard > Serverless > Create Function
+# 2. Name: flowrider-weekly-audit
+# 3. Runtime: Node.js 20
+# 4. Copy the script section above
+# 5. Set environment variables in dashboard
+# 6. Set trigger: Cron schedule "0 9 * * 1"
+# 7. Deploy
+
+# Option B: Vultr Kubernetes
+# 1. Create k8s cluster in Vultr
+# 2. Create secrets:
+#    kubectl create secret generic audit-secrets \
+#      --from-literal=anthropic-api-key=YOUR_KEY \
+#      --from-literal=github-token=YOUR_TOKEN
+# 3. Apply the CronJob:
+#    kubectl apply -f .vultr/weekly-audit.yml
+
+# Option C: Simple Vultr VM + Cron
+# 1. Create small VM ($5/mo)
+# 2. Install Node.js
+# 3. Clone repo, install deps
+# 4. Add to crontab: 0 9 * * 1 /path/to/run-audit.sh
