@@ -67,3 +67,18 @@ export {
   ProgressionRate,
   getSkillTracker
 } from './SkillTracker';
+
+export {
+  TaskOutcomes,
+  TaskOutcomeRecord,
+  TaskOutcome,
+  TaskCategory,
+  CostLedgerEntry,
+  RoutingStats,
+  ProviderStats,
+  ModelStats,
+  CategoryStats,
+  DailySummary,
+  getTaskOutcomes,
+  shutdownTaskOutcomes
+} from './TaskOutcomes';

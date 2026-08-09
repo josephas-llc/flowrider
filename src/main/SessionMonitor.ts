@@ -231,7 +231,7 @@ export class SessionMonitor {
     if (!session) return;
 
     try {
-      const result = await this.getOutput(sessionName, 500); // Get last 500 lines
+      const result = await this.getOutput(sessionName, 5000); // Get last 5000 lines (increased from 500 for better context retention)
       if (!result.success || !result.data) return;
 
       const newOutput = result.data;

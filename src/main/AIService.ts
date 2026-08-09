@@ -4,6 +4,7 @@ import * as https from 'https';
 import { app, safeStorage } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getTaskOutcomes, TaskOutcome, TaskCategory } from './ai-core/TaskOutcomes';
 
 // ============================================
 // TYPES
@@ -26,6 +27,11 @@ export interface AICallOptions {
   temperature?: number;
   systemPrompt?: string;
   stream?: boolean;
+  // Tracking metadata
+  sessionId?: string;
+  projectId?: string;
+  taskCategory?: TaskCategory;
+  routingReason?: string;
 }
 
 export interface AICallResult {
@@ -39,6 +45,12 @@ export interface AICallResult {
   provider: AIProviderType;
   error?: string;
   duration?: number;
+  // New: Savings tracking from TaskOutcomes
+  taskId?: string;
+  baselineCost?: number;
+  savingsUsd?: number;
+  savingsPercentage?: number;
+  routingReason?: string;
 }
 
 export interface OllamaModel {
@@ -664,20 +676,75 @@ export class AIService {
   // ========================================
 
   async call(options: AICallOptions): Promise<AICallResult> {
+    const startTime = Date.now();
+    let result: AICallResult;
+
     switch (options.provider) {
       case 'zoix':
-        return this.callZoix(options);
+        result = await this.callZoix(options);
+        break;
       case 'ollama':
-        return this.callOllama(options);
+        result = await this.callOllama(options);
+        break;
       case 'claude':
-        return this.callClaudeCLI(options);
+        result = await this.callClaudeCLI(options);
+        break;
       default:
-        return {
+        result = {
           success: false,
           provider: options.provider,
           error: `Provider ${options.provider} not yet implemented`,
         };
     }
+
+    // Track outcome in TaskOutcomes for feedback loop
+    if (options.sessionId && (result.inputTokens || result.outputTokens)) {
+      try {
+        const taskOutcomes = getTaskOutcomes();
+
+        // Calculate prompt length for complexity estimation
+        const promptLength = options.messages.reduce((acc, m) => acc + m.content.length, 0);
+
+        // Determine outcome
+        const outcome: TaskOutcome = result.success ? 'success' : 'failure';
+
+        // Record the task outcome
+        const record = taskOutcomes.recordOutcome({
+          sessionId: options.sessionId,
+          projectId: options.projectId,
+          modelUsed: result.model || options.model || 'unknown',
+          provider: options.provider,
+          tokensIn: result.inputTokens || 0,
+          tokensOut: result.outputTokens || 0,
+          wallTimeMs: result.duration || (Date.now() - startTime),
+          outcome,
+          taskCategory: options.taskCategory || 'other',
+          routingReason: options.routingReason || result.routingReason,
+          promptLength,
+        });
+
+        // Attach savings info to result
+        result.taskId = record.id;
+        result.baselineCost = record.baselineCostUsd;
+        result.savingsUsd = record.savingsUsd;
+        result.savingsPercentage = record.baselineCostUsd > 0
+          ? (record.savingsUsd / record.baselineCostUsd) * 100
+          : 0;
+        result.routingReason = record.routingReason || undefined;
+
+        // Log savings for visibility
+        if (record.savingsUsd > 0) {
+          console.log(
+            `[AIService] Saved $${record.savingsUsd.toFixed(4)} ` +
+            `(${result.savingsPercentage?.toFixed(1)}%) by using ${result.model} instead of baseline`
+          );
+        }
+      } catch (err) {
+        console.error('[AIService] Failed to record task outcome:', err);
+      }
+    }
+
+    return result;
   }
 
   // ========================================

@@ -198,6 +198,10 @@ export interface Session {
   // Attention indicator - when session needs human input
   needsAttention?: boolean;
   attentionReason?: string; // e.g., "Question asked", "Error occurred", "Approval needed"
+  // Session summary for cognitive load reduction (audit fix)
+  summary?: string; // One-line status: "Building auth API... 73% done"
+  currentTask?: string; // What the AI is currently working on
+  progress?: number; // 0-100 progress estimate
   // Tier 3: Arbor pattern - hypothesis branches & linking
   linkedSessions?: string[]; // IDs of related sessions
   hypothesisBranch?: {

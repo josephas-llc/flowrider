@@ -1,41 +1,78 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store';
 
+interface RoutingStats {
+  totalSavings: number;
+  savingsPercentage: number;
+  totalTasks: number;
+  lastRouting?: {
+    model: string;
+    reason: string;
+    savedAmount: number;
+  };
+}
+
 /**
  * ZoixIndicator - Persistent nav bar indicator showing ZOIX learning activity
  *
  * Shows:
  * - Brain icon with pulse animation when learning
  * - Total patterns learned
+ * - LIVE SAVINGS from routing decisions (THE KEY VISIBILITY FIX)
  * - Click to expand insights panel
  */
 export const ZoixIndicator: React.FC<{ onClick?: () => void }> = ({ onClick }) => {
   const { sessions, zoixPatterns, setZoixPatterns } = useStore();
   const [isPulsing, setIsPulsing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [routingStats, setRoutingStats] = useState<RoutingStats>({
+    totalSavings: 0,
+    savingsPercentage: 0,
+    totalTasks: 0,
+  });
+  const [savingsAnimating, setSavingsAnimating] = useState(false);
 
   // Count active sessions
   const activeSessions = sessions.filter(s => s.status !== 'empty').length;
 
-  // Fetch real pattern count from backend
+  // Fetch real pattern count and routing stats from backend
   useEffect(() => {
-    const fetchPatternCount = async () => {
+    const fetchStats = async () => {
       try {
-        const result = await window.flowrider.leoai.getStats();
-        if (result.success && result.data) {
-          setZoixPatterns(result.data.totalPatterns);
+        // Fetch pattern count
+        const patternResult = await window.flowrider.leoai.getStats();
+        if (patternResult.success && patternResult.data) {
+          setZoixPatterns(patternResult.data.totalPatterns);
+        }
+
+        // Fetch routing/savings stats
+        const routingResult = await window.flowrider.leoai.getRoutingStats?.();
+        if (routingResult?.success && routingResult.data) {
+          const prevSavings = routingStats.totalSavings;
+          setRoutingStats({
+            totalSavings: routingResult.data.totalSavingsUsd || 0,
+            savingsPercentage: routingResult.data.savingsPercentage || 0,
+            totalTasks: routingResult.data.totalTasks || 0,
+            lastRouting: routingResult.data.lastRouting,
+          });
+
+          // Animate if savings increased
+          if (routingResult.data.totalSavingsUsd > prevSavings) {
+            setSavingsAnimating(true);
+            setTimeout(() => setSavingsAnimating(false), 1000);
+          }
         }
       } catch (error) {
-        console.error('[ZoixIndicator] Failed to fetch pattern count:', error);
+        console.error('[ZoixIndicator] Failed to fetch stats:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchPatternCount();
+    fetchStats();
 
-    // Poll for updates every 30 seconds
-    const interval = setInterval(fetchPatternCount, 30000);
+    // Poll for updates every 10 seconds (more frequent for savings visibility)
+    const interval = setInterval(fetchStats, 10000);
     return () => clearInterval(interval);
   }, [setZoixPatterns]);
 
@@ -110,7 +147,7 @@ export const ZoixIndicator: React.FC<{ onClick?: () => void }> = ({ onClick }) =
         🧠
       </span>
 
-      {/* Label and count */}
+      {/* Label */}
       <span
         style={{
           fontSize: 11,
@@ -123,12 +160,41 @@ export const ZoixIndicator: React.FC<{ onClick?: () => void }> = ({ onClick }) =
         ZOIX
       </span>
 
+      {/* Savings display - THE KEY VISIBILITY FIX */}
+      {routingStats.totalSavings > 0 && (
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: savingsAnimating ? '#4ade80' : '#22c55e',
+            fontFamily: 'SF Mono, Monaco, monospace',
+            padding: '2px 6px',
+            background: savingsAnimating
+              ? 'rgba(34, 197, 94, 0.3)'
+              : 'rgba(34, 197, 94, 0.15)',
+            borderRadius: 4,
+            transition: 'all 0.3s ease',
+            transform: savingsAnimating ? 'scale(1.1)' : 'scale(1)',
+            boxShadow: savingsAnimating
+              ? '0 0 8px rgba(34, 197, 94, 0.5)'
+              : 'none',
+          }}
+          title={`Saved ${routingStats.savingsPercentage.toFixed(0)}% vs baseline across ${routingStats.totalTasks} tasks`}
+        >
+          ${routingStats.totalSavings < 1
+            ? routingStats.totalSavings.toFixed(2)
+            : routingStats.totalSavings.toFixed(0)} saved
+        </span>
+      )}
+
+      {/* Pattern count (secondary) */}
       <span
         style={{
           fontSize: 10,
           color: 'var(--text-muted)',
           fontFamily: 'SF Mono, Monaco, monospace',
         }}
+        title={`${zoixPatterns.toLocaleString()} patterns learned`}
       >
         {zoixPatterns.toLocaleString()}
       </span>

@@ -5,8 +5,8 @@
 <h1 align="center">Flowrider</h1>
 
 <p align="center">
-  <strong>Run 20 AI Coding Sessions Simultaneously.</strong><br/>
-  <em>The meta-layer for AI-assisted software development.</em>
+  <strong>Your work costs less of the world.</strong><br/>
+  <em>AI orchestration with smart routing that saves 60-80% on costs and energy.</em>
 </p>
 
 <p align="center">

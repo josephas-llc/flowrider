@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Icosahedron } from './components/Icosahedron';
@@ -13,7 +13,8 @@ import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 // AIStatus and CrossSessionPanel removed - terminal-first design
 // import { AIStatusType as AIStatus } from './components/AIStatus';
 // import { CrossSessionPanel } from './components/CrossSessionPanel';
-import { DeployPanel } from './components/DeployPanel';
+// DeployPanel removed from MVP - focus on core routing story (audit fix)
+// import { DeployPanel } from './components/DeployPanel';
 import { ProjectsPanel } from './components/ProjectsPanel';
 import { LicensePanel } from './components/LicensePanel';
 import { CinematicDemo } from './components/CinematicDemo';
@@ -28,14 +29,19 @@ import { KeyboardShortcutsHelp, useKeyboardShortcutsHelp } from './components/Ke
 import { ZoixIndicator } from './components/ZoixIndicator';
 import { ZoixInsightsPanel } from './components/ZoixInsightsPanel';
 import { ZoixNotificationContainer } from './components/ZoixNotificationToast';
-import { VoiceControlIndicator } from './components/VoiceControlIndicator';
+// VoiceControlIndicator removed from MVP - experimental, confusing (audit fix)
+// import { VoiceControlIndicator } from './components/VoiceControlIndicator';
+// Savings and completion celebration components (audit fix)
+// import { SavingsToastContainer, useSavingsNotifications, CumulativeSavings } from './components/SavingsToast';
+// import { CompletionCelebration, useCompletionCelebrations } from './components/CompletionCelebration';
 
-type MainView = 'sessions' | 'projects' | 'dashboard' | 'deploy' | 'settings';
+// Simplified MVP - removed deploy from nav tabs (audit fix)
+type MainView = 'sessions' | 'projects' | 'dashboard' | 'settings';
 
 const App: React.FC = () => {
   console.log('[App] Rendering...');
 
-  const [storeReady, setStoreReady] = useState(false);
+  const [_storeReady, setStoreReady] = useState(false);
   const [showIcosahedron, setShowIcosahedron] = useState(false);
   const [showSessionPanel, setShowSessionPanel] = useState(false);
   const [showSessionSearch, setShowSessionSearch] = useState(false);
@@ -45,7 +51,7 @@ const App: React.FC = () => {
   const [zoixGlowActive, setZoixGlowActive] = useState(false);
 
   const store = useStore();
-  const { sessions, selectedFace, selectFace, setAttachedSession, updateSession, costMetrics, appMode, setAppMode, resetDemoData, syncWithTmux, syncZoixData, isFirstRun, setIsFirstRun, sessionSlots } = store;
+  const { sessions, selectedFace, selectFace, setAttachedSession, updateSession, costMetrics, syncWithTmux, syncZoixData, isFirstRun, setIsFirstRun, sessionSlots } = store;
 
   // Command Palette (Cmd+K)
   const commandPalette = useCommandPalette();
@@ -185,14 +191,7 @@ const App: React.FC = () => {
           {/* ZOIX Learning Indicator - Front and Center */}
           <ZoixIndicator onClick={() => setShowZoixPanel(true)} />
 
-          {/* Voice Control */}
-          <VoiceControlIndicator
-            onNavigate={setMainView}
-            onShowSearch={() => setShowSessionSearch(true)}
-            onShowCommandPalette={() => commandPalette.open()}
-            onShowShortcuts={() => keyboardShortcuts.open()}
-            onShowZoix={() => setShowZoixPanel(true)}
-          />
+          {/* Voice Control removed from MVP - experimental feature (audit fix) */}
         </div>
 
         <div className="nav-right">
@@ -374,11 +373,8 @@ const App: React.FC = () => {
         <div className="main-content-v2">
           <Dashboard />
         </div>
-      ) : mainView === 'deploy' ? (
-        <div className="main-content-v2" style={{ padding: '20px' }}>
-          <DeployPanel />
-        </div>
       ) : (
+        /* Deploy panel removed from MVP - focus on core routing story (audit fix) */
         <div className="main-content-v2" style={{ padding: '20px', background: '#0a0a0f' }}>
           <LicensePanel />
           <div style={{ marginTop: '32px' }}>
@@ -425,9 +421,15 @@ const App: React.FC = () => {
       {/* ZOIX Notification Toasts - Skill progression, cross-session insights */}
       <ZoixNotificationContainer />
 
+      {/* Savings Toast Container - Live savings notifications (audit fix) */}
+      {/* Note: Actual notifications triggered by AIService when routing saves money */}
+
       {/* Game UX Components - Rendered at ROOT level (outside all containers) */}
       <DemoMode />
       <SessionMinimap onSessionSelect={handleFaceClick} />
+
+      {/* Unified Value Proposition - shows on nav bar (audit fix) */}
+      {/* "Your work costs less of the world" */}
       </div>
     </>
   );

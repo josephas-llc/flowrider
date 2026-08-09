@@ -130,6 +130,7 @@ contextBridge.exposeInMainWorld('flowrider', {
 
     // Stats & data
     getStats: () => ipcRenderer.invoke('leoai:stats'),
+    getRoutingStats: () => ipcRenderer.invoke('leoai:routingStats'), // NEW: Routing/savings stats (audit fix)
     getInteractions: (limit?: number) => ipcRenderer.invoke('leoai:getInteractions', limit),
     getPatterns: (minConfidence?: number) => ipcRenderer.invoke('leoai:getPatterns', minConfidence),
     getAllPatterns: () => ipcRenderer.invoke('leoai:getAllPatterns'),

@@ -265,7 +265,7 @@ export class TmuxManager {
     }
   }
 
-  async getOutput(sessionName: string, lines: number = 500): Promise<TmuxResult<string>> {
+  async getOutput(sessionName: string, lines: number = 5000): Promise<TmuxResult<string>> {
     try {
       // Validate session name
       this.validateSessionName(sessionName);
@@ -389,6 +389,93 @@ export class TmuxManager {
       const err = error as Error;
       console.error(`[TmuxManager] Failed to detect git repo:`, err);
       return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Get session idle time (time since last activity)
+   * Used for session timeout/cleanup (audit fix)
+   */
+  async getSessionIdleTime(sessionName: string): Promise<TmuxResult<number>> {
+    try {
+      this.validateSessionName(sessionName);
+
+      // Get the session's activity timestamp
+      const output = this.execTmux([
+        'display-message',
+        '-t', sessionName,
+        '-p', '#{session_activity}'
+      ]);
+
+      const activityTimestamp = parseInt(output.trim(), 10);
+      if (isNaN(activityTimestamp)) {
+        return { success: false, error: 'Could not parse activity timestamp' };
+      }
+
+      const idleSeconds = Math.floor(Date.now() / 1000) - activityTimestamp;
+      return { success: true, data: idleSeconds };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Kill idle sessions (older than specified timeout)
+   * Returns list of killed session names
+   */
+  async cleanupIdleSessions(timeoutSeconds: number = 3600): Promise<TmuxResult<string[]>> {
+    const killedSessions: string[] = [];
+
+    try {
+      const sessionsResult = await this.listSessions();
+      if (!sessionsResult.success || !sessionsResult.data) {
+        return { success: true, data: [] };
+      }
+
+      for (const session of sessionsResult.data) {
+        // Skip attached sessions
+        if (session.attached) continue;
+
+        const idleResult = await this.getSessionIdleTime(session.name);
+        if (idleResult.success && idleResult.data !== undefined) {
+          if (idleResult.data > timeoutSeconds) {
+            console.log(`[TmuxManager] Cleaning up idle session: ${session.name} (idle ${idleResult.data}s)`);
+            await this.killSession(session.name);
+            killedSessions.push(session.name);
+          }
+        }
+      }
+
+      if (killedSessions.length > 0) {
+        console.log(`[TmuxManager] Cleaned up ${killedSessions.length} idle sessions`);
+      }
+
+      return { success: true, data: killedSessions };
+    } catch (error: unknown) {
+      const err = error as Error;
+      console.error(`[TmuxManager] Failed to cleanup idle sessions:`, err);
+      return { success: false, error: err.message, data: killedSessions };
+    }
+  }
+
+  /**
+   * Check if a session is healthy (responsive)
+   */
+  async isSessionHealthy(sessionName: string): Promise<boolean> {
+    try {
+      this.validateSessionName(sessionName);
+
+      // Try to get session info - if it fails, session is not healthy
+      const output = this.execTmux([
+        'display-message',
+        '-t', sessionName,
+        '-p', '#{session_name}'
+      ]);
+
+      return output.trim() === sessionName;
+    } catch {
+      return false;
     }
   }
 }
