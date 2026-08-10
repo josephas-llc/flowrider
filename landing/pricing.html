@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing - Flowrider</title>
+  <meta name="description" content="Flowrider pricing. Free tier with 3 sessions, Pro with 20, Team with 100.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-card: #161616;
+      --text-primary: #ffffff;
+      --text-secondary: #a1a1a1;
+      --text-muted: #666666;
+      --accent: #00d4ff;
+      --border: #222222;
+      --success: #22c55e;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 80px 24px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    h1 {
+      text-align: center;
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -2px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 18px;
+      color: var(--text-secondary);
+      margin-bottom: 64px;
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+    }
+    .pricing-card.featured {
+      border-color: var(--accent);
+      position: relative;
+    }
+    .pricing-card.featured::before {
+      content: 'Most Popular';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: #000;
+      padding: 4px 16px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .tier-name {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .tier-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    .price {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .price span { font-size: 18px; font-weight: 400; color: var(--text-muted); }
+    .price-note {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .features {
+      list-style: none;
+      margin-bottom: 32px;
+      flex: 1;
+    }
+    .features li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .features li:last-child { border-bottom: none; }
+    .features li .check { color: var(--success); font-weight: 700; }
+    .cta-btn {
+      display: block;
+      text-align: center;
+      padding: 16px 24px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 16px;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      width: 100%;
+    }
+    .cta-btn.primary {
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      color: #000;
+    }
+    .cta-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 212, 255, 0.3); }
+    .cta-btn.secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+    .cta-btn.secondary:hover { background: var(--bg-card); border-color: var(--text-muted); }
+    .cta-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .faq { margin-top: 80px; }
+    .faq h2 { text-align: center; font-size: 32px; margin-bottom: 48px; }
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .faq-item h3 { font-size: 16px; margin-bottom: 12px; }
+    .faq-item p { font-size: 14px; color: var(--text-secondary); line-height: 1.7; }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 32px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    @media (max-width: 900px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+      h1 { font-size: 32px; }
+    }
+    .loading { opacity: 0.7; pointer-events: none; }
+    .error { color: #ef4444; text-align: center; margin-top: 16px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">&larr; Back to Home</a>
+
+    <h1>Simple, transparent pricing</h1>
+    <p class="subtitle">Start free. Upgrade when you need more power.</p>
+
+    <div class="pricing-grid">
+      <!-- Free Tier -->
+      <div class="pricing-card">
+        <div class="tier-name">Free</div>
+        <div class="tier-desc">For trying out Flowrider</div>
+        <div class="price">$0</div>
+        <div class="price-note">Forever free</div>
+        <ul class="features">
+          <li><span class="check">✓</span> 3 parallel sessions</li>
+          <li><span class="check">✓</span> All AI providers</li>
+          <li><span class="check">✓</span> Zoix smart routing</li>
+          <li><span class="check">✓</span> Local data storage</li>
+          <li><span class="check">✓</span> Community support</li>
+        </ul>
+        <a href="https://github.com/josephas-llc/flowrider/releases/latest" class="cta-btn secondary">
+          Download Free
+        </a>
+      </div>
+
+      <!-- Pro Tier -->
+      <div class="pricing-card featured">
+        <div class="tier-name">Pro</div>
+        <div class="tier-desc">For professional developers</div>
+        <div class="price">$19<span>/mo</span></div>
+        <div class="price-note">or $190/year (save $38)</div>
+        <ul class="features">
+          <li><span class="check">✓</span> <strong>20 parallel sessions</strong></li>
+          <li><span class="check">✓</span> All AI providers</li>
+          <li><span class="check">✓</span> Zoix smart routing</li>
+          <li><span class="check">✓</span> Priority support</li>
+          <li><span class="check">✓</span> Early access to features</li>
+          <li><span class="check">✓</span> 3 device activations</li>
+        </ul>
+        <button onclick="startCheckout('pro')" class="cta-btn primary" id="btn-pro">
+          Get Pro
+        </button>
+      </div>
+
+      <!-- Team Tier -->
+      <div class="pricing-card">
+        <div class="tier-name">Team</div>
+        <div class="tier-desc">For teams and agencies</div>
+        <div class="price">$49<span>/mo</span></div>
+        <div class="price-note">or $490/year (save $98)</div>
+        <ul class="features">
+          <li><span class="check">✓</span> <strong>100 parallel sessions</strong></li>
+          <li><span class="check">✓</span> All AI providers</li>
+          <li><span class="check">✓</span> Zoix smart routing</li>
+          <li><span class="check">✓</span> Priority support</li>
+          <li><span class="check">✓</span> <strong>10 device activations</strong></li>
+          <li><span class="check">✓</span> Team analytics (coming)</li>
+        </ul>
+        <button onclick="startCheckout('team')" class="cta-btn secondary" id="btn-team">
+          Get Team
+        </button>
+      </div>
+    </div>
+
+    <div id="error-msg" class="error" style="display: none;"></div>
+
+    <div class="faq">
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="faq-item">
+        <h3>How does the license key work?</h3>
+        <p>After purchase, you'll receive a license key via email. Enter it in the Flowrider app (Settings → License) to unlock your tier. You can activate on up to 3 devices (10 for Team).</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Can I cancel anytime?</h3>
+        <p>Yes! Cancel your subscription anytime from your Stripe billing portal. You'll keep access until the end of your billing period.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>What AI providers are supported?</h3>
+        <p>Flowrider works with Claude, GPT-4, Gemini, Grok, Ollama, and any OpenAI-compatible API. Bring your own API keys.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Is my data stored locally?</h3>
+        <p>Yes! All your code, sessions, and project data stay on your machine. We only validate your license key with our server.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Do you offer refunds?</h3>
+        <p>Yes, we offer a 14-day money-back guarantee. If Flowrider isn't right for you, email hello@josephas.com for a full refund.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Stripe checkout integration
+    // Note: Replace with your actual API endpoint
+
+    async function startCheckout(tier) {
+      const btn = document.getElementById(`btn-${tier}`);
+      const errorEl = document.getElementById('error-msg');
+
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      errorEl.style.display = 'none';
+
+      try {
+        // Call your backend to create a checkout session
+        const response = await fetch('/api/stripe/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tier: tier,
+            successUrl: window.location.origin + '/success.html?session_id={CHECKOUT_SESSION_ID}',
+            cancelUrl: window.location.origin + '/pricing.html'
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.checkoutUrl) {
+          // Redirect to Stripe Checkout
+          window.location.href = data.checkoutUrl;
+        } else {
+          throw new Error(data.error || 'Failed to create checkout');
+        }
+      } catch (error) {
+        console.error('Checkout error:', error);
+        errorEl.textContent = error.message || 'Failed to start checkout. Please try again.';
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = tier === 'pro' ? 'Get Pro' : 'Get Team';
+      }
+    }
+  </script>
+</body>
+</html>
