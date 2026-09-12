@@ -9,7 +9,7 @@
 
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
-import { getStripeLicenseService, STRIPE_CONFIG, LicenseTier, TIER_LIMITS } from '../StripeService';
+import { getStripeLicenseService, STRIPE_CONFIG, LicenseTier, TIER_LIMITS } from '../../StripeService';
 
 const router = Router();
 
@@ -17,7 +17,7 @@ const router = Router();
 let stripe: Stripe | null = null;
 if (STRIPE_CONFIG.SECRET_KEY && STRIPE_CONFIG.SECRET_KEY !== '') {
   stripe = new Stripe(STRIPE_CONFIG.SECRET_KEY, {
-    apiVersion: '2024-12-18.acacia'
+    apiVersion: '2026-07-29.dahlia'
   });
 }
 
