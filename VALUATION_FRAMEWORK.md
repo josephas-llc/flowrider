@@ -144,7 +144,7 @@ NRR:             120%+ (net revenue retention)
 │                                                                  │
 │  $20M  - $1M ARR, good metrics, competitive market              │
 │  $40M  - $2M ARR, strong growth, clear differentiation          │
-│  $80M  - $3M+ ARR, exceptional growth, LEO mode shipping        │
+│  $80M  - $3M+ ARR, exceptional growth, ZOIX mode shipping        │
 │                                                                  │
 │  Funding: $5M-15M                                                │
 │  Dilution: 15-25%                                                │
@@ -161,7 +161,7 @@ NRR:             120%+ (net revenue retention)
 - GitLab: ~$25M Series A (earlier era)
 
 ### Key Milestones for This Valuation
-- [ ] LEO Mode beta with 5+ customers
+- [ ] ZOIX Mode beta with 5+ customers
 - [ ] $50K+ ACV enterprise deals
 - [ ] SOC 2 Type II compliance
 - [ ] International expansion started
@@ -175,7 +175,7 @@ NRR:             120%+ (net revenue retention)
 - Scaling proven model
 - Market leadership emerging
 - Multi-product expansion
-- LEO Mode generally available
+- ZOIX Mode generally available
 
 ### Metrics Target
 ```
@@ -196,8 +196,8 @@ NRR:             130%+
 │  Basis: 15-25x ARR + strategic premium                          │
 │                                                                  │
 │  $150M - $10M ARR, strong but competitive                       │
-│  $300M - $20M ARR, market leader emerging, LEO traction         │
-│  $500M - $30M ARR, clear #1, LEO Learning beta, platform play   │
+│  $300M - $20M ARR, market leader emerging, ZOIX traction         │
+│  $500M - $30M ARR, clear #1, ZOIX Learning beta, platform play   │
 │                                                                  │
 │  Funding: $30M-80M                                               │
 │  Dilution: 15-20%                                                │
@@ -215,8 +215,8 @@ NRR:             130%+
 - Linear: ~$400M at Series B
 
 ### Key Milestones for This Valuation
-- [ ] LEO Mode GA with 50+ customers
-- [ ] LEO Learning in beta
+- [ ] ZOIX Mode GA with 50+ customers
+- [ ] ZOIX Learning in beta
 - [ ] $200K+ ACV enterprise deals
 - [ ] Fortune 500 logos
 - [ ] FedRAMP authorization (government)
@@ -251,8 +251,8 @@ NRR:             140%+
 │  Basis: 10-20x ARR + platform premium                           │
 │                                                                  │
 │  $500M  - $50M ARR, strong market position                      │
-│  $1B    - $80M ARR, LEO Learning GA, clear platform             │
-│  $2B    - $120M ARR, LEO custom models, network effects         │
+│  $1B    - $80M ARR, ZOIX Learning GA, clear platform             │
+│  $2B    - $120M ARR, ZOIX custom models, network effects         │
 │  $3B+   - $150M+ ARR, market leader, IPO-ready                  │
 │                                                                  │
 │  Funding: $100M-300M                                             │
@@ -272,7 +272,7 @@ NRR:             140%+
 - HashiCorp: $5B+ at IPO
 
 ### Key Milestones for This Valuation
-- [ ] LEO Learning with custom models GA
+- [ ] ZOIX Learning with custom models GA
 - [ ] 1000+ enterprise customers
 - [ ] $500K+ ACV deals common
 - [ ] Government/defense contracts
@@ -356,9 +356,14 @@ NRR:             140%+
 PRODUCT:
 ├── ✓ Multi-agent orchestration (unique)      → +20-30% premium
 ├── ✓ Model-agnostic (no lock-in)            → +10-15% premium
-├── ✓ LEO Mode (400 agents)                  → +25-40% premium
-├── ✓ LEO Learning (custom models)           → +30-50% premium
-└── ✓ Local-first (compliance)               → +15-20% premium
+├── ✓ ZOIX Mode (400 agents)                  → +25-40% premium
+├── ✓ ZOIX Learning (custom models)           → +30-50% premium
+├── ✓ Local-first (compliance)               → +15-20% premium
+└── ✓ Enterprise Billing Suite (NEW)         → +10-17% premium
+    ├── Team/Department cost rollups
+    ├── Budget alerts (Slack/email)
+    ├── Chargeback reports (cost center billing)
+    └── Carbon footprint tracking (ESG)
 
 METRICS:
 ├── ✓ NRR >130%                              → +10-20% premium
@@ -369,7 +374,7 @@ METRICS:
 STRATEGIC:
 ├── ✓ Enterprise customers (F500)            → +15-25% premium
 ├── ✓ Government contracts                   → +10-20% premium
-├── ✓ Network effects (LEO network)          → +30-50% premium
+├── ✓ Network effects (ZOIX network)          → +30-50% premium
 └── ✓ Platform ecosystem                     → +20-30% premium
 ```
 
@@ -402,11 +407,11 @@ ZOIX Layer 1 + Layer 2 represent defensible moats that justify premium valuation
 │                                                                  │
 │  + ZOIX Layer 1 (code patterns):     +5-10x premium             │
 │  + ZOIX Layer 2 (personal ontology): +10-15x premium  ← NEW!    │
-│  + LEO Mode (400 agents):            +5-10x premium             │
-│  + LEO Learning (custom AI):         +5-10x premium             │
-│  + LEO Network (federated):          +5-15x premium             │
+│  + ZOIX Mode (400 agents):            +5-10x premium             │
+│  + ZOIX Learning (custom AI):         +5-10x premium             │
+│  + ZOIX Network (federated):          +5-15x premium             │
 │                                                                  │
-│  Full ZOIX + LEO Stack:              40-60x ARR                 │
+│  Full ZOIX + ZOIX Stack:              40-60x ARR                 │
 │                                                                  │
 │  ZOIX Layer 2 adds:                                              │
 │  - UserProfiler: Personal skill & interest tracking             │
@@ -426,28 +431,74 @@ ZOIX Layer 1 + Layer 2 represent defensible moats that justify premium valuation
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### The LEO Premium
+### The ZOIX Premium
 
-LEO Mode and LEO Learning represent additional defensible moats:
+ZOIX Mode and ZOIX Learning represent additional defensible moats:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  LEO VALUE MULTIPLIER                                            │
+│  ZOIX VALUE MULTIPLIER                                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ZOIX-enabled Flowrider:        25-35x ARR                      │
 │                                                                  │
-│  + LEO Mode (400 agents):       +5-10x premium                  │
-│  + LEO Learning (custom AI):    +5-10x premium                  │
-│  + LEO Network (federated):     +5-15x premium                  │
+│  + ZOIX Mode (400 agents):       +5-10x premium                  │
+│  + ZOIX Learning (custom AI):    +5-10x premium                  │
+│  + ZOIX Network (federated):     +5-15x premium                  │
 │                                                                  │
-│  Full LEO Stack:                40-60x ARR                      │
+│  Full ZOIX Stack:                40-60x ARR                      │
 │                                                                  │
 │  Why:                                                            │
 │  - Switching costs increase over time (data lock-in)            │
 │  - Network effects compound (cross-org learning)                │
 │  - Custom models are proprietary assets                         │
-│  - No competitor can replicate your trained LEO                 │
+│  - No competitor can replicate your trained ZOIX                 │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Enterprise Billing Suite (NEW - July 2026)
+
+The Enterprise Billing Suite adds significant value for enterprise sales:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ENTERPRISE BILLING VALUE MULTIPLIER                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Standard AI Orchestration:         15-20x ARR                  │
+│                                                                  │
+│  + Team/Department Cost Rollups:    +3-5x premium               │
+│    - "Marketing spent $X, Engineering spent $Y"                 │
+│    - Break down by team, department, project                    │
+│    - Budget vs actual comparisons                               │
+│                                                                  │
+│  + Budget Alerts (Slack/Email):     +2-4x premium               │
+│    - Real-time notifications when approaching limits            │
+│    - Slack webhook integration                                  │
+│    - Email notifications                                        │
+│    - In-app alerts                                              │
+│                                                                  │
+│  + Chargeback Reports:              +3-5x premium               │
+│    - Cost center billing                                        │
+│    - Accounting integration (CSV export)                        │
+│    - Monthly/Quarterly/Annual reports                           │
+│    - Finance team friendly                                      │
+│                                                                  │
+│  + Carbon Footprint Tracking:       +2-3x premium               │
+│    - Environmental impact dashboard                             │
+│    - ESG reporting compliance                                   │
+│    - Carbon offset recommendations                              │
+│    - kgCO2 per provider/model breakdown                         │
+│                                                                  │
+│  Full Enterprise Billing Suite:     +10-17x ARR premium         │
+│                                                                  │
+│  Why This Matters:                                               │
+│  - CFO/Finance buy-in (not just engineering)                   │
+│  - Procurement compliance                                       │
+│  - ESG requirements for Fortune 500                            │
+│  - Justifies $100K+ enterprise contracts                       │
+│  - Enables consumption-based pricing models                     │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -455,7 +506,7 @@ LEO Mode and LEO Learning represent additional defensible moats:
 ### The Open Source Strategy
 
 ```
-Open Source Core → Proprietary LEO → Maximum Value
+Open Source Core → Proprietary ZOIX → Maximum Value
 
 Benefits:
 - Lower CAC (organic adoption)
@@ -464,8 +515,8 @@ Benefits:
 - Enterprise "try before buy"
 
 Monetization:
-- LEO Mode (enterprise feature)
-- LEO Learning (enterprise feature)
+- ZOIX Mode (enterprise feature)
+- ZOIX Learning (enterprise feature)
 - Support & SLAs
 - Cloud hosted version
 
@@ -558,13 +609,13 @@ Assuming standard dilution at each round:
 1. **Current Stage**: Pre-seed, $1-2M valuation justified by:
    - Working MVP
    - Unique multi-agent architecture
-   - Clear path to LEO Mode differentiation
+   - Clear path to ZOIX Mode differentiation
    - Model-agnostic = no vendor lock-in
 
 2. **Why AI Premium Applies**:
    - Not just using AI, orchestrating AI
-   - LEO Learning = proprietary model training
-   - Network effects potential (LEO Network)
+   - ZOIX Learning = proprietary model training
+   - Network effects potential (ZOIX Network)
 
 3. **Comparable Positioning**:
    - "Cursor for enterprise teams"
@@ -572,9 +623,9 @@ Assuming standard dilution at each round:
    - "GitLab model but for AI orchestration"
 
 4. **Path to $1B+**:
-   - LEO Mode (Year 2-3)
-   - LEO Learning (Year 3-4)
-   - LEO Network (Year 4-5)
+   - ZOIX Mode (Year 2-3)
+   - ZOIX Learning (Year 3-4)
+   - ZOIX Network (Year 4-5)
    - Each unlock = valuation step-up
 
 ### For Tech Partner Conversations

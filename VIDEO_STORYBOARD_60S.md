@@ -134,19 +134,19 @@ INTELLIGENT ORCHESTRATION
 
 ---
 
-### SHOT 6: LEO Teaser (0:42 - 0:50) | 8 seconds
+### SHOT 6: ZOIX Teaser (0:42 - 0:50) | 8 seconds
 
 **Visual:**
 - Camera pulls back dramatically
-- Show LEO dashboard with 20 Flowrider instances
+- Show ZOIX dashboard with 20 Flowrider instances
 - Numbers animate: 20 × 20 = 400
 
 **Audio:**
-> "And with LEO mode? One Flowrider is 20 sessions. LEO manages 20 Flowriders. That's 400 AI agents. One human."
+> "And with ZOIX mode? One Flowrider is 20 sessions. ZOIX manages 20 Flowriders. That's 400 AI agents. One human."
 
 **Text Overlay:**
 ```
-LEO MODE
+ZOIX MODE
 20 × 20 = 400 AI AGENTS
 Coming Q3 2026
 ```
@@ -245,7 +245,7 @@ v0.1.0 - macOS
 | 3 | 10s | 0:12 | 0:22 | Solution - 20 faces demo |
 | 4 | 10s | 0:22 | 0:32 | AI providers - Ollama FREE |
 | 5 | 10s | 0:32 | 0:42 | Smart features montage |
-| 6 | 8s | 0:42 | 0:50 | LEO Mode teaser |
+| 6 | 8s | 0:42 | 0:50 | ZOIX Mode teaser |
 | 7 | 10s | 0:50 | 1:00 | CTA and outro |
 | **Total** | **60s** | | | |
 
@@ -267,7 +267,7 @@ v0.1.0 - macOS
 
 **[0:32]** "AI suggestions tell you what needs attention. Project management keeps you organized. See your ROI in real-time."
 
-**[0:42]** "And with LEO mode? One Flowrider is 20 sessions. LEO manages 20 Flowriders. That's 400 AI agents. One human."
+**[0:42]** "And with ZOIX mode? One Flowrider is 20 sessions. ZOIX manages 20 Flowriders. That's 400 AI agents. One human."
 
 **[0:50]** "Flowrider. The command center for AI engineering. Try it free."
 

@@ -1,6 +1,6 @@
-# FLOWRIDER 5-YEAR STRATEGIC ROADMAP
+# FLOWRIDER 5-YEAR STRATEGIC ROADMAP v2.0
 
-**Version:** 1.0
+**Version:** 2.0
 **Date:** July 2026
 **Company:** Josephas LLC
 
@@ -8,7 +8,15 @@
 
 ## Executive Summary
 
-This document outlines Flowrider's strategic trajectory from launch through Year 5, mapping product evolution, market expansion, competitive positioning, and financial milestones. Our goal: become the **meta-layer for AI-assisted software development** - the air traffic control system for AI engineering teams.
+This document outlines Flowrider's strategic trajectory from launch through Year 5, incorporating expert recommendations from technical, business, investor, and partnership reviews. Our goal: become the **meta-layer for AI-assisted software development** - the air traffic control system for AI engineering teams.
+
+**Key Updates from v1.0:**
+- Revised pricing ($49 Pro, $199 Team) based on value-to-Cursor ratio
+- Added freemium tier (3 sessions free) for activation
+- Updated Series A timing to $1-2M ARR (current market reality)
+- ZOIX branding throughout (replacing LEO references)
+- Added team/traction/unit economics sections for investor materials
+- Realistic competitive timeline based on market analysis
 
 ---
 
@@ -19,7 +27,7 @@ This document outlines Flowrider's strategic trajectory from launch through Year
   │             │             │             │             │             │
   ▼             ▼             ▼             ▼             ▼             ▼
 ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐
-│Launch│    │ZOIX   │    │Enter-│    │Plat- │    │Market│    │Exit/ │
+│Launch│    │ZOIX  │    │Enter-│    │Plat- │    │Market│    │Exit/ │
 │ MVP  │───▶│Mode  │───▶│prise │───▶│form  │───▶│Leader│───▶│IPO   │
 └──────┘    └──────┘    └──────┘    └──────┘    └──────┘    └──────┘
    │           │           │           │           │           │
@@ -48,12 +56,14 @@ This document outlines Flowrider's strategic trajectory from launch through Year
 
 ```
 Q3 2026 (Launch)
-├── Core 20-session orchestration ✓
-├── Multi-provider support (6+) ✓
+├── Core session orchestration (4-20 configurable) ✓
+├── Multi-provider support (6+ built-in) ✓
+├── Custom provider support (OpenAI-compatible) ✓
 ├── Templates system ✓
 ├── API keys management ✓
-├── ZOIX AI suggestions ✓
+├── ZOIX AI learning layer ✓
 ├── Auto-update system ✓
+├── Autopilot Demo (90-second investor presentation) ✓
 └── Licensing/payments ✓
 
 Q4 2026 (Growth)
@@ -77,13 +87,33 @@ Q1-Q2 2027 (Scale)
 |--------|---------|---------|---------|---------|
 | Users | 500 | 2,000 | 5,000 | 10,000 |
 | Paying | 0 | 100 | 400 | 1,000 |
-| MRR | $0 | $3K | $15K | $40K |
-| ARR | $0 | $36K | $180K | $480K |
+| MRR | $0 | $5K | $25K | $60K |
+| ARR | $0 | $60K | $300K | $720K |
 
-### Funding Strategy
+### Pricing Strategy v2.0 (Expert-Recommended)
+
+| Tier | Price | Sessions | Target | Value Proposition |
+|------|-------|----------|--------|-------------------|
+| **Free** | $0/mo | 3 | Activation | "Try before you buy" |
+| **Pro** | $49/mo | 20 | Power users | "20x Cursor for 2.5x price" |
+| **Team** | $199/mo | 100 (5 seats) | Agencies | "$40/seat for AI workforce" |
+| **Enterprise** | Custom | Unlimited | F500 | "400-agent orchestration" |
+
+**Pricing Rationale:**
+- Cursor charges $20/mo for 1 AI session
+- Flowrider offers 20 sessions = 20x the value
+- $49/mo = 2.5x Cursor price for 20x value = **8x better value**
+- Freemium tier reduces activation friction (target: 70% activation rate)
+
+### Funding Strategy (Updated for 2026 Market)
 
 - **Pre-Seed** (Q3 2026): $250K-500K at $3-5M valuation
-- **Seed** (Q2 2027): $2-3M at $15-25M valuation
+- **Seed** (Q1-Q2 2027): $2-3M at $15-25M valuation
+
+**Series A Reality Check:**
+- Series A now happens at **$1-2M ARR** (not $5M as in 2021)
+- We target Series A readiness by Q2 2027 (~$720K ARR)
+- With strong growth metrics, Series A at $1.5M ARR is realistic
 
 ### Team (Year 1)
 
@@ -140,8 +170,8 @@ Q1-Q2 2028 (Scale)
 |--------|---------|---------|---------|---------|
 | Users | 20,000 | 35,000 | 55,000 | 80,000 |
 | Paying | 2,500 | 5,000 | 8,000 | 12,000 |
-| MRR | $100K | $200K | $350K | $500K |
-| ARR | $1.2M | $2.4M | $4.2M | $6M |
+| MRR | $150K | $300K | $500K | $750K |
+| ARR | $1.8M | $3.6M | $6M | $9M |
 | Enterprise | 5 | 10 | 15 | 25 |
 
 ### Competitive Response
@@ -158,7 +188,9 @@ Q1-Q2 2028 (Scale)
 
 ### Funding Strategy
 
-- **Series A** (Q4 2027 / Q1 2028): $15-25M at $100-150M valuation
+- **Series A** (Q4 2027): $15-25M at $100-150M valuation
+  - Triggered at $1.5-2M ARR with 100%+ growth
+  - Lead: a16z, Sequoia, Greylock, Index
 
 ### Team (Year 2)
 
@@ -202,8 +234,8 @@ Q1-Q2 2029 (Ecosystem)
 |--------|---------|---------|---------|---------|
 | Users | 150,000 | 200,000 | 280,000 | 400,000 |
 | Paying | 25,000 | 40,000 | 60,000 | 85,000 |
-| MRR | $1M | $1.5M | $2M | $2.5M |
-| ARR | $12M | $18M | $24M | $30M |
+| MRR | $1.5M | $2.25M | $3M | $4M |
+| ARR | $18M | $27M | $36M | $48M |
 | Enterprise | 75 | 125 | 175 | 250 |
 
 ### Market Position
@@ -223,8 +255,8 @@ Q1-Q2 2029 (Ecosystem)
 │          ▼                                                  │
 │  ┌───────────────┐   Orchestration Layer                   │
 │  │  FLOWRIDER    │   (MARKET LEADER)                       │
-│  │  ZOIX MODE     │                                         │
-│  │  ZOIX NETWORK  │                                         │
+│  │  ZOIX MODE    │                                         │
+│  │  ZOIX NETWORK │                                         │
 │  └───────────────┘                                         │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -282,7 +314,7 @@ the orchestration layer everyone needs.
 |--------|--------------|------------|
 | Users | 400,000 | 1,000,000 |
 | Paying | 85,000 | 200,000 |
-| ARR | $30M | $80M |
+| ARR | $48M | $120M |
 | Enterprise | 250 | 600 |
 | Fortune 500 | 10 | 50 |
 
@@ -301,9 +333,9 @@ By Year 4, three paths emerge:
    - Access to enterprise distribution
 
 3. **Strategic Acquisition**
-   - Microsoft: $3-5B (GitHub integration)
-   - Google: $2-4B (Cloud/AI play)
-   - Atlassian: $2-3B (Developer lifecycle)
+   - Microsoft: $4-8B (GitHub integration)
+   - Google: $3-6B (Cloud/AI play)
+   - Atlassian: $2-4B (Developer lifecycle)
 
 ### Team (Year 4)
 
@@ -340,7 +372,7 @@ Target Metrics:
 ├── Growth: 60%+ YoY
 ├── NRR: 130%+
 ├── Gross Margin: 80%+
-├── Market Cap: $3-5B
+├── Market Cap: $4-8B
 └── Employee Count: 400-500
 ```
 
@@ -348,20 +380,20 @@ Target Metrics:
 
 | Acquirer | Likely Price | Strategic Fit |
 |----------|--------------|---------------|
-| **Microsoft** | $5-8B | GitHub + VS Code + Azure AI |
-| **Google** | $4-6B | Cloud + Workspace + Gemini |
-| **Salesforce** | $3-5B | Heroku + Slack + dev ecosystem |
-| **Amazon** | $3-5B | AWS + CodeWhisperer |
-| **Private Equity** | $2-4B | Roll-up with other dev tools |
+| **Microsoft** | $6-10B | GitHub + VS Code + Azure AI |
+| **Google** | $5-8B | Cloud + Workspace + Gemini |
+| **Salesforce** | $4-6B | Heroku + Slack + dev ecosystem |
+| **Amazon** | $4-6B | AWS + CodeWhisperer |
+| **Private Equity** | $3-5B | Roll-up with other dev tools |
 
 ### Founder Outcomes
 
-**IPO Scenario** (30% founder ownership at $4B market cap):
-- Founder equity value: **$1.2B**
+**IPO Scenario** (25% founder ownership at $6B market cap):
+- Founder equity value: **$1.5B**
 - Subject to lockup, secondary sales
 
-**Acquisition Scenario** (25% founder ownership at $5B sale):
-- Founder proceeds: **$1.25B**
+**Acquisition Scenario** (20% founder ownership at $8B sale):
+- Founder proceeds: **$1.6B**
 - Subject to earnouts, retention
 
 ---
@@ -376,11 +408,11 @@ Target Metrics:
 ├──────────┼──────────┼──────────┼──────────┼──────────┼────────────────┤
 │ Users    │   10K    │   80K    │  400K    │   1M     │    2M+         │
 │ Paying   │   1K     │   12K    │   85K    │  200K    │   400K+        │
-│ ARR      │  $500K   │   $6M    │  $30M    │  $80M    │  $200M+        │
+│ ARR      │  $720K   │   $9M    │  $48M    │  $120M   │  $250M+        │
 │ Ent.     │    5     │   25     │  250     │  600     │  1,200+        │
 │ Team     │   5-8    │  20-25   │  90-110  │ 230-280  │  400-500       │
-│ Funding  │  $500K   │  $3M     │  $25M    │  $85M    │ $150M+/IPO     │
-│ Valuation│   $5M    │  $25M    │ $150M    │ $600M    │  $3B+          │
+│ Funding  │  $500K   │  $3M     │  $25M    │  $100M   │ $200M+/IPO     │
+│ Valuation│   $5M    │  $25M    │ $200M    │ $800M    │  $4B+          │
 └──────────┴──────────┴──────────┴──────────┴──────────┴────────────────┘
 ```
 
@@ -390,8 +422,8 @@ Target Metrics:
 
 ### Year 1: First Mover
 - Only multi-agent orchestrator on market
-- 3D icosahedron UI (unique UX)
-- Model-agnostic architecture
+- Configurable session slots (4-20)
+- Model-agnostic architecture + custom providers
 
 ### Year 2: Network Effects
 - ZOIX Learning accumulates organizational knowledge
@@ -415,6 +447,42 @@ Target Metrics:
 
 ---
 
+## Unit Economics (Expert-Recommended Addition)
+
+### Pro Tier ($49/month)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| ARPU | $49/mo | Monthly subscription |
+| Gross Margin | 85% | SaaS infrastructure |
+| Target CAC | $150 | Product-led growth |
+| LTV (24-mo retention) | $1,176 | $49 × 24 months |
+| LTV:CAC | **7.8x** | Excellent for SaaS |
+| Payback Period | 3.6 months | Healthy |
+
+### Team Tier ($199/month)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| ARPU | $199/mo | 5 seats included |
+| Per-seat Cost | $39.80/mo | Competitive with enterprise tools |
+| Gross Margin | 85% | Same infrastructure |
+| Target CAC | $500 | Sales-assisted |
+| LTV (30-mo retention) | $5,970 | Teams retain longer |
+| LTV:CAC | **11.9x** | Excellent |
+
+### Enterprise (Custom)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Average ACV | $50K → $200K | Growth over years |
+| Gross Margin | 80% | Includes support |
+| Target CAC | $25K | Field sales |
+| LTV (5-year contracts) | $250K-$1M | Multi-year deals |
+| LTV:CAC | **10-40x** | Very healthy |
+
+---
+
 ## Risk Mitigation by Phase
 
 ### Year 1 Risks
@@ -422,7 +490,7 @@ Target Metrics:
 | Risk | Mitigation |
 |------|------------|
 | Product-market fit failure | Aggressive user research, pivot fast |
-| Cursor adds multi-session | Differentiate on ZOIX vision |
+| Cursor adds multi-session | Differentiate on ZOIX vision (400 agents) |
 | Funding challenges | Bootstrap path, grants, revenue |
 | Solo founder burnout | Find co-founder early |
 
@@ -473,11 +541,11 @@ Target Metrics:
 | Factor | Cursor | Flowrider |
 |--------|--------|-----------|
 | Focus | Single AI agent | Multi-agent orchestration |
-| Sessions | 1 | 20-400 |
-| Providers | OpenAI-centric | Model-agnostic |
+| Sessions | 1 | 4-400 (configurable) |
+| Providers | OpenAI-centric | Model-agnostic + custom |
 | Target | Individual devs | Teams + Enterprise |
 | Moat | IDE experience | ZOIX platform |
-| Exit | Acquired $60B | TBD |
+| Exit | Acquired $60B | TBD ($4-8B target) |
 
 ---
 
@@ -490,14 +558,14 @@ Target Metrics:
 - Enterprise adoption accelerates post-EU AI Act
 
 ### Competitive Assumptions
-- No major player launches direct competitor for 18 months
+- No major player launches direct competitor for 12 months
 - Cursor stays focused on IDE, not orchestration
-- Microsoft/Google build vs. buy decision takes 2+ years
+- Microsoft/Google build vs. buy decision takes 18+ months
 
 ### Financial Assumptions
-- Blended ARPU: $50/month → $100/month over 5 years
+- Blended ARPU: $49/month → $100/month over 5 years
 - Enterprise ACV: $50K → $200K over 5 years
-- Gross margin: 70% → 85% with scale
+- Gross margin: 80% → 85% with scale
 - Sales efficiency: 12-month CAC payback
 
 ### Team Assumptions
@@ -507,6 +575,6 @@ Target Metrics:
 
 ---
 
-*Document Version: 1.0*
+*Document Version: 2.0*
 *Last Updated: July 2026*
 *Josephas LLC - Flowrider*

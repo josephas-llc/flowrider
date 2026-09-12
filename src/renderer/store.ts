@@ -1,165 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Import and re-export shared AI types (used by both main and renderer processes)
+// Use 'export type' for types to satisfy isolatedModules/Rollup
+export type { AIProvider, AIProviderConfig, TaskComplexity } from '../shared/ai-types';
+export { AI_PROVIDERS } from '../shared/ai-types';
+import type { AIProvider, AIProviderConfig, TaskComplexity } from '../shared/ai-types';
+import { AI_PROVIDERS } from '../shared/ai-types';
+
 // ============================================
 // TYPES
 // ============================================
 
-export type AIProvider = 'claude' | 'openai' | 'ollama' | 'gemini' | 'grok' | 'mistral' | 'kimi' | 'deepseek' | 'cohere' | 'qwen' | 'yi' | 'falcon' | 'hunyuan' | 'local';
-
-export interface AIProviderConfig {
-  id: AIProvider;
-  name: string;
-  description: string;
-  costPerMToken: number; // Cost per million tokens (0 for local)
-  wattsPerMToken: number; // Estimated watt-hours per million tokens (energy usage)
-  isLocal: boolean;
-  apiUrl?: string;
-  models: string[];
-}
-
-export const AI_PROVIDERS: AIProviderConfig[] = [
-  {
-    id: 'claude',
-    name: 'Claude (Anthropic)',
-    description: 'Advanced reasoning, coding, and analysis',
-    costPerMToken: 15, // Opus pricing approx
-    wattsPerMToken: 0.5, // Large model, datacenter GPU inference
-    isLocal: false,
-    apiUrl: 'https://api.anthropic.com',
-    models: ['claude-opus-4', 'claude-sonnet-4', 'claude-haiku'],
-  },
-  {
-    id: 'openai',
-    name: 'OpenAI',
-    description: 'GPT-4o and GPT models',
-    costPerMToken: 10,
-    wattsPerMToken: 0.4, // Large model, datacenter GPU inference
-    isLocal: false,
-    apiUrl: 'https://api.openai.com',
-    models: ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-  },
-  {
-    id: 'gemini',
-    name: 'Gemini (Google)',
-    description: 'Multimodal AI with long context',
-    costPerMToken: 7,
-    wattsPerMToken: 0.3, // Google's efficient TPU infrastructure
-    isLocal: false,
-    apiUrl: 'https://generativelanguage.googleapis.com',
-    models: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
-  },
-  {
-    id: 'grok',
-    name: 'Grok (xAI)',
-    description: 'Real-time knowledge, witty responses',
-    costPerMToken: 5,
-    wattsPerMToken: 0.35, // xAI infrastructure
-    isLocal: false,
-    apiUrl: 'https://api.x.ai',
-    models: ['grok-2', 'grok-2-mini'],
-  },
-  {
-    id: 'mistral',
-    name: 'Mistral AI (France)',
-    description: 'European AI, strong multilingual & coding',
-    costPerMToken: 3,
-    wattsPerMToken: 0.25, // Efficient European datacenter
-    isLocal: false,
-    apiUrl: 'https://api.mistral.ai',
-    models: ['mistral-large-latest', 'mistral-medium', 'mistral-small', 'codestral'],
-  },
-  {
-    id: 'deepseek',
-    name: 'DeepSeek (China)',
-    description: 'Cost-effective reasoning & coding AI',
-    costPerMToken: 0.55, // Very competitive pricing
-    wattsPerMToken: 0.2, // Efficient inference
-    isLocal: false,
-    apiUrl: 'https://api.deepseek.com',
-    models: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'],
-  },
-  {
-    id: 'kimi',
-    name: 'Kimi K3 (Moonshot AI - China)',
-    description: '1M token context, strong at long docs',
-    costPerMToken: 1.5,
-    wattsPerMToken: 0.3, // Standard datacenter
-    isLocal: false,
-    apiUrl: 'https://api.moonshot.cn',
-    models: ['moonshot-v1-128k', 'moonshot-v1-32k', 'moonshot-v1-8k'],
-  },
-  {
-    id: 'cohere',
-    name: 'Cohere (Canada)',
-    description: 'Enterprise RAG & embeddings specialist',
-    costPerMToken: 1,
-    wattsPerMToken: 0.25, // Efficient Canadian datacenter
-    isLocal: false,
-    apiUrl: 'https://api.cohere.ai',
-    models: ['command-r-plus', 'command-r', 'command-light'],
-  },
-  // ===== FREE OPEN-SOURCE INTERNATIONAL MODELS (via Ollama) =====
-  {
-    id: 'qwen',
-    name: 'Qwen3 (Alibaba - China)',
-    description: 'Apache 2.0, 1M context, 201 languages - FREE',
-    costPerMToken: 0, // Open source, run locally
-    wattsPerMToken: 0.01, // Local inference
-    isLocal: true,
-    apiUrl: 'http://localhost:11434', // Via Ollama
-    models: ['qwen3:70b', 'qwen3:32b', 'qwen3:14b', 'qwen3:7b', 'qwen-coder:32b'],
-  },
-  {
-    id: 'yi',
-    name: 'Yi (01.AI - China)',
-    description: 'Apache 2.0, strong bilingual EN/ZH - FREE',
-    costPerMToken: 0,
-    wattsPerMToken: 0.01,
-    isLocal: true,
-    apiUrl: 'http://localhost:11434',
-    models: ['yi:34b', 'yi:9b', 'yi-coder:9b'],
-  },
-  {
-    id: 'falcon',
-    name: 'Falcon 3 (TII - UAE)',
-    description: 'Compact & efficient, strong reasoning - FREE',
-    costPerMToken: 0,
-    wattsPerMToken: 0.01,
-    isLocal: true,
-    apiUrl: 'http://localhost:11434',
-    models: ['falcon3:10b', 'falcon3:7b', 'falcon3:3b', 'falcon3:1b'],
-  },
-  {
-    id: 'hunyuan',
-    name: 'HunYuan 3 (Tencent - China)',
-    description: 'Apache 2.0, 256K context MoE - FREE',
-    costPerMToken: 0,
-    wattsPerMToken: 0.01,
-    isLocal: true,
-    apiUrl: 'http://localhost:11434',
-    models: ['hunyuan:7b', 'hunyuan-lite'],
-  },
-  {
-    id: 'ollama',
-    name: 'Ollama (Local)',
-    description: 'Run Llama, Mistral, etc. locally - FREE',
-    costPerMToken: 0,
-    wattsPerMToken: 0.01, // Local laptop/desktop power only
-    isLocal: true,
-    apiUrl: 'http://localhost:11434',
-    models: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'deepseek-coder'],
-  },
-  {
-    id: 'local',
-    name: 'Custom Local LLM',
-    description: 'Any local model via API - FREE',
-    costPerMToken: 0,
-    wattsPerMToken: 0.01, // Local power only
-    isLocal: true,
-    models: ['custom'],
-  },
-];
+// Note: AIProvider, AIProviderConfig, AI_PROVIDERS, and TaskComplexity are now
+// imported from ../shared/ai-types.ts and re-exported above for backward compatibility
 
 export interface GitHubRepo {
   owner: string;
@@ -354,6 +208,71 @@ export interface DashboardMetrics {
 }
 
 // ============================================
+// SMART MODEL ROUTING TYPES (ZOIX Cost Intelligence)
+// ============================================
+
+export type TaskComplexity = 'simple' | 'medium' | 'complex' | 'expert';
+
+export type RoutingMode =
+  | 'manual'       // User picks model every time
+  | 'suggest'      // ZOIX suggests but user confirms
+  | 'auto'         // ZOIX auto-routes (can override)
+  | 'strict';      // ZOIX enforces cost limits
+
+export interface RoutingRule {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  // Conditions
+  projectId?: string;           // Apply to specific project
+  taskPatterns?: string[];      // Regex patterns to match
+  complexityOverride?: TaskComplexity;
+  // Actions
+  preferredProvider?: AIProvider;
+  preferredModel?: string;
+  maxCostPerTask?: number;      // Stop/warn if exceeds this
+}
+
+export interface RoutingSettings {
+  mode: RoutingMode;
+  defaultProvider: AIProvider;
+  defaultModel: string;
+  rules: RoutingRule[];
+  // Global cost controls (for CEOs/CFOs)
+  dailyBudget?: number;         // Stop routing to paid models if exceeded
+  monthlyBudget?: number;
+  warnAtPercent?: number;       // Warn when hitting X% of budget (default 80%)
+  // Fallback behavior
+  overBudgetFallback: 'block' | 'local' | 'warn'; // What to do when over budget
+  preferLocalWhenPossible: boolean; // Try Ollama first for simple tasks
+}
+
+export interface RoutingStats {
+  totalTasksRouted: number;
+  totalCostActual: number;
+  totalCostBaseline: number;    // If always used most expensive model
+  totalSavings: number;
+  savingsPercent: number;
+  routingsByComplexity: Record<TaskComplexity, number>;
+  routingsByProvider: Record<AIProvider, number>;
+  todayCost: number;
+  monthCost: number;
+}
+
+export interface TaskAnalysis {
+  complexity: TaskComplexity;
+  confidence: number; // 0-1
+  signals: string[];  // What we detected that led to this classification
+  suggestedProvider: AIProvider;
+  suggestedModel: string;
+  estimatedTokens: number;
+  estimatedCost: number;
+  baselineCost: number;      // Cost if using most expensive model
+  potentialSavings: number;  // baselineCost - estimatedCost
+}
+
+// ============================================
 // STATE INTERFACE
 // ============================================
 
@@ -377,6 +296,11 @@ interface FlowriderState {
 
   // Energy tracking (ESG/sustainability metrics)
   energyMetrics: EnergyMetrics;
+
+  // Smart Model Routing (ZOIX Cost Intelligence)
+  routingSettings: RoutingSettings;
+  routingStats: RoutingStats;
+  lastTaskAnalysis: TaskAnalysis | null;
 
   // LEO Mode
   leo: LeoState;
@@ -495,6 +419,18 @@ interface FlowriderState {
   setDashboardView: (view: 'overview' | 'projects' | 'costs' | 'leo' | 'roi' | 'mcp' | 'messaging' | 'activity' | 'providers' | 'leoai' | 'api') => void;
   refreshDashboard: () => void;
 
+  // Smart Model Routing Actions (ZOIX Cost Intelligence)
+  setRoutingMode: (mode: RoutingMode) => void;
+  updateRoutingSettings: (updates: Partial<RoutingSettings>) => void;
+  addRoutingRule: (rule: RoutingRule) => void;
+  removeRoutingRule: (ruleId: string) => void;
+  updateRoutingRule: (ruleId: string, updates: Partial<RoutingRule>) => void;
+  setLastTaskAnalysis: (analysis: TaskAnalysis | null) => void;
+  recordRouting: (analysis: TaskAnalysis, actualTokens?: number, actualCost?: number) => void;
+  checkBudgetStatus: () => { overDaily: boolean; overMonthly: boolean; dailyUsedPercent: number; monthlyUsedPercent: number; shouldWarn: boolean };
+  resetDailyRoutingStats: () => void;
+  resetMonthlyRoutingStats: () => void;
+
   // Session Sync
   syncWithTmux: () => Promise<void>;
 }
@@ -578,6 +514,28 @@ const initializeLeoState = (): LeoState => ({
   coordinator: null,
 });
 
+const initializeRoutingSettings = (): RoutingSettings => ({
+  mode: 'suggest', // Default: ZOIX suggests but user confirms
+  defaultProvider: 'claude',
+  defaultModel: 'claude-sonnet-4',
+  rules: [],
+  warnAtPercent: 80,
+  overBudgetFallback: 'local', // Fall back to Ollama when over budget
+  preferLocalWhenPossible: true, // Use Ollama for simple tasks
+});
+
+const initializeRoutingStats = (): RoutingStats => ({
+  totalTasksRouted: 0,
+  totalCostActual: 0,
+  totalCostBaseline: 0,
+  totalSavings: 0,
+  savingsPercent: 0,
+  routingsByComplexity: { simple: 0, medium: 0, complex: 0, expert: 0 },
+  routingsByProvider: {} as Record<AIProvider, number>,
+  todayCost: 0,
+  monthCost: 0,
+});
+
 const initializeDashboard = (): DashboardMetrics => ({
   activeSessions: 0,
   totalSessions: 20,
@@ -608,6 +566,9 @@ export const useStore = create<FlowriderState>()(
       selectedProject: null,
       costMetrics: initializeCostMetrics(),
       energyMetrics: initializeEnergyMetrics(),
+      routingSettings: initializeRoutingSettings(),
+      routingStats: initializeRoutingStats(),
+      lastTaskAnalysis: null,
       leo: initializeLeoState(),
       dashboard: initializeDashboard(),
       dashboardView: 'overview',
@@ -1435,6 +1396,102 @@ export const useStore = create<FlowriderState>()(
           console.error('[Store] Failed to sync user profile:', err);
         }
       },
+
+      // ========== SMART MODEL ROUTING ACTIONS (ZOIX Cost Intelligence) ==========
+
+      setRoutingMode: (mode) =>
+        set((state) => ({
+          routingSettings: { ...state.routingSettings, mode },
+        })),
+
+      updateRoutingSettings: (updates) =>
+        set((state) => ({
+          routingSettings: { ...state.routingSettings, ...updates },
+        })),
+
+      addRoutingRule: (rule) =>
+        set((state) => ({
+          routingSettings: {
+            ...state.routingSettings,
+            rules: [...state.routingSettings.rules, rule],
+          },
+        })),
+
+      removeRoutingRule: (ruleId) =>
+        set((state) => ({
+          routingSettings: {
+            ...state.routingSettings,
+            rules: state.routingSettings.rules.filter((r) => r.id !== ruleId),
+          },
+        })),
+
+      updateRoutingRule: (ruleId, updates) =>
+        set((state) => ({
+          routingSettings: {
+            ...state.routingSettings,
+            rules: state.routingSettings.rules.map((r) =>
+              r.id === ruleId ? { ...r, ...updates } : r
+            ),
+          },
+        })),
+
+      setLastTaskAnalysis: (analysis) => set({ lastTaskAnalysis: analysis }),
+
+      recordRouting: (analysis, actualTokens, actualCost) =>
+        set((state) => {
+          const cost = actualCost ?? analysis.estimatedCost;
+          const baseline = actualTokens
+            ? ((actualTokens / 1_000_000) * 15) // Claude Opus pricing as baseline
+            : analysis.baselineCost;
+
+          const newStats = { ...state.routingStats };
+          newStats.totalTasksRouted++;
+          newStats.routingsByComplexity[analysis.complexity]++;
+          newStats.routingsByProvider[analysis.suggestedProvider] =
+            (newStats.routingsByProvider[analysis.suggestedProvider] || 0) + 1;
+          newStats.totalCostActual += cost;
+          newStats.totalCostBaseline += baseline;
+          newStats.totalSavings = newStats.totalCostBaseline - newStats.totalCostActual;
+          newStats.savingsPercent = newStats.totalCostBaseline > 0
+            ? (newStats.totalSavings / newStats.totalCostBaseline) * 100
+            : 0;
+          newStats.todayCost += cost;
+          newStats.monthCost += cost;
+
+          return { routingStats: newStats };
+        }),
+
+      checkBudgetStatus: () => {
+        const state = get();
+        const { routingSettings, routingStats } = state;
+
+        const dailyUsedPercent = routingSettings.dailyBudget
+          ? (routingStats.todayCost / routingSettings.dailyBudget) * 100
+          : 0;
+        const monthlyUsedPercent = routingSettings.monthlyBudget
+          ? (routingStats.monthCost / routingSettings.monthlyBudget) * 100
+          : 0;
+
+        const warnThreshold = routingSettings.warnAtPercent || 80;
+
+        return {
+          overDaily: dailyUsedPercent >= 100,
+          overMonthly: monthlyUsedPercent >= 100,
+          dailyUsedPercent,
+          monthlyUsedPercent,
+          shouldWarn: dailyUsedPercent >= warnThreshold || monthlyUsedPercent >= warnThreshold,
+        };
+      },
+
+      resetDailyRoutingStats: () =>
+        set((state) => ({
+          routingStats: { ...state.routingStats, todayCost: 0 },
+        })),
+
+      resetMonthlyRoutingStats: () =>
+        set((state) => ({
+          routingStats: { ...state.routingStats, monthCost: 0 },
+        })),
     }),
     {
       name: 'flowrider2-storage',
@@ -1443,6 +1500,8 @@ export const useStore = create<FlowriderState>()(
         projects: state.projects,
         costMetrics: state.costMetrics,
         energyMetrics: state.energyMetrics,
+        routingSettings: state.routingSettings,
+        routingStats: state.routingStats,
         leo: state.leo,
         isFirstRun: state.isFirstRun,
       }),

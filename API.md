@@ -8,7 +8,7 @@ Flowrider exposes its functionality through the `window.flowrider` object, which
 
 ```typescript
 window.flowrider.tmux.*     // Session management
-window.flowrider.leoai.*    // LEO AI learning system
+window.flowrider.leoai.*    // ZOIX AI learning system
 window.flowrider.monitor.*  // Session monitoring
 window.flowrider.context.*  // Context injection
 window.flowrider.leo.*      // Meta-orchestration (future)
@@ -93,7 +93,7 @@ const result = await window.flowrider.tmux.rename('old-name', 'new-name');
 
 #### `leoai.enable()`
 
-Enable the LEO AI learning system.
+Enable the ZOIX AI learning system.
 
 ```typescript
 await window.flowrider.leoai.enable();
@@ -102,7 +102,7 @@ await window.flowrider.leoai.enable();
 
 #### `leoai.disable()`
 
-Disable the LEO AI learning system.
+Disable the ZOIX AI learning system.
 
 ```typescript
 await window.flowrider.leoai.disable();
@@ -111,7 +111,7 @@ await window.flowrider.leoai.disable();
 
 #### `leoai.getStatus()`
 
-Get current LEO AI status.
+Get current ZOIX AI status.
 
 ```typescript
 const result = await window.flowrider.leoai.getStatus();
@@ -120,7 +120,7 @@ const result = await window.flowrider.leoai.getStatus();
 //   data: {
 //     enabled: boolean;
 //     learning: boolean;
-//     stats: LeoStats;
+//     stats: ZoixStats;
 //     lastAnalysis: number | null;
 //     config: {...}
 //   }
@@ -473,11 +473,11 @@ const result = await window.flowrider.git.detectRepo('/path/to/project');
 
 ### `leo.enable() / leo.disable()`
 
-Enable/disable LEO meta-orchestration.
+Enable/disable ZOIX meta-orchestration.
 
 ### `leo.getStatus()`
 
-Get LEO orchestration status.
+Get ZOIX orchestration status.
 
 ### `leo.getFlowriders()`
 
@@ -576,10 +576,10 @@ interface CodeSnippet {
 }
 ```
 
-### LeoStats
+### ZoixStats
 
 ```typescript
-interface LeoStats {
+interface ZoixStats {
   totalInteractions: number;
   totalPatterns: number;
   totalInsights: number;
@@ -630,7 +630,7 @@ const createResult = await window.flowrider.tmux.create(
 );
 
 if (createResult.success) {
-  // Start monitoring for LEO AI
+  // Start monitoring for ZOIX AI
   await window.flowrider.monitor.start(
     'my-project',
     crypto.randomUUID(),

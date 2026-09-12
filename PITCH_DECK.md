@@ -1,7 +1,8 @@
 # Flowrider Investor Pitch Deck
-## AI Session Orchestration Platform
+## AI Session Orchestration Platform + ZOIX API
 
 **Confidential - July 2026**
+**Version 2.0 - Dual Product Edition (Desktop + API)**
 
 ---
 
@@ -106,24 +107,35 @@
 
 ## Slide 6: Business Model
 
-### SaaS + Usage Revenue
+### Dual Revenue: Desktop App + ZOIX API
+
+**Product 1: Flowrider Desktop**
 
 | Tier | Price | Sessions | Target |
 |------|-------|----------|--------|
-| **Free** | $0/mo | 3 | Individual devs |
+| **Free** | $0/mo | 5 | Individual devs |
 | **Pro** | $49/mo | 20 | Power users |
 | **Team** | $199/mo | 100 (5 seats) | Agencies |
 | **Enterprise** | Custom | Unlimited | F500 |
 
-**Additional Revenue:**
-- API pass-through (5% margin)
-- Marketplace (30% commission)
+**Product 2: ZOIX API (B2B)**
 
-**Unit Economics (Pro):**
+| Tier | Price | API Calls | Target |
+|------|-------|-----------|--------|
+| **Developer** | $99/mo | 10,000 | Indie hackers |
+| **Startup** | $499/mo | 100,000 | Growing products |
+| **Enterprise** | Custom | Unlimited | Large-scale |
+
+**Usage Pricing (Beyond Quota):**
+- $0.001/basic call
+- $0.005/ZOIX-routed call
+- $0.01/ZOIX-enhanced call
+
+**Unit Economics (Combined):**
 - Gross Margin: 85%
-- CAC: $150 target
-- LTV: $1,176 (24-mo retention)
-- LTV:CAC: **7.8x**
+- Desktop CAC: $150 | API CAC: $500
+- Desktop LTV: $1,176 | API LTV: $6,000+
+- Blended LTV:CAC: **8.5x**
 
 ---
 
@@ -150,7 +162,43 @@
 
 ---
 
-## Slide 8: Competition
+## Slide 8: ZOIX API - B2B Revenue Engine (NEW)
+
+### Embed ZOIX Intelligence in Any Product
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ZOIX API USE CASES                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  SaaS Products        → Add AI without managing multiple APIs   │
+│  Content Platforms    → Generate descriptions, learn brand voice│
+│  Developer Tools      → Power code gen with learned patterns    │
+│  Internal Tools       → AI workflows with company knowledge     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Why ZOIX API Matters:**
+1. **Diversified Revenue** - B2B contracts are larger, stickier
+2. **Higher ACVs** - Enterprise API deals: $50K-500K/year
+3. **Network Effects** - More API users → smarter ZOIX → better Desktop
+
+**API Differentiators:**
+- Smart routing to optimal model (not just passthrough)
+- Learns from usage patterns (gets better over time)
+- Budget controls built-in (cost management for customers)
+- Context & memory across sessions
+
+**Revenue Potential:**
+- Developer tier ($99/mo) × 1,000 = $1.2M ARR
+- Startup tier ($499/mo) × 200 = $1.2M ARR
+- Enterprise (custom) × 20 = $2-4M ARR
+- **API Total Potential: $4-6M ARR by Year 3**
+
+---
+
+## Slide 9: Competition
 
 ### We Orchestrate the Competition
 
@@ -223,26 +271,28 @@
 
 ---
 
-## Slide 11: Financial Projections
+## Slide 12: Financial Projections
 
-### Path to $300M ARR
+### Path to $300M ARR (Combined Desktop + API)
 
-| Year | ARR | Users | Enterprise | Valuation (12x) |
-|------|-----|-------|------------|-----------------|
-| 2026 | $500K | 5,000 | 100 | $6M |
-| 2027 | $5M | 40,000 | 1,000 | $60M |
-| 2028 | $25M | 150,000 | 5,000 | $300M |
-| 2029 | $100M | 500,000 | 20,000 | $1.2B |
-| 2030 | $300M | 1,000,000 | 50,000 | $3.6B |
+| Year | Desktop ARR | API ARR | Total ARR | Valuation |
+|------|-------------|---------|-----------|-----------|
+| 2026 | $400K | $100K | $500K | $6M |
+| 2027 | $3M | $2M | $5M | $60M |
+| 2028 | $15M | $10M | $25M | $300M |
+| 2029 | $60M | $40M | $100M | $1.2B |
+| 2030 | $180M | $120M | $300M | $3.6B |
 
-**Aggressive Scenario (25x - Cursor trajectory):**
-- 2030 Valuation: **$7.5B**
+**Why Dual Revenue Increases Valuation:**
+- Diversified revenue = lower risk = higher multiple
+- B2B API contracts are stickier (higher NRR)
+- API customers become Desktop advocates (flywheel)
 
 **Break-even:** Q4 2028 at ~$20M ARR
 
 ---
 
-## Slide 12: Exit Paths
+## Slide 13: Exit Paths
 
 ### Strategic Value to Giants
 
@@ -263,7 +313,7 @@
 
 ---
 
-## Slide 13: The Ask
+## Slide 14: The Ask
 
 ### $2.5M Seed Round
 
@@ -286,7 +336,7 @@
 
 ---
 
-## Slide 14: Why Now
+## Slide 15: Why Now
 
 ### Perfect Storm
 
@@ -398,6 +448,6 @@ ZOIX = 20 Flowriders × 20 Sessions = **400 concurrent AI sessions**
 
 ---
 
-*Document Version: 1.0*
+*Document Version: 2.0 - Dual Product Edition*
 *Prepared: July 2026*
 *Contact: Josephas LLC*

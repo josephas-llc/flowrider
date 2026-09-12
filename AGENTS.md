@@ -2,13 +2,13 @@
 
 ## Overview
 
-Flowrider is a multi-agent orchestration platform that manages concurrent AI coding sessions. Each session runs Claude Code (or other AI providers) in tmux terminals, with LEO AI providing cross-session intelligence.
+Flowrider is a multi-agent orchestration platform that manages concurrent AI coding sessions. Each session runs Claude Code (or other AI providers) in tmux terminals, with ZOIX AI providing cross-session intelligence.
 
 ## Agent Hierarchy
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                      LEO (Meta-Orchestrator)            │
+│                      ZOIX (Meta-Orchestrator)            │
 │         Manages up to 20 Flowrider instances            │
 └─────────────────────────┬───────────────────────────────┘
                           │
@@ -19,7 +19,7 @@ Flowrider is a multi-agent orchestration platform that manages concurrent AI cod
 └─────────────────────────┬───────────────────────────────┘
                           │
 ┌─────────────────────────▼───────────────────────────────┐
-│                      LEO AI                             │
+│                      ZOIX AI                             │
 │           Self-improving learning system                │
 │     Observes → Analyzes → Learns → Applies              │
 └─────────────────────────────────────────────────────────┘
@@ -33,7 +33,7 @@ Flowrider is a multi-agent orchestration platform that manages concurrent AI cod
 - **Capabilities**: Full coding agent with file access, terminal, git
 - **Provider**: Claude, Ollama, OpenAI, or local LLMs
 
-### 2. LEO AI (Learning Agent)
+### 2. ZOIX AI (Learning Agent)
 - **Runtime**: Main Electron process
 - **Scope**: Cross-session, persistent
 - **Storage**: `~/.flowrider/leo-ai.db` (SQLite)
@@ -41,11 +41,11 @@ Flowrider is a multi-agent orchestration platform that manages concurrent AI cod
 #### Components:
 | Component | File | Purpose |
 |-----------|------|---------|
-| LeoMemory | `src/main/leo-ai/LeoMemory.ts` | SQLite persistence layer |
-| LeoCollector | `src/main/leo-ai/LeoCollector.ts` | Captures interactions |
-| LeoAnalyzer | `src/main/leo-ai/LeoAnalyzer.ts` | Pattern detection |
-| LeoDistiller | `src/main/leo-ai/LeoDistiller.ts` | Knowledge → context |
-| LeoAI | `src/main/leo-ai/LeoAI.ts` | Main coordinator |
+| ZoixMemory | `src/main/leo-ai/ZoixMemory.ts` | SQLite persistence layer |
+| ZoixCollector | `src/main/leo-ai/ZoixCollector.ts` | Captures interactions |
+| ZoixAnalyzer | `src/main/leo-ai/ZoixAnalyzer.ts` | Pattern detection |
+| ZoixDistiller | `src/main/leo-ai/ZoixDistiller.ts` | Knowledge → context |
+| ZoixAI | `src/main/leo-ai/ZoixAI.ts` | Main coordinator |
 | SessionMonitor | `src/main/SessionMonitor.ts` | Auto-captures tmux interactions |
 | ContextInjector | `src/main/ContextInjector.ts` | Prepends learned context to prompts |
 
@@ -75,7 +75,7 @@ CodeSnippet {
 }
 ```
 
-### 3. LEO Meta-Orchestrator (Future)
+### 3. ZOIX Meta-Orchestrator (Future)
 - **Runtime**: Dedicated process or separate machine
 - **Scope**: Multiple Flowrider instances (up to 20 × 20 = 400 sessions)
 - **Purpose**: Enterprise-scale AI coordination
@@ -86,7 +86,7 @@ CodeSnippet {
 ```
 Renderer ←→ Main Process ←→ tmux sessions
     │              │
-    │              └── LEO AI (in-process)
+    │              └── ZOIX AI (in-process)
     │
     └── window.flowrider.leoai.*
 ```
@@ -98,7 +98,7 @@ window.flowrider.tmux.create(name, faceIndex, workingDir)
 window.flowrider.tmux.sendInput(sessionName, data)
 window.flowrider.tmux.getOutput(sessionName, lines)
 
-// LEO AI learning
+// ZOIX AI learning
 window.flowrider.leoai.registerSession(context)
 window.flowrider.leoai.recordInteraction(sessionId, prompt, response, metadata)
 window.flowrider.leoai.recordFeedback(sessionId, signal)
@@ -110,7 +110,7 @@ window.flowrider.leoai.analyze()
 
 ```
 1. OBSERVE
-   └── LeoCollector captures prompts, responses, outcomes
+   └── ZoixCollector captures prompts, responses, outcomes
 
 2. ANALYZE (every 50 interactions or on-demand)
    ├── Extract error patterns + resolutions
@@ -124,7 +124,7 @@ window.flowrider.leoai.analyze()
    └── Extract reusable code snippets
 
 4. APPLY
-   └── LeoDistiller injects context into new sessions:
+   └── ZoixDistiller injects context into new sessions:
        - Relevant patterns for current task
        - Suggested snippets for language
        - Warnings from past failures
@@ -133,7 +133,7 @@ window.flowrider.leoai.analyze()
 
 ## Personalization
 
-Each user's LEO AI learns from:
+Each user's ZOIX AI learns from:
 - **Their projects**: tenfourOS, flatland, texian, etc.
 - **Their coding style**: patterns, preferences, conventions
 - **Their problem-solving**: how they fix specific errors
@@ -146,7 +146,7 @@ This creates a **personalized AI assistant** unique to each user.
 | Path | Purpose |
 |------|---------|
 | `~/.flowrider/` | App data directory |
-| `~/.flowrider/leo-ai.db` | LEO AI learning database |
+| `~/.flowrider/leo-ai.db` | ZOIX AI learning database |
 | `~/.flowrider/flowrider.db` | Session/project data |
 | `~/.flowrider/config.json` | User configuration |
 
@@ -155,17 +155,17 @@ This creates a **personalized AI assistant** unique to each user.
 ### Feedback System
 The SessionPanel includes thumbs up/down buttons for rating AI responses:
 - **Location**: `src/renderer/components/SessionPanel.tsx`
-- **Signal**: Sends positive (1) or negative (-1) feedback to LEO AI
-- **Purpose**: Helps LEO AI learn what works for you
+- **Signal**: Sends positive (1) or negative (-1) feedback to ZOIX AI
+- **Purpose**: Helps ZOIX AI learn what works for you
 
-### LEO AI Dashboard
+### ZOIX AI Dashboard
 View learning stats, patterns, and insights:
-- **Location**: `src/renderer/components/LeoAIView.tsx`
+- **Location**: `src/renderer/components/ZoixAIView.tsx`
 - **Features**: Stats overview, pattern browser, interaction history
 
 ## Maintenance Commands
 
-### Debloating the LEO AI Database
+### Debloating the ZOIX AI Database
 
 **Philosophy**: Optimize and deduplicate without losing valuable knowledge. Never delete unique insights.
 
@@ -276,18 +276,18 @@ rm ~/.flowrider/leo-ai.db
 
 ### High Priority
 - [ ] Fix Flowrider app build/launch issues
-- [ ] Test LEO AI learning loop end-to-end
+- [ ] Test ZOIX AI learning loop end-to-end
 - [ ] Verify SessionMonitor captures interactions correctly
 - [ ] Test thumbs up/down feedback in UI
 
 ### Medium Priority
-- [ ] Add LEO AI dashboard view to UI
+- [ ] Add ZOIX AI dashboard view to UI
 - [ ] Implement context injection into prompts
 - [ ] Add session rename functionality
 - [ ] Create first-run experience/onboarding
 
 ### Low Priority / Future
-- [ ] Cloud sync for LEO AI database (beyond iCloud)
+- [ ] Cloud sync for ZOIX AI database (beyond iCloud)
 - [ ] Cross-user pattern sharing (opt-in)
 - [ ] Real-time session collaboration
 - [ ] Voice command integration

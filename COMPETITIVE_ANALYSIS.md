@@ -99,7 +99,7 @@ Flowrider: 1 developer + 20 AIs = 20x productivity
 ```
 
 **Competitive Response:**
-- If Cursor adds multi-session: We have 18+ month head start on LEO Mode
+- If Cursor adds multi-session: We have 18+ month head start on ZOIX Mode
 - If Cursor acquires us: Attractive exit ($500M-1B range)
 - Partnership opportunity: "Use Cursor inside Flowrider sessions"
 
@@ -178,7 +178,7 @@ Flowrider: 1 developer + 20 AIs = 20x productivity
 **Why We Win:**
 - Flowrider runs 20 Claude Code sessions simultaneously
 - We add model choice (use GPT for simple tasks, Claude for complex)
-- LEO Mode manages 400 Claude Code instances
+- ZOIX Mode manages 400 Claude Code instances
 
 **Strategic Relationship:**
 - Claude Code is our #1 integration
@@ -311,7 +311,7 @@ Flowrider: 1 developer + 20 AIs = 20x productivity
 │ Terminal native  │ ✓        │ ✗        │ ✗        │ ✓        │ ✗              │
 │ IDE native       │ ✗        │ ✓        │ ✓        │ ✗        │ ✓              │
 │ Cross-session    │ ✓        │ ✗        │ ✗        │ ✗        │ ✗              │
-│ LEO Mode         │ ✓        │ ✗        │ ✗        │ ✗        │ ✗              │
+│ ZOIX Mode         │ ✓        │ ✗        │ ✗        │ ✗        │ ✗              │
 │ Local-first      │ ✓        │ ✓        │ ✗        │ ✓        │ ✓              │
 │ Open source      │ Partial  │ ✗        │ ✗        │ ✗        │ ✗              │
 │ Enterprise       │ Planned  │ ✓        │ ✓        │ ✗        │ ✓              │
@@ -384,15 +384,15 @@ Flowrider: 1 developer + 20 AIs = 20x productivity
 
 | Moat | Description | Durability |
 |------|-------------|------------|
-| **LEO Mode** | 400-agent orchestration | High (complex to build) |
-| **LEO Learning** | Organizational knowledge accumulation | Very high (data network effect) |
+| **ZOIX Mode** | 400-agent orchestration | High (complex to build) |
+| **ZOIX Learning** | Organizational knowledge accumulation | Very high (data network effect) |
 | **Community** | Plugins, templates, integrations | Medium-high |
 
 ### Year 4-5 Moats
 
 | Moat | Description | Durability |
 |------|-------------|------------|
-| **LEO Network** | Cross-organization intelligence | Very high |
+| **ZOIX Network** | Cross-organization intelligence | Very high |
 | **Enterprise trust** | SOC 2, FedRAMP, track record | Very high |
 | **Talent density** | Best orchestration engineers | High |
 | **Brand** | "Flowrider" becomes a verb | Very high |
@@ -443,7 +443,7 @@ Flowrider: 1 developer + 20 AIs = 20x productivity
 
 1. **Cursor multi-session rumors**
    - Watch: Twitter, Blind, HN
-   - Response: Accelerate LEO Mode
+   - Response: Accelerate ZOIX Mode
 
 2. **Microsoft orchestration patents**
    - Watch: USPTO filings
@@ -461,11 +461,11 @@ Flowrider: 1 developer + 20 AIs = 20x productivity
 
 | If This Happens | We Do This |
 |-----------------|------------|
-| Cursor adds 2-3 sessions | Emphasize LEO Mode (400 sessions) |
+| Cursor adds 2-3 sessions | Emphasize ZOIX Mode (400 sessions) |
 | Microsoft announces orchestration | Announce enterprise partnership |
 | New startup launches similar | Community moat, open source more |
 | Anthropic builds Claude Orchestra | Partnership conversation |
-| Our features get copied | Double down on LEO Learning |
+| Our features get copied | Double down on ZOIX Learning |
 
 ---
 
@@ -541,8 +541,8 @@ Flowrider: 1 developer + 20 AIs = 20x productivity
 │     We don't bet on one model winning.                                 │
 │                                                                         │
 │  4. NETWORK EFFECTS                                                     │
-│     LEO Learning creates org-specific knowledge.                       │
-│     LEO Network creates cross-org intelligence.                        │
+│     ZOIX Learning creates org-specific knowledge.                       │
+│     ZOIX Network creates cross-org intelligence.                        │
 │     Neither is copyable without our user base.                         │
 │                                                                         │
 │  5. TIMING                                                              │

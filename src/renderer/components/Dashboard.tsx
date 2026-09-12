@@ -8,7 +8,7 @@ import { MCPStatus } from './MCPStatus';
 import { SessionMessaging } from './SessionMessaging';
 import { AIProviders } from './AIProviders';
 import { LeoDodecahedron } from './LeoDodecahedron';
-import { LeoAIView } from './AIView';
+import { ZoixAIView } from './AIView';
 import { LeoLearning } from './LeoLearning';
 import { CrossSessionContext } from './CrossSessionContext';
 import { ApiSettings } from './dashboard/ApiSettings';
@@ -180,7 +180,7 @@ export const Dashboard: React.FC = () => {
         )}
 
         {dashboardView === 'leoai' && (
-          <LeoAIView />
+          <ZoixAIView />
         )}
 
         {dashboardView === 'learning' && (

@@ -15,7 +15,7 @@ Flowrider is an Electron-based desktop application for orchestrating multiple AI
 │  │                        RENDERER PROCESS                              │   │
 │  │                         (React + Vite)                               │   │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                  │   │
-│  │  │ Icosahedron │  │   Session   │  │   LEO AI    │                  │   │
+│  │  │ Icosahedron │  │   Session   │  │   ZOIX AI    │                  │   │
 │  │  │    View     │  │    Panel    │  │  Dashboard  │                  │   │
 │  │  │  (Three.js) │  │  (xterm.js) │  │             │                  │   │
 │  │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘                  │   │
@@ -44,7 +44,7 @@ Flowrider is an Electron-based desktop application for orchestrating multiple AI
 │  │         └────────────────┼────────────────┼────────────────┘         │   │
 │  │                          │                │                          │   │
 │  │                    ┌─────▼─────┐    ┌─────▼─────┐                    │   │
-│  │                    │  node-pty │    │  LEO AI   │                    │   │
+│  │                    │  node-pty │    │  ZOIX AI   │                    │   │
 │  │                    │           │    │  System   │                    │   │
 │  │                    └─────┬─────┘    └─────┬─────┘                    │   │
 │  │                          │                │                          │   │
@@ -71,7 +71,7 @@ src/renderer/
 ├── components/
 │   ├── Icosahedron.tsx  # 3D visualization
 │   ├── SessionPanel.tsx # Terminal + controls
-│   ├── LeoAIView.tsx    # Learning dashboard
+│   ├── ZoixAIView.tsx    # Learning dashboard
 │   └── ...
 └── store/
     └── useStore.ts      # Zustand state
@@ -95,13 +95,13 @@ src/main/
 ├── TmuxManager.ts       # tmux session lifecycle
 ├── SessionMonitor.ts    # Auto-capture interactions
 ├── ContextInjector.ts   # Inject learned context
-├── LeoManager.ts        # Multi-Flowrider orchestration
+├── ZoixManager.ts        # Multi-Flowrider orchestration
 └── leo-ai/
-    ├── LeoAI.ts         # Main coordinator
-    ├── LeoMemory.ts     # SQLite persistence
-    ├── LeoCollector.ts  # Capture interactions
-    ├── LeoAnalyzer.ts   # Pattern detection
-    └── LeoDistiller.ts  # Context generation
+    ├── ZoixAI.ts         # Main coordinator
+    ├── ZoixMemory.ts     # SQLite persistence
+    ├── ZoixCollector.ts  # Capture interactions
+    ├── ZoixAnalyzer.ts   # Pattern detection
+    └── ZoixDistiller.ts  # Context generation
 ```
 
 ## Data Flow
@@ -115,7 +115,7 @@ User clicks face → Renderer → IPC 'tmux:create' → TmuxManager
                                                       ↓
                                               SessionMonitor.start()
                                                       ↓
-                                              LeoAI.registerSession()
+                                              ZoixAI.registerSession()
 ```
 
 ### 2. User Sends Prompt
@@ -129,14 +129,14 @@ User types in terminal → xterm.js → IPC 'tmux:input' → TmuxManager
                                                             ↓
                                                      Response output
                                                             ↓
-SessionMonitor polls → detects prompt/response → LeoAI.recordInteraction()
+SessionMonitor polls → detects prompt/response → ZoixAI.recordInteraction()
 ```
 
-### 3. LEO AI Learning Loop
+### 3. ZOIX AI Learning Loop
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     LEO AI LEARNING LOOP                        │
+│                     ZOIX AI LEARNING LOOP                        │
 │                                                                 │
 │    OBSERVE          ANALYZE           LEARN           APPLY     │
 │       ↓                ↓                ↓               ↓       │
@@ -183,19 +183,19 @@ class SessionMonitor {
   pollSession()          // Check for new output
   detectPromptSent()     // Find user prompts
   detectResponseComplete() // Find AI responses
-  recordInteraction()    // Send to LEO AI
+  recordInteraction()    // Send to ZOIX AI
 }
 ```
 
-### LEO AI Components
+### ZOIX AI Components
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| LeoAI | `LeoAI.ts` | Coordinator, public API |
-| LeoMemory | `LeoMemory.ts` | SQLite CRUD operations |
-| LeoCollector | `LeoCollector.ts` | Capture and preprocess |
-| LeoAnalyzer | `LeoAnalyzer.ts` | Pattern extraction |
-| LeoDistiller | `LeoDistiller.ts` | Context generation |
+| ZoixAI | `ZoixAI.ts` | Coordinator, public API |
+| ZoixMemory | `ZoixMemory.ts` | SQLite CRUD operations |
+| ZoixCollector | `ZoixCollector.ts` | Capture and preprocess |
+| ZoixAnalyzer | `ZoixAnalyzer.ts` | Pattern extraction |
+| ZoixDistiller | `ZoixDistiller.ts` | Context generation |
 
 ### ContextInjector
 
@@ -289,7 +289,7 @@ CREATE TABLE snippets (
 
 ### Data Privacy
 
-- All LEO AI data stored locally (`~/.flowrider/`)
+- All ZOIX AI data stored locally (`~/.flowrider/`)
 - No cloud sync by default
 - User controls what gets learned via feedback
 
@@ -301,11 +301,11 @@ CREATE TABLE snippets (
 
 ## Scaling Architecture (Future)
 
-### LEO Meta-Orchestration
+### ZOIX Meta-Orchestration
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    LEO META-ORCHESTRATOR                        │
+│                    ZOIX META-ORCHESTRATOR                        │
 │                  (Up to 20 Flowriders)                          │
 └─────────────────────────────┬───────────────────────────────────┘
                               │
@@ -340,4 +340,4 @@ Total capacity: 20 × 20 = 400 concurrent AI sessions
 - [DEVELOPMENT.md](./DEVELOPMENT.md) - Setup and workflow
 - [API.md](./API.md) - window.flowrider API reference
 - [AGENTS.md](./AGENTS.md) - Agent architecture details
-- [LEO_LEARNING.md](./LEO_LEARNING.md) - LEO AI deep dive
+- [ZOIX_LEARNING.md](./ZOIX_LEARNING.md) - ZOIX AI deep dive

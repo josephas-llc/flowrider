@@ -36,15 +36,15 @@ flowrider2/
 │   │   ├── main.ts           # Entry point, IPC handlers
 │   │   ├── preload.ts        # Context bridge (window.flowrider API)
 │   │   ├── TmuxManager.ts    # tmux session management
-│   │   ├── SessionMonitor.ts # Auto-captures interactions for LEO AI
+│   │   ├── SessionMonitor.ts # Auto-captures interactions for ZOIX AI
 │   │   ├── ContextInjector.ts# Injects learned context into prompts
-│   │   ├── LeoManager.ts     # LEO meta-orchestration
-│   │   └── leo-ai/           # LEO AI learning system
-│   │       ├── LeoAI.ts      # Main coordinator
-│   │       ├── LeoMemory.ts  # SQLite persistence
-│   │       ├── LeoCollector.ts
-│   │       ├── LeoAnalyzer.ts
-│   │       └── LeoDistiller.ts
+│   │   ├── ZoixManager.ts     # ZOIX meta-orchestration
+│   │   └── leo-ai/           # ZOIX AI learning system
+│   │       ├── ZoixAI.ts      # Main coordinator
+│   │       ├── ZoixMemory.ts  # SQLite persistence
+│   │       ├── ZoixCollector.ts
+│   │       ├── ZoixAnalyzer.ts
+│   │       └── ZoixDistiller.ts
 │   └── renderer/             # React frontend (Vite)
 │       ├── App.tsx           # Main app component
 │       ├── components/       # React components
@@ -159,7 +159,7 @@ lsof -ti:5173 | xargs kill -9
 | Path | Purpose |
 |------|---------|
 | `~/.flowrider/` | App data directory (created on first run) |
-| `~/.flowrider/leo-ai.db` | LEO AI learning database (SQLite) |
+| `~/.flowrider/leo-ai.db` | ZOIX AI learning database (SQLite) |
 | `~/.flowrider/flowrider.db` | Sessions and projects |
 | `~/.flowrider/config.json` | User configuration |
 
@@ -187,7 +187,7 @@ The build is configured for hardened runtime. For signed builds:
 | `electron` | Desktop app framework |
 | `@react-three/fiber` | 3D icosahedron visualization |
 | `@xterm/xterm` | Terminal emulation |
-| `better-sqlite3` | LEO AI persistent storage |
+| `better-sqlite3` | ZOIX AI persistent storage |
 | `node-pty` | Pseudo-terminal for tmux |
 | `zustand` | React state management |
 | `vite` | Fast bundler for renderer |
@@ -216,7 +216,7 @@ Currently manual testing. Future plans:
 
 ## Related Documentation
 
-- [AGENTS.md](./AGENTS.md) - Agent architecture and LEO AI
+- [AGENTS.md](./AGENTS.md) - Agent architecture and ZOIX AI
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture
 - [API.md](./API.md) - window.flowrider API reference
-- [LEO_LEARNING.md](./LEO_LEARNING.md) - LEO AI deep dive
+- [ZOIX_LEARNING.md](./ZOIX_LEARNING.md) - ZOIX AI deep dive

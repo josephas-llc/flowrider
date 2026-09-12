@@ -19,6 +19,9 @@ import { registerCursorHandlers } from './ipc/cursor-handlers';
 import { registerSkillTrackerHandlers, shutdownSkillTracker } from './ipc/zoix-skill-handlers';
 import { registerOntologyHandlers } from './ipc/ontology-handlers';
 import { registerZoixIntelligenceHandlers } from './ipc/zoix-intelligence-handlers';
+import { registerBillingHandlers } from './ipc/billing-handlers';
+import { getTaskRouter } from './ai-core/TaskRouter';
+import { getBillingService } from './api/BillingService';
 import { getApiConfigService, shutdownApiConfigService } from './api/ApiConfig';
 import { z } from 'zod';
 import {
@@ -1156,7 +1159,7 @@ function setupIPC() {
     }
   });
 
-  // Make an AI call
+  // Make an AI call (with TaskRouter integration for smart model routing)
   ipcMain.handle('ai:call', async (
     _event,
     options: {
@@ -1166,13 +1169,95 @@ function setupIPC() {
       maxTokens?: number;
       temperature?: number;
       systemPrompt?: string;
+      projectId?: string;  // Optional project context for routing rules
+      useSmartRouting?: boolean;  // Enable ZOIX smart routing
     }
   ) => {
     try {
       const validated = validate(aiCallSchema, options);
-      console.log(`[IPC] AI call to ${validated.provider}${validated.model ? ` (${validated.model})` : ''}`);
+
+      // Get TaskRouter for smart model routing (CFO-approved cost optimization)
+      const taskRouter = getTaskRouter();
+      const billing = getBillingService();
+
+      // Extract the last user message for complexity analysis
+      const lastUserMessage = validated.messages
+        .filter((m: AIMessage) => m.role === 'user')
+        .pop()?.content || '';
+
+      // Analyze task complexity and get routing recommendation
+      const analysis = await taskRouter.analyzeTask(
+        lastUserMessage,
+        options.projectId,
+        {
+          sessionHistory: validated.messages.map((m: AIMessage) => m.content)
+        }
+      );
+
+      // Check budget constraints before proceeding
+      const budgetStatus = taskRouter.checkBudget();
+      if (budgetStatus.overDaily || budgetStatus.overMonthly) {
+        console.log(`[TaskRouter] Budget exceeded - daily: ${budgetStatus.dailyUsedPercent.toFixed(0)}%, monthly: ${budgetStatus.monthlyUsedPercent.toFixed(0)}%`);
+
+        // If over budget, route to local/free model if available
+        const settings = taskRouter.getSettings();
+        if (settings.overBudgetFallback === 'local') {
+          console.log('[TaskRouter] Falling back to local model due to budget constraints');
+          validated.provider = 'ollama' as AIProviderType;
+          validated.model = 'llama3.2';
+        } else if (settings.overBudgetFallback === 'block') {
+          return {
+            success: false,
+            error: 'Budget limit exceeded. Contact your administrator to increase the AI budget.',
+            budgetExceeded: true
+          };
+        }
+        // 'warn' mode continues with the request but logs warning
+      }
+
+      // Apply smart routing if enabled (default: let user/config decide)
+      if (options.useSmartRouting && analysis.suggestedProvider !== validated.provider) {
+        console.log(`[TaskRouter] Smart routing: ${analysis.complexity} task → ${analysis.suggestedProvider}/${analysis.suggestedModel} (saves $${analysis.potentialSavings.toFixed(3)})`);
+        validated.provider = analysis.suggestedProvider as AIProviderType;
+        validated.model = analysis.suggestedModel;
+      }
+
+      console.log(`[IPC] AI call to ${validated.provider}${validated.model ? ` (${validated.model})` : ''} [${analysis.complexity}]`);
+
       const result = await aiService.call(validated);
-      return result;
+
+      // Record routing decision and cost for tracking (feeds SavingsDashboard)
+      if (result.success) {
+        const actualTokens = (result.inputTokens || 0) + (result.outputTokens || 0);
+        const actualCost = aiService.calculateCost(
+          validated.provider,
+          validated.model || '',
+          result.inputTokens || 0,
+          result.outputTokens || 0
+        );
+        taskRouter.recordRouting(analysis, actualTokens, actualCost);
+
+        // Also record to billing service for CFO reports
+        billing.recordProjectCost(
+          options.projectId || 'default',
+          options.projectId || 'Default Project',
+          actualCost,
+          validated.provider
+        );
+      }
+
+      // Include routing metadata in response for UI feedback
+      return {
+        ...result,
+        routing: {
+          complexity: analysis.complexity,
+          confidence: analysis.confidence,
+          suggestedProvider: analysis.suggestedProvider,
+          suggestedModel: analysis.suggestedModel,
+          potentialSavings: analysis.potentialSavings,
+          signals: analysis.signals
+        }
+      };
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
@@ -1880,7 +1965,10 @@ function setupIPC() {
   // Register ZOIX Intelligence handlers (insights, cross-session recommendations, skill progression)
   registerZoixIntelligenceHandlers();
 
-  console.log('[IPC] Handlers registered (including LEO + AI System + SessionMonitor + ContextInjector + AIService + CrossSessionAwareness + Deployment + License + Templates + API + Cursor + ZOIX UserProfiler + ZOIX SkillTracker + ZOIX OntologyBuilder + ZOIX Intelligence)');
+  // Register Enterprise Billing handlers (CFO/accounting cost visibility)
+  registerBillingHandlers();
+
+  console.log('[IPC] Handlers registered (including LEO + AI System + SessionMonitor + ContextInjector + AIService + CrossSessionAwareness + Deployment + License + Templates + API + Cursor + ZOIX UserProfiler + ZOIX SkillTracker + ZOIX OntologyBuilder + ZOIX Intelligence + Enterprise Billing)');
 }
 
 app.whenReady().then(async () => {

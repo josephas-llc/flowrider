@@ -1,5 +1,5 @@
 /**
- * LeoAIView - AI System Learning System Dashboard
+ * ZoixAIView - ZOIX Intelligence Learning System Dashboard
  *
  * Visualizes the self-improving learning system:
  * - Learning status and stats
@@ -78,7 +78,7 @@ interface Interaction {
   errorsSeen: string[];
 }
 
-export const LeoAIView: React.FC = () => {
+export const ZoixAIView: React.FC = () => {
   const [status, setStatus] = useState<AIStatus | null>(null);
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
@@ -183,7 +183,7 @@ export const LeoAIView: React.FC = () => {
       <div className="leoai-hero">
         <div className="leoai-hero-left">
           <div className="leoai-title-section">
-            <h2>AI System</h2>
+            <h2>ZOIX Intelligence</h2>
             <p>Self-Improving Learning System</p>
             <p className="leoai-subtitle">
               Learns from every interaction across all sessions
@@ -197,7 +197,7 @@ export const LeoAIView: React.FC = () => {
               className={`btn ${status?.enabled ? 'btn-danger' : 'btn-primary'}`}
               onClick={handleToggle}
             >
-              {status?.enabled ? 'Disable AI System' : 'Enable AI System'}
+              {status?.enabled ? 'Disable ZOIX' : 'Enable ZOIX'}
             </button>
             {status?.enabled && (
               <button
@@ -423,7 +423,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
       {/* How It Works */}
       <div className="overview-section how-it-works">
-        <h3>How AI System Works</h3>
+        <h3>How ZOIX Works</h3>
         <div className="process-flow">
           <div className="process-step">
             <div className="step-icon">👁️</div>
@@ -512,7 +512,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({
         <div className="empty-state large">
           <div className="empty-icon">🔍</div>
           <h4>No Patterns Yet</h4>
-          <p>AI System will detect patterns as you interact with sessions.</p>
+          <p>ZOIX will detect patterns as you interact with sessions.</p>
         </div>
       ) : (
         <div className="patterns-list">
@@ -599,7 +599,7 @@ const InsightsTab: React.FC<InsightsTabProps> = ({
         <div className="empty-state large">
           <div className="empty-icon">💡</div>
           <h4>No Insights Yet</h4>
-          <p>AI System generates insights by analyzing patterns across sessions.</p>
+          <p>ZOIX generates insights by analyzing patterns across sessions.</p>
         </div>
       ) : (
         <div className="insights-list">
@@ -735,4 +735,4 @@ const InteractionsTab: React.FC<InteractionsTabProps> = ({
   );
 };
 
-export default LeoAIView;
+export default ZoixAIView;

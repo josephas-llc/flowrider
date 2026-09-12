@@ -60,11 +60,11 @@
 ---
 
 ### v0.4.0 - "Intelligence" (2 months)
-**Goal**: LEO Learning Module active; AI gets smarter over time
+**Goal**: ZOIX Learning Module active; AI gets smarter over time
 
 | Feature | Priority | Effort | Impact |
 |---------|----------|--------|--------|
-| LEO Learning active analysis | P1 | 16h | Core value |
+| ZOIX Learning active analysis | P1 | 16h | Core value |
 | Cross-session context sharing | P1 | 12h | Coordination |
 | Suggestion engine live | P1 | 8h | Proactive help |
 | Cost optimization suggestions | P2 | 6h | ROI visible |
@@ -101,19 +101,19 @@
 
 ---
 
-### v2.0.0 - "LEO Mode" (6 months)
+### v2.0.0 - "ZOIX Mode" (6 months)
 **Goal**: 400-agent orchestration; enterprise-grade
 
 | Feature | Priority | Effort | Impact |
 |---------|----------|--------|--------|
-| LEO Mode (20 Flowriders × 20 sessions) | P0 | 80h | 20x scale |
+| ZOIX Mode (20 Flowriders × 20 sessions) | P0 | 80h | 20x scale |
 | Enterprise SSO/SAML | P1 | 40h | Enterprise |
 | On-prem deployment option | P1 | 40h | Security |
 | API v2 with webhooks | P1 | 24h | Integration |
 | Multi-user collaboration | P2 | 60h | Teams |
 
 **Technical Tasks**:
-- [ ] Design LEO network protocol
+- [ ] Design ZOIX network protocol
 - [ ] Implement FlowriderProxy for remote management
 - [ ] Add SSO provider integrations
 - [ ] Create Docker/Kubernetes deployment configs
@@ -188,13 +188,13 @@ const SessionSearch: React.FC = () => {
 };
 ```
 
-### LEO Mode Architecture (v2.0.0)
+### ZOIX Mode Architecture (v2.0.0)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      LEO Controller                          │
+│                      ZOIX Controller                          │
 │  ┌─────────────────────────────────────────────────────────┐ │
-│  │                    LeoCore Singleton                     │ │
+│  │                    ZoixCore Singleton                     │ │
 │  │  - Manages up to 20 FlowriderProxy instances            │ │
 │  │  - Cross-instance load balancing                        │ │
 │  │  - Global cost tracking                                 │ │
@@ -254,9 +254,9 @@ const SessionSearch: React.FC = () => {
 - [ ] Session recovery success > 99%
 
 ### v2.0.0
-- [ ] LEO Mode adoption > 20% of Pro users
+- [ ] ZOIX Mode adoption > 20% of Pro users
 - [ ] Enterprise pipeline > $1M ARR
-- [ ] Average sessions per LEO user > 50
+- [ ] Average sessions per ZOIX user > 50
 
 ---
 
@@ -271,7 +271,7 @@ const SessionSearch: React.FC = () => {
 ### Risks
 | Risk | Mitigation |
 |------|------------|
-| Cursor adds multi-session | Ship LEO Mode first (400 > their 20) |
+| Cursor adds multi-session | Ship ZOIX Mode first (400 > their 20) |
 | Performance at 20 sessions | Implement polling throttling |
 | Enterprise security concerns | SOC 2 Type II certification |
 | Local LLM quality stalls | Maintain cloud provider support |
@@ -290,7 +290,7 @@ const SessionSearch: React.FC = () => {
 
 ### Phase 3 (v2.0.0)
 - 3 developers + 1 designer
-- Focus: LEO Mode, enterprise features, scale
+- Focus: ZOIX Mode, enterprise features, scale
 
 ---
 
@@ -304,10 +304,10 @@ August 2026    ──────►      v0.2.0 (onboarding)    Still none
 September 2026 ──────►      v0.3.0 (power user)    Possible Cursor announcement
 November 2026  ──────►      v0.4.0 (intelligence)  Unknown
 January 2027   ──────►      v1.0.0 (production)    Cursor multi-session beta?
-June 2027      ──────►      v2.0.0 (LEO Mode)      We're at 400, they're at 20
+June 2027      ──────►      v2.0.0 (ZOIX Mode)      We're at 400, they're at 20
 ```
 
-**Key Insight**: We have 18-24 months first-mover advantage. LEO Mode (400 agents) is our long-term moat.
+**Key Insight**: We have 18-24 months first-mover advantage. ZOIX Mode (400 agents) is our long-term moat.
 
 ---
 
